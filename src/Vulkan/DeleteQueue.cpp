@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "DeleteQueue.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 
 	void DeleteQueue::Init(const CreateInfo& info)
@@ -118,7 +118,7 @@ namespace Vulture
 			if (renderPass.second == 0)
 			{
 				// Destroy the Vulkan buffer and deallocate the buffer memory.
-				vkDestroyRenderPass(Vulture::Device::GetDevice(), renderPass.first, nullptr);
+				vkDestroyRenderPass(VulkanHelper::Device::GetDevice(), renderPass.first, nullptr);
 
 				s_RenderPassQueue.erase(s_RenderPassQueue.begin() + i);
 				i = -1; // Go back to the beginning of the vector
@@ -136,7 +136,7 @@ namespace Vulture
 			if (framebuffer.second == 0)
 			{
 				// Destroy the Vulkan buffer and deallocate the buffer memory.
-				vkDestroyFramebuffer(Vulture::Device::GetDevice(), framebuffer.first, nullptr);
+				vkDestroyFramebuffer(VulkanHelper::Device::GetDevice(), framebuffer.first, nullptr);
 
 				s_FramebufferQueue.erase(s_FramebufferQueue.begin() + i);
 				i = -1; // Go back to the beginning of the vector

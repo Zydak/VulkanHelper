@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "DescriptorPool.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	/**
 	 * @brief Initializes the descriptor pool with the given pool sizes,

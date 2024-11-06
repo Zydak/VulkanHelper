@@ -2,16 +2,16 @@
 #include "Utility/Utility.h"
 
 #include "Image.h"
-#include "Vulture/Renderer/Renderer.h"
+#include "VulkanHelper/Renderer/Renderer.h"
 
 #include <vulkan/vulkan_core.h>
 
 #include <stb_image.h>
 
-#include "Vulture/Math/Defines.h"
+#include "VulkanHelper/Math/Defines.h"
 #include "DeleteQueue.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	void Image::Init(const CreateInfo& createInfo)
 	{
@@ -150,7 +150,7 @@ namespace Vulture
 	{
 		VL_CORE_ASSERT(m_Initialized, "Can't Resize Uninitialized Image!");
 
-		Vulture::Image::CreateInfo imageInfo{};
+		VulkanHelper::Image::CreateInfo imageInfo{};
 		imageInfo.Width = newSize.width;
 		imageInfo.Height = newSize.height;
 		imageInfo.Format = m_Format;
@@ -159,7 +159,7 @@ namespace Vulture
 		imageInfo.Properties = m_MemoryProperties;
 		imageInfo.Aspect = m_Aspect;
 		imageInfo.LayerCount = m_LayerCount;
-		imageInfo.SamplerInfo = Vulture::SamplerInfo{}; // TODO
+		imageInfo.SamplerInfo = VulkanHelper::SamplerInfo{}; // TODO
 		imageInfo.Type = m_Type;
 		imageInfo.DebugName = ""; // TODO
 

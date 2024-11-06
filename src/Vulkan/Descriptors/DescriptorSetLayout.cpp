@@ -2,7 +2,7 @@
 #include "DescriptorSetLayout.h"
 #include "../DeleteQueue.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	/**
 	 * @brief Initializes the descriptor set layout with the given bindings.

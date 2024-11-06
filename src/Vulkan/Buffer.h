@@ -5,7 +5,7 @@
 #include <vk_mem_alloc.h>
 #include "iostream"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class Buffer
 	{

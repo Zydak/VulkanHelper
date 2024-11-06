@@ -12,7 +12,7 @@
 
 #include "vulkan.hpp"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	std::vector<const char*> Device::s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 	std::vector<const char*> Device::s_DeviceExtensions;
@@ -313,7 +313,7 @@ namespace Vulture
 	{
 		// Set up application information
 		vk::ApplicationInfo appInfo;
-		appInfo.pApplicationName = "Vulture";
+		appInfo.pApplicationName = "VulkanHelper";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "No Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -427,7 +427,7 @@ namespace Vulture
 		allocatorInfo.device = s_Device;
 
 		// Check if the memory priority extension is present
-		for (Vulture::Extension& ext : s_OptionalExtensions)
+		for (VulkanHelper::Extension& ext : s_OptionalExtensions)
 		{
 			if (std::string(ext.Name) == std::string(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME))
 				if (ext.supported)
@@ -1297,7 +1297,7 @@ namespace Vulture
 	VkQueue Device::s_GraphicsQueue = {};
 	std::mutex Device::s_GraphicsQueueMutex;
 	VkQueue Device::s_PresentQueue = {};
-	std::unordered_map<std::thread::id, Vulture::CommandPool> Device::s_CommandPools;
+	std::unordered_map<std::thread::id, VulkanHelper::CommandPool> Device::s_CommandPools;
 	VkQueue Device::s_ComputeQueue = {};
 	std::mutex Device::s_ComputeQueueMutex;
 	bool Device::s_UseRayTracing;

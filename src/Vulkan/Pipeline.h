@@ -8,7 +8,7 @@
 
 #include "Shader.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class Pipeline
 	{
@@ -65,7 +65,7 @@ namespace Vulture
 
 		struct ComputeCreateInfo
 		{
-			Vulture::Shader* Shader = nullptr;
+			VulkanHelper::Shader* Shader = nullptr;
 			std::vector<VkDescriptorSetLayout> DescriptorSetLayouts;
 			VkPushConstantRange* PushConstants = nullptr;
 

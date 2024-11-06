@@ -2,7 +2,7 @@
 
 #include "sbt.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	void SBT::Init(CreateInfo* createInfo)
 	{
@@ -19,36 +19,36 @@ namespace Vulture
 		m_RayTracingPipeline = createInfo->RayTracingPipeline;
 
 		uint32_t handleCount = m_MissCount + m_HitCount + m_RGenCount + m_CallableCount;
-		uint32_t handleSize = Vulture::Device::GetRayTracingProperties().shaderGroupHandleSize;
+		uint32_t handleSize = VulkanHelper::Device::GetRayTracingProperties().shaderGroupHandleSize;
 
-		uint32_t handleSizeAligned = (uint32_t)Vulture::Device::GetAlignment(handleSize, Vulture::Device::GetRayTracingProperties().shaderGroupHandleAlignment);
+		uint32_t handleSizeAligned = (uint32_t)VulkanHelper::Device::GetAlignment(handleSize, VulkanHelper::Device::GetRayTracingProperties().shaderGroupHandleAlignment);
 
-		m_RgenRegion.stride = Vulture::Device::GetAlignment(handleSizeAligned, Vulture::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_RgenRegion.stride = VulkanHelper::Device::GetAlignment(handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
 		m_RgenRegion.size = m_RgenRegion.stride;
 
 		m_MissRegion.stride = handleSizeAligned;
-		m_MissRegion.size = Vulture::Device::GetAlignment(m_MissCount * handleSizeAligned, Vulture::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_MissRegion.size = VulkanHelper::Device::GetAlignment(m_MissCount * handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
 
 		m_HitRegion.stride = handleSizeAligned;
-		m_HitRegion.size = Vulture::Device::GetAlignment(m_HitCount * handleSizeAligned, Vulture::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_HitRegion.size = VulkanHelper::Device::GetAlignment(m_HitCount * handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
 		
 		m_CallRegion.stride = handleSizeAligned;
-		m_CallRegion.size = Vulture::Device::GetAlignment(m_CallableCount * handleSizeAligned, Vulture::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_CallRegion.size = VulkanHelper::Device::GetAlignment(m_CallableCount * handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
 
 		// Get the shader group handles
 		uint32_t dataSize = handleCount * handleSize;
 		std::vector<uint8_t> handles(dataSize);
-		auto result = Vulture::Device::vkGetRayTracingShaderGroupHandlesKHR(Vulture::Device::GetDevice(), m_RayTracingPipeline->GetPipeline(), 0, handleCount, dataSize, handles.data());
+		auto result = VulkanHelper::Device::vkGetRayTracingShaderGroupHandlesKHR(VulkanHelper::Device::GetDevice(), m_RayTracingPipeline->GetPipeline(), 0, handleCount, dataSize, handles.data());
 		VL_CORE_ASSERT(result == VK_SUCCESS, "Failed to get shader group handles!");
 
 		// Allocate a buffer for storing the SBT.
 		VkDeviceSize sbtSize = m_RgenRegion.size + m_MissRegion.size + m_HitRegion.size + m_CallRegion.size;
 
-		Vulture::Buffer::CreateInfo bufferInfo{};
+		VulkanHelper::Buffer::CreateInfo bufferInfo{};
 		bufferInfo.InstanceSize = sbtSize;
 		bufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
 		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-		Vulture::Buffer stagingBuffer;
+		VulkanHelper::Buffer stagingBuffer;
 		stagingBuffer.Init(bufferInfo);
 
 		bufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
@@ -105,7 +105,7 @@ namespace Vulture
 		}
 
 		// Copy the shader binding table to the device local buffer
-		Vulture::Buffer::CopyBuffer(stagingBuffer.GetBuffer(), m_RtSBTBuffer.GetBuffer(), sbtSize, 0, 0, Vulture::Device::GetGraphicsQueue(), 0, Vulture::Device::GetGraphicsCommandPool());
+		VulkanHelper::Buffer::CopyBuffer(stagingBuffer.GetBuffer(), m_RtSBTBuffer.GetBuffer(), sbtSize, 0, 0, VulkanHelper::Device::GetGraphicsQueue(), 0, VulkanHelper::Device::GetGraphicsCommandPool());
 
 		stagingBuffer.Unmap();
 

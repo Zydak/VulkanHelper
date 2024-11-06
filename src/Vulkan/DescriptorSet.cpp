@@ -4,7 +4,7 @@
 #include "DescriptorSet.h"
 #include "Sampler.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	/**
 	 * @brief Initializes the descriptor set with the provided pool and bindings.

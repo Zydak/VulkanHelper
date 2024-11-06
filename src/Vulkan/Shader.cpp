@@ -7,7 +7,7 @@
 #include <shaderc/glslc/file_includer.h>
 
 
-namespace Vulture
+namespace VulkanHelper
 {
 	bool Shader::Init(const CreateInfo& info)
 	{

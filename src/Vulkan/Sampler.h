@@ -3,7 +3,7 @@
 
 #include "Device.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 
 	struct SamplerInfo

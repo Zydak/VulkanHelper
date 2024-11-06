@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace Vulture
+namespace VulkanHelper
 {
 	enum class FramebufferAttachment
 	{

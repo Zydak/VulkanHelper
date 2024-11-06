@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-namespace Vulture
+namespace VulkanHelper
 {
 
 	void Swapchain::Init(const CreateInfo& createInfo)

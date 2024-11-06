@@ -3,7 +3,7 @@
 #include "pch.h"
 #include "Vulkan/Device.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class DescriptorSetLayout
 	{

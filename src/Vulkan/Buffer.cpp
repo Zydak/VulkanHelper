@@ -4,7 +4,7 @@
 #include "Buffer.h"
 #include "DeleteQueue.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	/* VULKAN MEMORY TYPES
 	 *  Device-Local Memory:

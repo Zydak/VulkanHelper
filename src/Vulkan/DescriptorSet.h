@@ -6,7 +6,7 @@
 #include "Descriptors/DescriptorSetLayout.h"
 #include "Descriptors/DescriptorWriter.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class Sampler;
 
@@ -55,7 +55,7 @@ namespace Vulture
 		};
 
 		std::vector<Binding> m_BindingsWriteInfo;
-		Vulture::DescriptorSetLayout m_DescriptorSetLayout;
+		VulkanHelper::DescriptorSetLayout m_DescriptorSetLayout;
 		VkDescriptorSet m_DescriptorSetHandle = VK_NULL_HANDLE;
 
 		DescriptorPool* m_Pool = nullptr;

@@ -9,7 +9,7 @@
 
 #include "wrl/client.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class Shader
 	{

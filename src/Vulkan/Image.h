@@ -4,11 +4,11 @@
 #include "Buffer.h"
 #include "Device.h"
 #include "Sampler.h"
-#include "Vulture/Utility/Utility.h"
+#include "VulkanHelper/Utility/Utility.h"
 
 #include <vulkan/vulkan_core.h>
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class Image
 	{
@@ -36,7 +36,7 @@ namespace Vulture
 			int LayerCount = 1;
 			int MipMapCount = 0;
 
-			Vulture::SamplerInfo SamplerInfo = { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR };
+			VulkanHelper::SamplerInfo SamplerInfo = { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR };
 
 			bool HDR = false;
 

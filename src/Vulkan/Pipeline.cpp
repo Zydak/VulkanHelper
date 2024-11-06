@@ -6,7 +6,7 @@
 
 #include "DeleteQueue.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	enum class ShaderType
 	{
@@ -247,7 +247,7 @@ namespace Vulture
 		// TODO: figure out why the fuck I can't have 2 ray tracing pipelines at the same time
 		if (m_PipelineType == PipelineType::RayTracing)
 		{
-			Vulture::Device::WaitIdle();
+			VulkanHelper::Device::WaitIdle();
 			vkDestroyPipeline(Device::GetDevice(), m_PipelineHandle, nullptr);
 			vkDestroyPipelineLayout(Device::GetDevice(), m_PipelineLayout, nullptr);
 		}
@@ -356,13 +356,13 @@ namespace Vulture
 
 		switch (m_PipelineType)
 		{
-		case Vulture::Pipeline::PipelineType::Graphics:
+		case VulkanHelper::Pipeline::PipelineType::Graphics:
 			bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 			break;
-		case Vulture::Pipeline::PipelineType::Compute:
+		case VulkanHelper::Pipeline::PipelineType::Compute:
 			bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 			break;
-		case Vulture::Pipeline::PipelineType::RayTracing:
+		case VulkanHelper::Pipeline::PipelineType::RayTracing:
 			bindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
 			break;
 		default:

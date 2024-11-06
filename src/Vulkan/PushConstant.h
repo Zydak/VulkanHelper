@@ -2,7 +2,7 @@
 
 #include "Device.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	template<typename T>
 	class PushConstant
@@ -69,7 +69,7 @@ namespace Vulture
 	}
 
 	template<typename T>
-	void Vulture::PushConstant<T>::Reset()
+	void VulkanHelper::PushConstant<T>::Reset()
 	{
 		m_Data = T{};
 
@@ -79,13 +79,13 @@ namespace Vulture
 	}
 
 	template<typename T>
-	void Vulture::PushConstant<T>::SetData(const T& data)
+	void VulkanHelper::PushConstant<T>::SetData(const T& data)
 	{
 		m_Data = data;
 	}
 
 	template<typename T>
-	void Vulture::PushConstant<T>::Destroy()
+	void VulkanHelper::PushConstant<T>::Destroy()
 	{
 		if (!m_Initialized)
 			Destroy();
@@ -94,7 +94,7 @@ namespace Vulture
 	}
 
 	template<typename T>
-	void Vulture::PushConstant<T>::Init(CreateInfo createInfo)
+	void VulkanHelper::PushConstant<T>::Init(CreateInfo createInfo)
 	{
 		if (m_Initialized)
 			Destroy();
@@ -109,7 +109,7 @@ namespace Vulture
 	}
 
 	template<typename T>
-	void Vulture::PushConstant<T>::Push(VkPipelineLayout Layout, VkCommandBuffer cmdBuffer, uint32_t offset /*= 0*/)
+	void VulkanHelper::PushConstant<T>::Push(VkPipelineLayout Layout, VkCommandBuffer cmdBuffer, uint32_t offset /*= 0*/)
 	{
 		vkCmdPushConstants(
 			cmdBuffer,
@@ -122,14 +122,14 @@ namespace Vulture
 	}
 
 	template<typename T>
-	Vulture::PushConstant<T>::~PushConstant()
+	VulkanHelper::PushConstant<T>::~PushConstant()
 	{
 		if (m_Initialized)
 			Destroy();
 	}
 
 	template<typename T>
-	Vulture::PushConstant<T>::PushConstant(CreateInfo createInfo)
+	VulkanHelper::PushConstant<T>::PushConstant(CreateInfo createInfo)
 	{
 		Init(createInfo);
 	}

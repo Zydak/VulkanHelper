@@ -6,7 +6,7 @@
 #include "DescriptorSet.h"
 #include "Framebuffer.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class DeleteQueue
 	{

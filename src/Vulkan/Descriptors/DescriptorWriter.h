@@ -4,7 +4,7 @@
 #include "DescriptorSetLayout.h"
 #include "DescriptorPool.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class DescriptorWriter
 	{

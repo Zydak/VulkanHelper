@@ -3,7 +3,7 @@
 #include "Device.h"
 #include "Pipeline.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	class SBT
 	{
@@ -65,7 +65,7 @@ namespace Vulture
 		VkStridedDeviceAddressRegionKHR m_MissRegion{};
 		VkStridedDeviceAddressRegionKHR m_HitRegion{};
 		VkStridedDeviceAddressRegionKHR m_CallRegion{};
-		Vulture::Buffer m_RtSBTBuffer;
+		VulkanHelper::Buffer m_RtSBTBuffer;
 
 		bool m_Initialized = false;
 

@@ -4,7 +4,7 @@
 #include "Window.h"
 #include "stbimage/stb_image.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 
 	void GLFW_CALLBACK(int errCode, const char* message)
@@ -51,7 +51,7 @@ namespace Vulture
 		int width, height, channels;
 		if (createInfo.Icon.empty())
 		{
-			createInfo.Icon = "../Vulture/assets/Icon.png";
+			createInfo.Icon = "../VulkanHelper/assets/Icon.png";
 		}
 		unsigned char* iconData = stbi_load(createInfo.Icon.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 		if (iconData)

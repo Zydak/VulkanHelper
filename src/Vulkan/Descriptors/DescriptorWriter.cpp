@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "DescriptorWriter.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 
 	/**

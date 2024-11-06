@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-namespace Vulture
+namespace VulkanHelper
 {
 	enum class PresentModes
 	{

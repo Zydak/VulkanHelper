@@ -9,7 +9,7 @@
 
 #include "vulkan/vulkan_win32.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	struct SwapchainSupportDetails
 	{

@@ -6,7 +6,7 @@
 
 #include "DeleteQueue.h"
 
-namespace Vulture
+namespace VulkanHelper
 {
 	/*
 	 * @brief Initializes a Framebuffer object with color and depth attachments based on the specified
@@ -84,8 +84,8 @@ namespace Vulture
 		if (!m_Initialized)
 			return;
 
-		Vulture::DeleteQueue::TrashRenderPass(m_RenderPass);
-		Vulture::DeleteQueue::TrashFramebuffer(m_FramebufferHandle);
+		VulkanHelper::DeleteQueue::TrashRenderPass(m_RenderPass);
+		VulkanHelper::DeleteQueue::TrashFramebuffer(m_FramebufferHandle);
 
 		Reset();
 	}

@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-namespace Vulture
+namespace VulkanHelper
 {
 
 	void Sampler::Init(const SamplerInfo& samplerInfo)

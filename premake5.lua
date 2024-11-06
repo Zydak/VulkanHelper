@@ -6,7 +6,7 @@ include "lib/assimp"
 include "lib/lodepng"
 include "lib/imNodeFlow"
 
-project "Vulture"
+project "Vulkan-Helper"
 	architecture "x86_64"
     kind "StaticLib"
     language "C++"
@@ -36,7 +36,7 @@ project "Vulture"
     includedirs 
     {
         "src/",
-        "src/Vulture/",
+        "src/VulkanHelper/",
         "lib/shaderc/include/",
 
         globalIncludes,
