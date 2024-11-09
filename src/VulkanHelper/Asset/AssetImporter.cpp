@@ -82,6 +82,15 @@ namespace VulkanHelper
 		int index = 0;
 		ProcessAssimpNode(scene->mRootNode, scene, path, &asset, index);
 
+		for (int i = 0; i < asset.Meshes.size(); i++)
+		{
+			asset.Meshes[i].WaitToLoad();
+		}
+		for (int i = 0; i < asset.Materials.size(); i++)
+		{
+			asset.Materials[i].WaitToLoad();
+		}
+
 		return asset;
 	}
 
@@ -107,109 +116,14 @@ namespace VulkanHelper
 
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 			std::string meshName = node->mName.C_Str();
-			Mesh vlMesh(mesh, scene);
 
-			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-			Material mat;
-
-			aiColor4D emissiveColor(0.0f, 0.0f, 0.0f, 0.0f);
-			aiColor4D diffuseColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-			material->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor);
-			material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissiveColor.a);
-			material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
-			material->Get(AI_MATKEY_ROUGHNESS_FACTOR, mat.Properties.Roughness);
-			material->Get(AI_MATKEY_METALLIC_FACTOR, mat.Properties.Metallic);
-			material->Get(AI_MATKEY_REFRACTI, mat.Properties.Ior);
-
-			for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_DIFFUSE); i++)
-			{
-				aiString str;
-				material->GetTexture(aiTextureType_DIFFUSE, i, &str);
-				mat.Textures.AlbedoTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
-			}
-
-			for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_NORMALS); i++)
-			{
-				aiString str;
-				material->GetTexture(aiTextureType_NORMALS, i, &str);
-				mat.Textures.NormalTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
-			}
-
-			for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS); i++)
-			{
-				aiString str;
-				material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, i, &str);
-				mat.Textures.RoughnessTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
-			}
-
-			for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_METALNESS); i++)
-			{
-				aiString str;
-				material->GetTexture(aiTextureType_METALNESS, i, &str);
-				mat.Textures.MetallnessTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
-			}
-
-			// Create Empty Texture if none are found
-			if (material->GetTextureCount(aiTextureType_DIFFUSE) == 0)
-			{
-				mat.Textures.AlbedoTexture = AssetManager::LoadAsset("assets/white.png");
-			}
-			if (material->GetTextureCount(aiTextureType_NORMALS) == 0)
-			{
-				mat.Textures.NormalTexture = AssetManager::LoadAsset("assets/empty_normal.png");
-			}
-			if (material->GetTextureCount(aiTextureType_METALNESS) == 0)
-			{
-				mat.Textures.MetallnessTexture = AssetManager::LoadAsset("assets/white.png");
-			}
-			if (material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) == 0)
-			{
-				mat.Textures.RoughnessTexture = AssetManager::LoadAsset("assets/white.png");
-			}
-
-			mat.Properties.Color = glm::vec4(diffuseColor.r, diffuseColor.g, diffuseColor.b, 1.0f);
-			mat.Properties.EmissiveColor = glm::vec4(emissiveColor.r, emissiveColor.g, emissiveColor.b, emissiveColor.a);
-
-			mat.Properties.Transparency = 1.0f - diffuseColor.a;
-
-			std::string matName = material->GetName().C_Str();
-
-			mat.MaterialName = matName;
-
-			// For some models multiple materials have the same name, we have to handle that otherwise the
-			// incorrect material will be used + we'll probably crash when trying to delete this since
-			// 2 materials have the same handle.
-			{
-				std::string path = filepath + "::Material::" + matName;
-
-				std::hash<std::string> hash;
-				AssetHandle handle(AssetHandle::CreateInfo{ hash(path) });
-
-				int indexMat = 0;
-				while (true)
-				{
-					AssetHandle handle(AssetHandle::CreateInfo{ hash(path + std::to_string(indexMat)) });
-					if (handle.DoesHandleExist())
-						indexMat++;
-					else break;
-				}
-				path += std::to_string(indexMat);
-
-				std::unique_ptr<Asset> materialAsset = std::make_unique<MaterialAsset>(std::move(mat));
-				AssetHandle materialHandle = AssetManager::AddAsset(filepath + "::Material::" + matName, std::move(materialAsset));
-				outAsset->Materials.push_back(materialHandle);
-			}
-
-			// For some models multiple meshes have the same name, we have to handle that otherwise the
-			// incorrect mesh will be used + we'll probably crash when trying to delete this since
-			// 2 meshes have the same handle.
 			{
 				std::string path = filepath + "::Mesh::" + meshName;
 
 				std::hash<std::string> hash;
-				AssetHandle handle(AssetHandle::CreateInfo{ hash(path) });
 
+				// For some models multiple meshes have the same name (for example due to using multiple materials on a single mesh in blender),
+				// otherwise the incorrect mesh will be used
 				int indexMesh = 0;
 				while (true)
 				{
@@ -220,11 +134,96 @@ namespace VulkanHelper
 				}
 				path += std::to_string(indexMesh);
 
+				Mesh vlMesh(mesh, scene);
+
 				std::unique_ptr<Asset> meshAsset = std::make_unique<MeshAsset>(std::move(vlMesh));
-				AssetHandle meshHandle = AssetManager::AddAsset(path, std::move(meshAsset));
+				AssetHandle handle = AssetManager::AddAsset(path, std::move(meshAsset));
 
 				outAsset->MeshNames.push_back(meshName);
-				outAsset->Meshes.push_back(meshHandle);
+				outAsset->Meshes.push_back(handle);
+			}
+
+			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+			Material mat;
+
+			aiColor4D emissiveColor(0.0f, 0.0f, 0.0f, 0.0f);
+			aiColor4D diffuseColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+			{
+				std::string matName = material->GetName().C_Str();
+
+				mat.MaterialName = matName;
+
+				std::string path = filepath + "::Material::" + matName;
+
+				std::hash<std::string> hash;
+				AssetHandle handle(AssetHandle::CreateInfo{ hash(path) });
+
+				if (!handle.DoesHandleExist())
+				{
+					material->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor);
+					material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissiveColor.a);
+					material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
+					material->Get(AI_MATKEY_ROUGHNESS_FACTOR, mat.Properties.Roughness);
+					material->Get(AI_MATKEY_METALLIC_FACTOR, mat.Properties.Metallic);
+					material->Get(AI_MATKEY_REFRACTI, mat.Properties.Ior);
+
+					for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_DIFFUSE); i++)
+					{
+						aiString str;
+						material->GetTexture(aiTextureType_DIFFUSE, i, &str);
+						mat.Textures.AlbedoTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+					}
+
+					for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_NORMALS); i++)
+					{
+						aiString str;
+						material->GetTexture(aiTextureType_NORMALS, i, &str);
+						mat.Textures.NormalTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+					}
+
+					for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS); i++)
+					{
+						aiString str;
+						material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, i, &str);
+						mat.Textures.RoughnessTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+					}
+
+					for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_METALNESS); i++)
+					{
+						aiString str;
+						material->GetTexture(aiTextureType_METALNESS, i, &str);
+						mat.Textures.MetallnessTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+					}
+
+					// Create Empty Texture if none are found
+					if (material->GetTextureCount(aiTextureType_DIFFUSE) == 0)
+					{
+						mat.Textures.AlbedoTexture = AssetManager::LoadAsset("assets/white.png");
+					}
+					if (material->GetTextureCount(aiTextureType_NORMALS) == 0)
+					{
+						mat.Textures.NormalTexture = AssetManager::LoadAsset("assets/empty_normal.png");
+					}
+					if (material->GetTextureCount(aiTextureType_METALNESS) == 0)
+					{
+						mat.Textures.MetallnessTexture = AssetManager::LoadAsset("assets/white.png");
+					}
+					if (material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) == 0)
+					{
+						mat.Textures.RoughnessTexture = AssetManager::LoadAsset("assets/white.png");
+					}
+
+					mat.Properties.Color = glm::vec4(diffuseColor.r, diffuseColor.g, diffuseColor.b, 1.0f);
+					mat.Properties.EmissiveColor = glm::vec4(emissiveColor.r, emissiveColor.g, emissiveColor.b, emissiveColor.a);
+
+					mat.Properties.Transparency = 1.0f - diffuseColor.a;
+
+					std::unique_ptr<Asset> materialAsset = std::make_unique<MaterialAsset>(std::move(mat));
+					handle = AssetManager::AddAsset(path, std::move(materialAsset));
+				}
+
+				outAsset->Materials.push_back(handle);
 			}
 
 			// Rotate every model 180 degrees

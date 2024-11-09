@@ -62,6 +62,9 @@ namespace VulkanHelper
 		auto iter = s_Assets.find(handle);
 		VL_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
 
+		if (iter->second.Future.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready)
+			return;
+
 		iter->second.Future.wait();
 	}
 
@@ -82,7 +85,6 @@ namespace VulkanHelper
 			// Asset with this path is already loaded
 			return AssetHandle(handle);
 		}
-
 
 		size_t dotPos = path.find_last_of('.');
 		VL_CORE_ASSERT(dotPos != std::string::npos, "Failed to get file extension! Path: {}", path);
@@ -152,7 +154,8 @@ namespace VulkanHelper
 		if (s_Assets.contains(handle))
 		{
 			// Asset with this path is already loaded
-			free(asset.release());
+			//free(asset.release());
+			asset.reset();
 			return AssetHandle(handle);
 		}
 
@@ -175,17 +178,18 @@ namespace VulkanHelper
 		VL_CORE_TRACE("Unloading asset: {}", handle.GetAsset()->GetPath());
 
 		// Immediately remove asset from m_Assets and then destroy everything on separate thread
-		std::unique_lock<std::mutex> lock(s_AssetsMutex);
+		s_AssetsMutex.lock();
 
 		Ref<AssetWithFuture> asset = std::make_shared<AssetWithFuture>(std::move(s_Assets[handle]));
 		s_Assets.erase(handle);
 
-		lock.unlock();
+		s_AssetsMutex.unlock();
+		asset.reset();
 
-		s_ThreadPool.PushTask([](Ref<AssetWithFuture> asset)
-			{
-				asset.reset();
-			}, asset);
+		//s_ThreadPool.PushTask([](Ref<AssetWithFuture> asset)
+		//	{
+		//		asset.reset();
+		//	}, asset);
 	}
 
 }

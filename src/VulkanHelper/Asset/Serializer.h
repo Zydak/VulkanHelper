@@ -143,7 +143,7 @@ namespace VulkanHelper
 				name = name.substr(0, name.size() - 10);
 
 			if (name.find("VulkanHelper::") != std::string::npos)
-				name = name.substr(9, name.size() - 9);
+				name = name.substr(14, name.size() - 14);
 
 			// If the name matches that of a component then return it
 			if (name == compName)
@@ -239,7 +239,7 @@ namespace VulkanHelper
 				name = name.substr(0, name.size() - 10);
 
 			if (name.find("VulkanHelper::") != std::string::npos)
-				name = name.substr(9, name.size() - 9);
+				name = name.substr(14, name.size() - 14);
 
 			std::vector<char> nameBytes;
 			for (int i = 0; i < name.size(); i++)

@@ -81,6 +81,7 @@ namespace VulkanHelper
 	private:
 
 		inline static std::unordered_map<AssetHandle, AssetWithFuture> s_Assets;
+		inline static std::unordered_map<AssetHandle, uint32_t> s_TexturesReferenceCount;
 		inline static ThreadPool s_ThreadPool;
 		inline static std::mutex s_AssetsMutex;
 

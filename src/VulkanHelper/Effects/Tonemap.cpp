@@ -54,7 +54,7 @@ namespace VulkanHelper
 			if (m_EnableChromaticAberration)
 				defines.emplace_back(Shader::Define{ "USE_CHROMATIC_ABERRATION", "" });
 
-			Shader shader({ "../VulkanHelper/src/VulkanHelper/Shaders/Tonemap.comp" , VK_SHADER_STAGE_COMPUTE_BIT, defines });
+			Shader shader({ "../Vulkan-Helper/src/VulkanHelper/Shaders/Tonemap.comp" , VK_SHADER_STAGE_COMPUTE_BIT, defines });
 			pipelineInfo.Shader = &shader;
 
 			pipelineInfo.DescriptorSetLayouts = {
@@ -96,7 +96,7 @@ namespace VulkanHelper
 				defines.emplace_back(Shader::Define{ "USE_CHROMATIC_ABERRATION", ""});
 
 			Pipeline::ComputeCreateInfo info{};
-			Shader shader({ "../VulkanHelper/src/VulkanHelper/Shaders/Tonemap.comp" , VK_SHADER_STAGE_COMPUTE_BIT, defines });
+			Shader shader({ "../Vulkan-Helper/src/VulkanHelper/Shaders/Tonemap.comp" , VK_SHADER_STAGE_COMPUTE_BIT, defines });
 			info.Shader = &shader;
 
 			info.DescriptorSetLayouts = {

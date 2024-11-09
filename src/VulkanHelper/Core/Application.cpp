@@ -75,6 +75,7 @@ namespace VulkanHelper
 
 		Renderer::Destroy();
 		Destroy();
+		AssetManager::Destroy();
 		DeleteQueue::Destroy();
 		Device::Destroy();
 	}

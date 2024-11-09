@@ -112,6 +112,42 @@ namespace VulkanHelper
 	class MaterialTextures
 	{
 	public:
+		MaterialTextures() {}
+		~MaterialTextures()
+		{
+			if (AlbedoTexture.DoesHandleExist())
+				AlbedoTexture.Unload();
+
+			if (NormalTexture.DoesHandleExist())
+				NormalTexture.Unload();
+
+			if (RoughnessTexture.DoesHandleExist())
+				RoughnessTexture.Unload();
+
+			if (MetallnessTexture.DoesHandleExist())
+				MetallnessTexture.Unload();
+		};
+
+		explicit MaterialTextures(const MaterialTextures& other) = delete;
+		MaterialTextures& operator=(const MaterialTextures& other) = delete;
+		explicit MaterialTextures(MaterialTextures&& other) noexcept
+		{
+			AlbedoTexture = std::move(other.AlbedoTexture);
+			NormalTexture = std::move(other.NormalTexture);
+			RoughnessTexture = std::move(other.RoughnessTexture);
+			MetallnessTexture = std::move(other.MetallnessTexture);
+			TexturesSet = std::move(other.TexturesSet);
+		}
+		MaterialTextures& operator=(MaterialTextures&& other) noexcept
+		{
+			AlbedoTexture = std::move(other.AlbedoTexture);
+			NormalTexture = std::move(other.NormalTexture);
+			RoughnessTexture = std::move(other.RoughnessTexture);
+			MetallnessTexture = std::move(other.MetallnessTexture);
+			TexturesSet = std::move(other.TexturesSet);
+			return *this;
+		}
+
 		AssetHandle AlbedoTexture;
 		AssetHandle NormalTexture;
 		AssetHandle RoughnessTexture;
@@ -163,20 +199,6 @@ namespace VulkanHelper
 	{
 	public:
 		explicit MaterialAsset(Material&& material) { Material = std::move(material); };
-		~MaterialAsset() 
-		{
-			if (Material.Textures.AlbedoTexture.DoesHandleExist())
-				Material.Textures.AlbedoTexture.Unload(); 
-
-			if (Material.Textures.NormalTexture.DoesHandleExist())
-				Material.Textures.NormalTexture.Unload();
-
-			if (Material.Textures.RoughnessTexture.DoesHandleExist())
-				Material.Textures.RoughnessTexture.Unload();
-
-			if (Material.Textures.MetallnessTexture.DoesHandleExist())
-				Material.Textures.MetallnessTexture.Unload();
-		};
 		explicit MaterialAsset(const MaterialAsset& other) = delete;
 		MaterialAsset& operator=(const MaterialAsset& other) = delete;
 		explicit MaterialAsset(MaterialAsset&& other) noexcept { Material = std::move(other.Material); }
