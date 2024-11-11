@@ -238,10 +238,10 @@ namespace VulkanHelper
 		// 3. Rougness
 		// 4. Metallness
 		std::vector<std::string> names;
-		names.emplace_back(mat->Textures.AlbedoTexture.GetAsset()->GetPath());
-		names.emplace_back(mat->Textures.NormalTexture.GetAsset()->GetPath());
-		names.emplace_back(mat->Textures.RoughnessTexture.GetAsset()->GetPath());
-		names.emplace_back(mat->Textures.MetallnessTexture.GetAsset()->GetPath());
+		names.emplace_back(mat->Textures.GetAlbedo().GetAsset()->GetPath());
+		names.emplace_back(mat->Textures.GetNormal().GetAsset()->GetPath());
+		names.emplace_back(mat->Textures.GetRoughness().GetAsset()->GetPath());
+		names.emplace_back(mat->Textures.GetMetallness().GetAsset()->GetPath());
 
 		for (int i = 0; i < 4; i++)
 		{
@@ -307,10 +307,10 @@ namespace VulkanHelper
 		{
 			MaterialTextures textures{};
 
-			textures.AlbedoTexture = AssetManager::LoadAsset(names[0]);
-			textures.NormalTexture = AssetManager::LoadAsset(names[1]);
-			textures.RoughnessTexture = AssetManager::LoadAsset(names[2]);
-			textures.MetallnessTexture = AssetManager::LoadAsset(names[3]);
+			textures.SetAlbedo(AssetManager::LoadAsset(names[0]));
+			textures.SetNormal(AssetManager::LoadAsset(names[1]));
+			textures.SetRoughness(AssetManager::LoadAsset(names[2]));
+			textures.SetMetallness(AssetManager::LoadAsset(names[3]));
 
 			VulkanHelper::Material mat;
 			mat.Properties = std::move(props);

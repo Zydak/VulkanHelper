@@ -172,46 +172,46 @@ namespace VulkanHelper
 					{
 						aiString str;
 						material->GetTexture(aiTextureType_DIFFUSE, i, &str);
-						mat.Textures.AlbedoTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+						mat.Textures.SetAlbedo(AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str())));
 					}
 
 					for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_NORMALS); i++)
 					{
 						aiString str;
 						material->GetTexture(aiTextureType_NORMALS, i, &str);
-						mat.Textures.NormalTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+						mat.Textures.SetNormal(AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str())));
 					}
 
 					for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS); i++)
 					{
 						aiString str;
 						material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, i, &str);
-						mat.Textures.RoughnessTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+						mat.Textures.SetRoughness(AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str())));
 					}
 
 					for (int i = 0; i < (int)material->GetTextureCount(aiTextureType_METALNESS); i++)
 					{
 						aiString str;
 						material->GetTexture(aiTextureType_METALNESS, i, &str);
-						mat.Textures.MetallnessTexture = AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str()));
+						mat.Textures.SetMetallness(AssetManager::LoadAsset(std::string("assets/") + std::string(str.C_Str())));
 					}
 
 					// Create Empty Texture if none are found
 					if (material->GetTextureCount(aiTextureType_DIFFUSE) == 0)
 					{
-						mat.Textures.AlbedoTexture = AssetManager::LoadAsset("assets/white.png");
+						mat.Textures.SetAlbedo(AssetManager::LoadAsset("assets/white.png"));
 					}
 					if (material->GetTextureCount(aiTextureType_NORMALS) == 0)
 					{
-						mat.Textures.NormalTexture = AssetManager::LoadAsset("assets/empty_normal.png");
+						mat.Textures.SetNormal(AssetManager::LoadAsset("assets/empty_normal.png"));
 					}
 					if (material->GetTextureCount(aiTextureType_METALNESS) == 0)
 					{
-						mat.Textures.MetallnessTexture = AssetManager::LoadAsset("assets/white.png");
+						mat.Textures.SetMetallness(AssetManager::LoadAsset("assets/white.png"));
 					}
 					if (material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) == 0)
 					{
-						mat.Textures.RoughnessTexture = AssetManager::LoadAsset("assets/white.png");
+						mat.Textures.SetRoughness(AssetManager::LoadAsset("assets/white.png"));
 					}
 
 					mat.Properties.Color = glm::vec4(diffuseColor.r, diffuseColor.g, diffuseColor.b, 1.0f);

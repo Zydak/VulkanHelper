@@ -113,20 +113,7 @@ namespace VulkanHelper
 	{
 	public:
 		MaterialTextures() {}
-		~MaterialTextures()
-		{
-			if (AlbedoTexture.DoesHandleExist())
-				AlbedoTexture.Unload();
-
-			if (NormalTexture.DoesHandleExist())
-				NormalTexture.Unload();
-
-			if (RoughnessTexture.DoesHandleExist())
-				RoughnessTexture.Unload();
-
-			if (MetallnessTexture.DoesHandleExist())
-				MetallnessTexture.Unload();
-		};
+		~MaterialTextures();
 
 		explicit MaterialTextures(const MaterialTextures& other) = delete;
 		MaterialTextures& operator=(const MaterialTextures& other) = delete;
@@ -148,14 +135,25 @@ namespace VulkanHelper
 			return *this;
 		}
 
+		VulkanHelper::DescriptorSet TexturesSet;
+
+		void CreateSet();
+
+		void SetAlbedo(AssetHandle handle);
+		void SetNormal(AssetHandle handle);
+		void SetRoughness(AssetHandle handle);
+		void SetMetallness(AssetHandle handle);
+
+		inline AssetHandle GetAlbedo() const { return AlbedoTexture; }
+		inline AssetHandle GetNormal() const { return NormalTexture; }
+		inline AssetHandle GetRoughness() const { return RoughnessTexture; }
+		inline AssetHandle GetMetallness() const { return MetallnessTexture; }
+
+	private:
 		AssetHandle AlbedoTexture;
 		AssetHandle NormalTexture;
 		AssetHandle RoughnessTexture;
 		AssetHandle MetallnessTexture;
-
-		VulkanHelper::DescriptorSet TexturesSet;
-
-		void CreateSet();
 	};
 
 	class Material

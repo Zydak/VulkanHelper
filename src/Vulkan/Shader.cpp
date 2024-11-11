@@ -6,6 +6,7 @@
 #include <shaderc/libshaderc_util/file_finder.h>
 #include <shaderc/glslc/file_includer.h>
 
+#include "dxcapi.h"
 
 namespace VulkanHelper
 {
@@ -107,13 +108,66 @@ namespace VulkanHelper
 
 	std::vector<uint32_t> Shader::CompileSource(const std::string& filepath, const std::vector<Define>& defines)
 	{
+		if (filepath.find(".hlsl") != std::string::npos)
+		{
+			std::vector<uint32_t> data;
+			std::wstring wfilepath(filepath.begin(), filepath.end());
+
+			HRESULT hres;
+
+			std::string source = File::ReadFromFile(filepath);
+
+			Microsoft::WRL::ComPtr<IDxcUtils> utils;
+			Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
+			Microsoft::WRL::ComPtr<IDxcIncludeHandler> includer;
+
+			hres = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(utils.GetAddressOf()));
+			hres = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(compiler.GetAddressOf()));
+			hres = utils->CreateDefaultIncludeHandler(&includer);
+			Microsoft::WRL::ComPtr<IDxcBlobEncoding> sourceBlob;
+			hres = utils->LoadFile(wfilepath.data(), nullptr, &sourceBlob);
+
+			DxcBuffer sourceBuffer;
+			sourceBuffer.Ptr = sourceBlob->GetBufferPointer();
+			sourceBuffer.Size = sourceBlob->GetBufferSize();
+			sourceBuffer.Encoding = DXC_CP_ACP;
+
+			std::vector<LPCWSTR> arguments = {
+				// (Optional) name of the shader file to be displayed e.g. in an error message
+				wfilepath.c_str(),
+				// Shader main entry point
+				L"-E", L"main",
+				// Shader target profile
+				L"-T", L"lib_6_3",
+				// Compile to SPIRV
+				L"-spirv",
+
+				L"-fspv-target-env=vulkan1.1spirv1.4"
+			};
+
+			Microsoft::WRL::ComPtr<IDxcResult> compiledShaderBuffer{ nullptr };
+			hres = compiler->Compile(&sourceBuffer, arguments.data(), (uint32_t)arguments.size(), includer.Get(), IID_PPV_ARGS(&compiledShaderBuffer));
+
+			//Microsoft::WRL::ComPtr<IDxcBlobEncoding> errorBlob;
+			//hres = compiledShaderBuffer->GetErrorBuffer(&errorBlob);
+			//std::cerr << "Shader compilation failed :\n\n" << (const char*)errorBlob->GetBufferPointer();
+
+			Microsoft::WRL::ComPtr<IDxcBlob> code;
+			hres = compiledShaderBuffer->GetResult(&code);
+
+			data.resize(code->GetBufferSize() / 4);
+			memcpy(data.data(), code->GetBufferPointer(), code->GetBufferSize());
+
+			return data;
+		}
+
 		if (filepath.find(".slang") != std::string::npos)
 		{
 			std::vector<uint32_t> data;
 
 			slang::TargetDesc targetDesc{};
 			targetDesc.format = SLANG_SPIRV;
-			targetDesc.profile = s_GlobalSession->findProfile("spirv_1_3");
+			targetDesc.profile = s_GlobalSession->findProfile("spirv_1_4");
 
 			const char* searchPaths[] = { "src/shaders/" };
 

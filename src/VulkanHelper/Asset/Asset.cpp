@@ -223,6 +223,31 @@ namespace VulkanHelper
 		}
 	}
 
+	MaterialTextures::~MaterialTextures()
+	{
+		if (!AlbedoTexture.DoesHandleExist() && !NormalTexture.DoesHandleExist() && !RoughnessTexture.DoesHandleExist() && !MetallnessTexture.DoesHandleExist())
+			return;
+
+		AssetManager::s_TexturesReferenceCountMutex.lock();
+		AssetManager::s_TexturesReferenceCount[AlbedoTexture]--;
+		AssetManager::s_TexturesReferenceCount[NormalTexture]--;
+		AssetManager::s_TexturesReferenceCount[RoughnessTexture]--;
+		AssetManager::s_TexturesReferenceCount[MetallnessTexture]--;
+
+		if (AlbedoTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[AlbedoTexture] == 0)
+			AlbedoTexture.Unload();
+
+		if (NormalTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[NormalTexture] == 0)
+			NormalTexture.Unload();
+
+		if (RoughnessTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[RoughnessTexture] == 0)
+			RoughnessTexture.Unload();
+
+		if (MetallnessTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[MetallnessTexture] == 0)
+			MetallnessTexture.Unload();
+		AssetManager::s_TexturesReferenceCountMutex.unlock();
+	};
+
 	void MaterialTextures::CreateSet()
 	{
 		if (TexturesSet.IsInitialized())
@@ -265,6 +290,60 @@ namespace VulkanHelper
 		);
 
 		TexturesSet.Build();
+	}
+
+	void MaterialTextures::SetAlbedo(AssetHandle handle)
+	{
+		AssetManager::s_TexturesReferenceCountMutex.lock();
+
+		if (AssetManager::s_TexturesReferenceCount.contains(handle))
+			AssetManager::s_TexturesReferenceCount[handle] += 1;
+		else
+			AssetManager::s_TexturesReferenceCount[handle] = 1;
+
+		AlbedoTexture = handle;
+
+		AssetManager::s_TexturesReferenceCountMutex.unlock();
+	}
+
+	void MaterialTextures::SetNormal(AssetHandle handle)
+	{
+		AssetManager::s_TexturesReferenceCountMutex.lock();
+
+		if (AssetManager::s_TexturesReferenceCount.contains(handle))
+			AssetManager::s_TexturesReferenceCount[handle] += 1;
+		else
+			AssetManager::s_TexturesReferenceCount[handle] = 1;
+
+		NormalTexture = handle;
+		AssetManager::s_TexturesReferenceCountMutex.unlock();
+	}
+
+	void MaterialTextures::SetRoughness(AssetHandle handle)
+	{
+		AssetManager::s_TexturesReferenceCountMutex.lock();
+
+		if (AssetManager::s_TexturesReferenceCount.contains(handle))
+			AssetManager::s_TexturesReferenceCount[handle] += 1;
+		else
+			AssetManager::s_TexturesReferenceCount[handle] = 1;
+
+		RoughnessTexture = handle;
+		AssetManager::s_TexturesReferenceCountMutex.unlock();
+	}
+
+	void MaterialTextures::SetMetallness(AssetHandle handle)
+	{
+		AssetManager::s_TexturesReferenceCountMutex.lock();
+
+		if (AssetManager::s_TexturesReferenceCount.contains(handle))
+			AssetManager::s_TexturesReferenceCount[handle] += 1;
+		else
+			AssetManager::s_TexturesReferenceCount[handle] = 1;
+
+		MetallnessTexture = handle;
+
+		AssetManager::s_TexturesReferenceCountMutex.unlock();
 	}
 
 }

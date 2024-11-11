@@ -154,7 +154,6 @@ namespace VulkanHelper
 		if (s_Assets.contains(handle))
 		{
 			// Asset with this path is already loaded
-			//free(asset.release());
 			asset.reset();
 			return AssetHandle(handle);
 		}
