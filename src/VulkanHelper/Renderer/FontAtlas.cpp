@@ -36,11 +36,12 @@ namespace VulkanHelper
 		Buffer::CreateInfo BufferInfo{};
 		BufferInfo.InstanceSize = bitmap.width * bitmap.height * 4;
 		BufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		BufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		BufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 		Buffer pixelBuffer;
 		pixelBuffer.Init(BufferInfo);
 		pixelBuffer.Map(bitmap.width * bitmap.height * 4);
 		pixelBuffer.WriteToBuffer((void*)bitmap.pixels, bitmap.width * bitmap.height * 4);
+		pixelBuffer.Flush();
 		pixelBuffer.Unmap();
 		tex->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		tex->CopyBufferToImage(pixelBuffer.GetBuffer(), bitmap.width, bitmap.height);

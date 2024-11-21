@@ -376,6 +376,7 @@ namespace VulkanHelper
 
 			// Write data to the staging buffer.
 			stagingBuffer.WriteToBuffer(data, size, 0, cmd);
+			stagingBuffer.Flush();
 
 			// Unmap the staging buffer.
 			stagingBuffer.Unmap();
@@ -422,7 +423,7 @@ namespace VulkanHelper
 			// Create a staging buffer.
 			Buffer::CreateInfo info{};
 			info.InstanceSize = size;
-			info.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			info.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			info.UsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			Buffer stagingBuffer(info);
 
@@ -433,6 +434,7 @@ namespace VulkanHelper
 
 			// Map the staging buffer.
 			stagingBuffer.Map();
+			stagingBuffer.Flush();
 
 			// Read data from the staging buffer.
 			stagingBuffer.ReadFromBuffer(outData, size, 0);

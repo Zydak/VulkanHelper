@@ -426,6 +426,7 @@ namespace VulkanHelper
 		allocatorInfo.physicalDevice = s_PhysicalDevice;
 		allocatorInfo.device = s_Device;
 		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+		allocatorInfo.flags = VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
 
 		// Check if the memory priority extension is present
 		for (VulkanHelper::Extension& ext : s_OptionalExtensions)

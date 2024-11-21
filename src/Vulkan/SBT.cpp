@@ -47,7 +47,7 @@ namespace VulkanHelper
 		VulkanHelper::Buffer::CreateInfo bufferInfo{};
 		bufferInfo.InstanceSize = sbtSize;
 		bufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
-		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 		VulkanHelper::Buffer stagingBuffer;
 		stagingBuffer.Init(bufferInfo);
 
@@ -103,6 +103,8 @@ namespace VulkanHelper
 			handleIdx++;
 			pData += m_CallRegion.stride;
 		}
+
+		stagingBuffer.Flush();
 
 		// Copy the shader binding table to the device local buffer
 		VulkanHelper::Buffer::CopyBuffer(stagingBuffer.GetBuffer(), m_RtSBTBuffer.GetBuffer(), sbtSize, 0, 0, VulkanHelper::Device::GetGraphicsQueue(), 0, VulkanHelper::Device::GetGraphicsCommandPool());

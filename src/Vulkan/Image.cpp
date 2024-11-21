@@ -182,11 +182,12 @@ namespace VulkanHelper
 		Buffer::CreateInfo BufferInfo{};
 		BufferInfo.InstanceSize = imageSize;
 		BufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		BufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		BufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 		buffer.Init(BufferInfo);
 
 		auto res = buffer.Map(imageSize);
 		buffer.WriteToBuffer((void*)data, (uint32_t)imageSize);
+		buffer.Flush();
 		buffer.Unmap();
 
 		TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd, baseLayer);

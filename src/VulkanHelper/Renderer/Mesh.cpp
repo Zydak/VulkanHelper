@@ -105,36 +105,17 @@ namespace VulkanHelper
 		VkDeviceSize bufferSize = sizeof(Vertex) * m_VertexCount;
 		uint32_t vertexSize = sizeof(Vertex);
 
-		/*
-			We need to be able to write our vertex data to memory.
-			This property is indicated with VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT with VK_MEMORY_PROPERTY_HOST_COHERENT_BIT property.
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT is Used to get memory heap that is host coherent.
-			We use this to copy the data into the buffer memory immediately.
-		*/
 		Buffer::CreateInfo bufferInfo{};
 		bufferInfo.InstanceSize = vertexSize;
 		bufferInfo.InstanceCount = m_VertexCount;
 		bufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 		Buffer stagingBuffer;
 		stagingBuffer.Init(bufferInfo);
 
-		/*
-			When buffer is created It is time to copy the vertex data to the buffer.
-			This is done by mapping the buffer memory into CPU accessible memory with vkMapMemory.
-		*/
 		stagingBuffer.Map();
 		stagingBuffer.WriteToBuffer((void*)vertices->data());
-
-		/*
-			The vertexBuffer is now allocated from a memory type that is device
-			local, which generally means that we're not able to use vkMapMemory.
-			However, we can copy data from the stagingBuffer to the vertexBuffer.
-			We have to indicate that we intend to do that by specifying the transfer
-			source flag(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) for the stagingBuffer
-			and the transfer destination flag(VK_BUFFER_USAGE_TRANSFER_DST_BIT)
-			for the vertexBuffer, along with the vertex buffer usage flag.
-		*/
+		stagingBuffer.Flush();
 
 		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		if (Device::UseRayTracing())
@@ -161,36 +142,18 @@ namespace VulkanHelper
 		VkDeviceSize bufferSize = sizeof(uint32_t) * m_IndexCount;
 		uint32_t indexSize = sizeof(uint32_t);
 
-		/*
-			We need to be able to write our index data to memory.
-			This property is indicated with VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT with VK_MEMORY_PROPERTY_HOST_COHERENT_BIT property.
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT is Used to get memory heap that is host coherent.
-			We use this to copy the data into the buffer memory immediately.
-		*/
 		Buffer::CreateInfo bufferInfo{};
 		bufferInfo.InstanceSize = indexSize;
 		bufferInfo.InstanceCount = m_IndexCount;
 		bufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 		Buffer stagingBuffer;
 		stagingBuffer.Init(bufferInfo);
 
-		/*
-			When buffer is created It is time to copy the index data to the buffer.
-			This is done by mapping the buffer memory into CPU accessible memory with vkMapMemory.
-		*/
 		stagingBuffer.Map();
 		stagingBuffer.WriteToBuffer((void*)indices->data());
+		stagingBuffer.Flush();
 
-		/*
-			The IndexBuffer is now allocated from a memory type that is device
-			local, which generally means that we're not able to use vkMapMemory.
-			However, we can copy data from the stagingBuffer to the IndexBuffer.
-			We have to indicate that we intend to do that by specifying the transfer
-			source flag(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) for the stagingBuffer
-			and the transfer destination flag(VK_BUFFER_USAGE_TRANSFER_DST_BIT)
-			for the IndexBuffer, along with the IndexBuffer usage flag.
-		*/
 		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		if (Device::UseRayTracing())
 			usageFlags |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
