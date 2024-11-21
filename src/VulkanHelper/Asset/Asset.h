@@ -101,11 +101,6 @@ namespace VulkanHelper
 
 		float Anisotropy = 0.0f;
 		float AnisotropyRotation = 0.0f;
-
-		float eta = 0.0f;
-
-		float ax = 1.0f;
-		float ay = 1.0f;
 	private:
 	};
 

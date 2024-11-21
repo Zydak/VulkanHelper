@@ -317,7 +317,7 @@ namespace VulkanHelper
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "No Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_2;
+		appInfo.apiVersion = VK_API_VERSION_1_3;
 
 		// Set up instance creation information
 		vk::InstanceCreateInfo createInfo;
@@ -425,6 +425,7 @@ namespace VulkanHelper
 		allocatorInfo.instance = s_Instance;
 		allocatorInfo.physicalDevice = s_PhysicalDevice;
 		allocatorInfo.device = s_Device;
+		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 
 		// Check if the memory priority extension is present
 		for (VulkanHelper::Extension& ext : s_OptionalExtensions)
@@ -512,8 +513,8 @@ namespace VulkanHelper
 	{
 		// Initialize allocation creation info
 		VmaAllocationCreateInfo allocInfo{};
-		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 		allocInfo.priority = 0.5f;
+		allocInfo.requiredFlags = flags;
 
 		// Find the memory type index matching the specified flags
 		VL_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndex(s_Allocator, flags, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index!");
@@ -530,9 +531,14 @@ namespace VulkanHelper
 	{
 		// Initialize allocation creation info
 		VmaAllocationCreateInfo allocInfo{};
-		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 		allocInfo.priority = 0.5f;
 		allocInfo.requiredFlags = flags;
+
+		//VkDeviceBufferMemoryRequirements devBufMemReq = { VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS };
+		//devBufMemReq.pCreateInfo = &createInfo;
+		//
+		//VkMemoryRequirements2 memReq = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
+		//Device::vkGetDeviceBufferMemoryRequirements(&devBufMemReq, &memReq);
 
 		// Find the memory type index suitable for the buffer
 		VL_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndexForBufferInfo(s_Allocator, &createInfo, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index for buffer info!");
@@ -549,7 +555,6 @@ namespace VulkanHelper
 	{
 		// Initialize allocation creation info
 		VmaAllocationCreateInfo allocInfo{};
-		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 		allocInfo.priority = 0.5f;
 		allocInfo.requiredFlags = flags;
 
@@ -1479,6 +1484,15 @@ namespace VulkanHelper
 
 		static auto func = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdEndRenderingKHR");
 		if (func != nullptr) { return func(commandBuffer); }
+		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+	}
+
+	void Device::vkGetDeviceBufferMemoryRequirements(const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements)
+	{
+		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+
+		static auto func = (PFN_vkGetDeviceBufferMemoryRequirements)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetDeviceBufferMemoryRequirements");
+		if (func != nullptr) { return func(GetDevice(), pInfo, pMemoryRequirements); }
 		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
