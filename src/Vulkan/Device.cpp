@@ -457,7 +457,7 @@ namespace VulkanHelper
 	 * @param MBSize - Size of memory blocks in megabytes (if non-zero, takes precedence over ByteSize).
 	 * @param ByteSize - Size of memory blocks in bytes (if MBSize is zero, this value is used).
 	 */
-	void Device::CreateMemoryPool(uint32_t memoryIndex, VmaPool& pool, VkDeviceSize MBSize, VkDeviceSize ByteSize, bool isImage)
+	void Device::CreateMemoryPool(VkMemoryPropertyFlags propertyFlags, uint32_t memoryIndex, VmaPool& pool, VkDeviceSize MBSize, VkDeviceSize ByteSize, bool isImage)
 	{
 		static int x = 0;
 		VL_CORE_TRACE("Pool Allocation {}", x);
@@ -485,7 +485,7 @@ namespace VulkanHelper
 		// Set pool priority
 		poolInfo.priority = 0.5f;
 
-		if (isImage == false)
+		if (isImage == false && propertyFlags == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		{
 			if (std::find(s_DeviceExtensions.begin(), s_DeviceExtensions.end(), VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) != s_DeviceExtensions.end())
 			{
@@ -535,11 +535,11 @@ namespace VulkanHelper
 		allocInfo.priority = 0.5f;
 		allocInfo.requiredFlags = flags;
 
-		//VkDeviceBufferMemoryRequirements devBufMemReq = { VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS };
-		//devBufMemReq.pCreateInfo = &createInfo;
-		//
-		//VkMemoryRequirements2 memReq = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
-		//Device::vkGetDeviceBufferMemoryRequirements(&devBufMemReq, &memReq);
+		VkDeviceBufferMemoryRequirements devBufMemReq = { VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS };
+		devBufMemReq.pCreateInfo = &createInfo;
+		
+		VkMemoryRequirements2 memReq = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
+		Device::vkGetDeviceBufferMemoryRequirements(&devBufMemReq, &memReq);
 
 		// Find the memory type index suitable for the buffer
 		VL_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndexForBufferInfo(s_Allocator, &createInfo, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index for buffer info!");
@@ -582,7 +582,9 @@ namespace VulkanHelper
 		{
 			s_ExternalMemoryBufferInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
 			s_ExternalMemoryBufferInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
-			createInfo.pNext = &s_ExternalMemoryBufferInfo;
+
+			if (customFlags == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+				createInfo.pNext = &s_ExternalMemoryBufferInfo;
 		}
 
 		FindMemoryTypeIndexForBuffer(createInfo, memoryIndex, customFlags);
@@ -590,7 +592,7 @@ namespace VulkanHelper
 		// Create buffer without using memory pool
 		if (noPool)
 		{
-			CreateMemoryPool(memoryIndex, *poolOut, 0, createInfo.size);
+			CreateMemoryPool(customFlags, memoryIndex, *poolOut, 0, createInfo.size);
 
 			VmaAllocationCreateInfo allocCreateInfo = {};
 			allocCreateInfo.priority = 0.5f;
@@ -626,7 +628,7 @@ namespace VulkanHelper
 		{
 			// Pool not found for the memory type index, create a new pool
 			s_Pools[memoryIndex] = VmaPool();
-			CreateMemoryPool(memoryIndex, s_Pools[memoryIndex], 300);
+			CreateMemoryPool(customFlags, memoryIndex, s_Pools[memoryIndex], 300);
 
 			VmaAllocationCreateInfo allocCreateInfo = {};
 			allocCreateInfo.pool = s_Pools[memoryIndex];
@@ -693,7 +695,7 @@ namespace VulkanHelper
 		{
 			// Pool not found for the memory type index, create a new pool
 			s_ImagePools[memoryIndex] = VmaPool();
-			CreateMemoryPool(memoryIndex, s_ImagePools[memoryIndex], 300, 0, true);
+			CreateMemoryPool(customFlags, memoryIndex, s_ImagePools[memoryIndex], 300, 0, true);
 			VL_CORE_ERROR("CREATING IMAGE POOL ----------------------------");
 
 			VmaAllocationCreateInfo allocCreateInfo = {};
