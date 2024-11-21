@@ -910,6 +910,38 @@ namespace VulkanHelper
 		s_AccelerationStructureProperties.pNext = &s_SubgroupProperties;
 		vkGetPhysicalDeviceProperties2(s_PhysicalDevice, &s_Properties);
 
+		// Determine the vendor
+		switch (s_Properties.properties.vendorID)
+		{
+		case 0x1002:
+			m_Vendor = Vendor::AMD;
+			break;
+
+		case 0x10DE:
+			m_Vendor = Vendor::NVIDIA;
+			break;
+
+		case 0x8086:
+			m_Vendor = Vendor::INTEL;
+			break;
+
+		case 0x1010:
+			m_Vendor = Vendor::ImgTec;
+			break;
+
+		case 0x13B5:
+			m_Vendor = Vendor::ARM;
+			break;
+
+		case 0x5143:
+			m_Vendor = Vendor::Qualcomm;
+			break;
+
+		default:
+			m_Vendor = Vendor::Unknown;
+			break;
+		}
+
 		// Get the maximum sample count supported by the device
 		s_MaxSampleCount = GetMaxSampleCount();
 

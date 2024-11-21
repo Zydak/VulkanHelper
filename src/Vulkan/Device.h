@@ -11,6 +11,17 @@
 
 namespace VulkanHelper
 {
+	enum class Vendor
+	{
+		NVIDIA,
+		AMD,
+		INTEL,
+		ImgTec,
+		ARM,
+		Qualcomm,
+		Unknown
+	};
+
 	struct SwapchainSupportDetails
 	{
 		VkSurfaceCapabilitiesKHR Capabilities;      // min/max number of images
@@ -79,6 +90,7 @@ namespace VulkanHelper
 		static inline VkQueue GetComputeQueue() { return s_ComputeQueue; }
 		static inline VkPhysicalDeviceAccelerationStructurePropertiesKHR GetAccelerationProperties() { return s_AccelerationStructureProperties; }
 		static inline void WaitIdle() { vkDeviceWaitIdle(s_Device); }
+		static inline Vendor GetVendor() { return m_Vendor; }
 
 		static inline VmaAllocator GetAllocator() { return s_Allocator; }
 
@@ -150,6 +162,7 @@ namespace VulkanHelper
 		static std::unordered_map<uint32_t, VmaPool> s_Pools;
 		static inline std::unordered_map<uint32_t, VmaPool> s_ImagePools;
 		static VkPhysicalDeviceProperties2 s_Properties;
+		static inline Vendor m_Vendor;
 		static VkSampleCountFlagBits s_MaxSampleCount;
 		static VkPhysicalDeviceFeatures2 s_Features;
 		static VkInstance s_Instance;
