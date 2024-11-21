@@ -20,20 +20,21 @@ namespace VulkanHelper
 
 		uint32_t handleCount = m_MissCount + m_HitCount + m_RGenCount + m_CallableCount;
 		uint32_t handleSize = VulkanHelper::Device::GetRayTracingProperties().shaderGroupHandleSize;
+		uint32_t shaderGroupBaseAlignment = VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment;
 
 		uint32_t handleSizeAligned = (uint32_t)VulkanHelper::Device::GetAlignment(handleSize, VulkanHelper::Device::GetRayTracingProperties().shaderGroupHandleAlignment);
 
-		m_RgenRegion.stride = VulkanHelper::Device::GetAlignment(handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_RgenRegion.stride = VulkanHelper::Device::GetAlignment(handleSizeAligned * m_RGenCount, shaderGroupBaseAlignment);
 		m_RgenRegion.size = m_RgenRegion.stride;
 
-		m_MissRegion.stride = handleSizeAligned;
-		m_MissRegion.size = VulkanHelper::Device::GetAlignment(m_MissCount * handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_MissRegion.stride = VulkanHelper::Device::GetAlignment(m_MissCount * handleSizeAligned, shaderGroupBaseAlignment);
+		m_MissRegion.size = m_MissRegion.stride;
 
-		m_HitRegion.stride = handleSizeAligned;
-		m_HitRegion.size = VulkanHelper::Device::GetAlignment(m_HitCount * handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_HitRegion.stride = VulkanHelper::Device::GetAlignment(m_HitCount * handleSizeAligned, shaderGroupBaseAlignment);
+		m_HitRegion.size = m_HitRegion.stride;
 		
-		m_CallRegion.stride = handleSizeAligned;
-		m_CallRegion.size = VulkanHelper::Device::GetAlignment(m_CallableCount * handleSizeAligned, VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment);
+		m_CallRegion.stride = VulkanHelper::Device::GetAlignment(m_CallableCount * handleSizeAligned, shaderGroupBaseAlignment);
+		m_CallRegion.size = m_CallRegion.stride;
 
 		// Get the shader group handles
 		uint32_t dataSize = handleCount * handleSize;
@@ -53,6 +54,7 @@ namespace VulkanHelper
 
 		bufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
 		bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		bufferInfo.MinMemoryAlignment = VulkanHelper::Device::GetRayTracingProperties().shaderGroupBaseAlignment;
 		m_RtSBTBuffer.Init(bufferInfo);
 
 		// Find the SBT addresses of each group
