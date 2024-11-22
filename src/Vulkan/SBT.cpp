@@ -59,9 +59,9 @@ namespace VulkanHelper
 
 		// Find the SBT addresses of each group
 		m_RgenRegion.deviceAddress = m_RtSBTBuffer.GetDeviceAddress();
-		m_MissRegion.deviceAddress = m_RtSBTBuffer.GetDeviceAddress() + m_RgenRegion.size;
-		m_HitRegion.deviceAddress = m_RtSBTBuffer.GetDeviceAddress() + m_RgenRegion.size + m_MissRegion.size;
-		m_CallRegion.deviceAddress = m_RtSBTBuffer.GetDeviceAddress() + m_RgenRegion.size + m_MissRegion.size + m_HitRegion.size;
+		m_MissRegion.deviceAddress = m_RtSBTBuffer.GetDeviceAddress() + m_RgenRegion.stride;
+		m_HitRegion.deviceAddress = m_RtSBTBuffer.GetDeviceAddress() + m_RgenRegion.stride + m_MissRegion.stride;
+		m_CallRegion.deviceAddress = m_RtSBTBuffer.GetDeviceAddress() + m_RgenRegion.stride + m_MissRegion.stride + m_HitRegion.stride;
 
 		auto getHandle = [&](uint32_t i) { return handles.data() + (i * handleSize); };
 

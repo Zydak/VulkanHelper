@@ -42,6 +42,7 @@ namespace VulkanHelper
 		static bool EndFrame();
 
 		static void SetImGuiFunction(std::function<void()> fn);
+		static void SetStyle();
 		static void RayTrace(VkCommandBuffer cmdBuf, SBT* sbt, VkExtent2D imageSize, uint32_t depth = 1);
 
 		static VkCommandBuffer GetCurrentCommandBuffer();

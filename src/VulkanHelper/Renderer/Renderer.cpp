@@ -651,10 +651,24 @@ namespace VulkanHelper
 	void Renderer::InitImGui()
 	{
 #ifdef VL_IMGUI
+
+		float resWidth, resHeight;
+		glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &resWidth, &resHeight);
+
+		float scale = glm::min(resWidth, resHeight);
+
 		// ImGui Creation
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+		io.Fonts->Clear();
+
+		ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 16.0f * scale);
+		if (font == NULL)
+			font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttf", 16.0f * scale); // Windows 7
+
+		VL_ASSERT(font != nullptr, "Couldn't load font C:\\Windows\\Fonts\\msyh.ttc/ttf!");
 
 		ImGui_ImplGlfw_InitForVulkan(s_Window->GetGLFWwindow(), true);
 		ImGui_ImplVulkan_InitInfo info{};
@@ -677,7 +691,21 @@ namespace VulkanHelper
 		vkDeviceWaitIdle(Device::GetDevice());
 		ImGui_ImplVulkan_DestroyFontUploadObjects();
 
+		SetStyle();
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.ScaleAllSizes(scale);
+#endif
+	}
 
+	void Renderer::DestroyImGui()
+	{
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	}
+
+	void Renderer::SetStyle()
+	{
 		// Colors
 		ImVec4* colors = ImGui::GetStyle().Colors;
 		colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
@@ -759,14 +787,6 @@ namespace VulkanHelper
 		style.GrabRounding = 3;
 		style.LogSliderDeadzone = 4;
 		style.TabRounding = 4;
-#endif
-	}
-
-	void Renderer::DestroyImGui()
-	{
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
 	}
 
 	/**
