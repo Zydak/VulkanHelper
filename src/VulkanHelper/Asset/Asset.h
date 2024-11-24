@@ -101,6 +101,8 @@ namespace VulkanHelper
 
 		float Anisotropy = 0.0f;
 		float AnisotropyRotation = 0.0f;
+
+		glm::vec3 padding;
 	private:
 	};
 

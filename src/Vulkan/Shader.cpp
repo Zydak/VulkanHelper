@@ -171,9 +171,11 @@ namespace VulkanHelper
 
 			const char* searchPaths[] = { "src/shaders/" };
 
-			slang::CompilerOptionEntry compilerOptions;
-			compilerOptions.name = slang::CompilerOptionName::Optimization;
-			compilerOptions.value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL };
+			std::vector<slang::CompilerOptionEntry> compilerOptions(2);
+			compilerOptions[0].name = slang::CompilerOptionName::Optimization;
+			compilerOptions[0].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL };
+			//compilerOptions[1].name = slang::CompilerOptionName::GLSLForceScalarLayout;
+			//compilerOptions[1].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, 1 };
 
 			slang::SessionDesc sessionDesc{};
 
@@ -193,8 +195,8 @@ namespace VulkanHelper
 			sessionDesc.searchPaths = searchPaths;
 			sessionDesc.searchPathCount = 1;
 
-			sessionDesc.compilerOptionEntries = &compilerOptions;
-			sessionDesc.compilerOptionEntryCount = 1;
+			sessionDesc.compilerOptionEntries = compilerOptions.data();
+			sessionDesc.compilerOptionEntryCount = compilerOptions.size();
 
 			Microsoft::WRL::ComPtr<slang::ISession> session;
 			s_GlobalSession->createSession(sessionDesc, &session);

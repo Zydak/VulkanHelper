@@ -229,8 +229,15 @@ namespace VulkanHelper
 
 		// Properties
 		std::vector<char> bytes;
-		bytes.resize(sizeof(MaterialProperties));
-		memcpy(bytes.data(), &mat->Properties, sizeof(MaterialProperties));
+
+		// first 4 bytes are describing byte size of MaterialProperties
+		bytes.resize(4);
+
+		uint32_t propertiesSize = sizeof(MaterialProperties);
+		memcpy(bytes.data(), &propertiesSize, sizeof(uint32_t));
+
+		bytes.resize(bytes.size() + sizeof(MaterialProperties));
+		memcpy(bytes.data() + 4, &mat->Properties, sizeof(MaterialProperties));
 
 		// Textures names
 		// 1. Albedo
@@ -266,12 +273,17 @@ namespace VulkanHelper
 	{
 		// Properties
 		MaterialProperties props{};
-		memcpy(&props, bytes.data(), sizeof(MaterialProperties));
+
+		// first 4 bytes are describing byte size of MaterialProperties
+		uint32_t propertiesSize = 0;
+		memcpy(&propertiesSize, bytes.data(), sizeof(uint32_t));
+
+		memcpy(&props, bytes.data() + 4, propertiesSize);
 
 		// Texture Names
 		std::vector<std::string> names;
 
-		int currentPos = sizeof(MaterialProperties);
+		int currentPos = propertiesSize + 4;
 		for (int i = 0; i < 4; i++)
 		{
 			names.push_back("");
