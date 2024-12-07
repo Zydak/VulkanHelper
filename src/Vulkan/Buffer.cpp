@@ -330,6 +330,33 @@ namespace VulkanHelper
 		}
 	}
 
+	void Buffer::Barrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkCommandBuffer cmd)
+	{
+		bool cmdProvided = cmd != VK_NULL_HANDLE;
+
+		if (!cmdProvided)
+		{
+			Device::BeginSingleTimeCommands(cmd, Device::GetGraphicsCommandPool());
+		}
+
+		VkBufferMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstAccessMask = dstAccess;
+		barrier.srcAccessMask = srcAccess;
+		barrier.offset = 0;
+		barrier.size = VK_WHOLE_SIZE;
+		barrier.buffer = m_BufferHandle;
+
+		vkCmdPipelineBarrier(cmd, srcStage, dstStage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+
+		if (!cmdProvided)
+		{
+			Device::EndSingleTimeCommands(cmd, Device::GetGraphicsQueue(), Device::GetGraphicsCommandPool());
+		}
+	}
+
 	/**
 	 * Copies the specified data to the mapped buffer. Default value writes whole buffer range
 	 *
