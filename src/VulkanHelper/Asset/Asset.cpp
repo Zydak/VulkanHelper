@@ -75,42 +75,42 @@ namespace VulkanHelper
 
 	Asset* AssetHandle::GetAsset() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return AssetManager::GetAsset(*this);
 	}
 
 	AssetType AssetHandle::GetAssetType() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return  AssetManager::GetAsset(*this)->GetAssetType();
 	}
 
 	Mesh* AssetHandle::GetMesh() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return &dynamic_cast<MeshAsset*>(AssetManager::GetAsset(*this))->Mesh;
 	}
 
 	Material* AssetHandle::GetMaterial() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return &dynamic_cast<MaterialAsset*>(AssetManager::GetAsset(*this))->Material;
 	}
 
 	Scene* AssetHandle::GetScene() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return &dynamic_cast<SceneAsset*>(AssetManager::GetAsset(*this))->Scene;
 	}
 
 	Image* AssetHandle::GetImage() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return &dynamic_cast<TextureAsset*>( AssetManager::GetAsset(*this))->Image;
 	}
@@ -133,28 +133,28 @@ namespace VulkanHelper
 
 	bool AssetHandle::IsAssetLoaded() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return AssetManager::IsAssetLoaded(*this);
 	}
 
 	void AssetHandle::Unload() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		 AssetManager::UnloadAsset(*this);
 	}
 
 	void AssetHandle::WaitToLoad() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		 AssetManager::WaitToLoad(*this);
 	}
 
 	size_t AssetHandle::Hash() const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return (size_t)m_Handle;
 	}
@@ -167,14 +167,14 @@ namespace VulkanHelper
 
 	bool AssetHandle::operator==(const AssetHandle& other) const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return m_Handle == other.m_Handle;
 	}
 
 	bool AssetHandle::operator==(uint64_t other) const
 	{
-		VL_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Handle is not Initialized!");
 
 		return m_Handle == other;
 	}

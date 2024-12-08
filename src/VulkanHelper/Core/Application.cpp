@@ -17,7 +17,7 @@ namespace VulkanHelper
 			std::filesystem::current_path(appInfo.WorkingDirectory);
 
 		Logger::Init();
-		VL_CORE_TRACE("LOGGER INITIALIZED");
+		VK_CORE_TRACE("LOGGER INITIALIZED");
 		Window::CreateInfo winInfo;
 		winInfo.Width = (int)appInfo.WindowWidth;
 		winInfo.Height = (int)appInfo.WindowHeight;
@@ -32,6 +32,7 @@ namespace VulkanHelper
 		deviceInfo.Window = m_Window.get();
 		deviceInfo.UseRayTracing = appInfo.EnableRayTracingSupport;
 		deviceInfo.UseMemoryAddress = appInfo.UseMemoryAddress;
+		deviceInfo.IgnoredMessageIDs = std::move(appInfo.IgnoredMessageIDs);
 		Device::Init(deviceInfo);
 		Renderer::Init(*m_Window, appInfo.MaxFramesInFlight);
 		Input::Init(m_Window->GetGLFWwindow());
@@ -51,12 +52,12 @@ namespace VulkanHelper
 
 	Application::~Application()
 	{
-		VL_CORE_INFO("Closing");
+		VK_CORE_INFO("Closing");
 	}
 
 	void Application::Run()
 	{
-		VL_CORE_TRACE("\n\n\n\nMAIN LOOP START\n\n\n\n");
+		VK_CORE_TRACE("\n\n\n\nMAIN LOOP START\n\n\n\n");
 		Timer timer;
 		double deltaTime = 0.0f;
 

@@ -115,7 +115,7 @@ namespace VulkanHelper
 
 		static void* CreateRegisteredClass(const std::string& className)
 		{
-			VL_CORE_ASSERT(s_ReflectionMap.find(className) != s_ReflectionMap.end(), "class {} wasn't registered!", className);
+			VK_CORE_ASSERT(s_ReflectionMap.find(className) != s_ReflectionMap.end(), "class {} wasn't registered!", className);
 
 			return s_ReflectionMap[className]();
 		}

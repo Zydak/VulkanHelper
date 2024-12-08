@@ -18,6 +18,7 @@ namespace VulkanHelper
 		bool UseMemoryAddress = true;
 		std::vector<const char*> DeviceExtensions;
 		std::vector<const char*> OptionalExtensions;
+		std::vector<int32_t> IgnoredMessageIDs;
 		VkPhysicalDeviceFeatures2 Features = VkPhysicalDeviceFeatures2();
 	};
 

@@ -262,7 +262,7 @@ namespace VulkanHelper
 	VkDeviceAddress AccelerationStructure::GetBlasDeviceAddress(uint32_t blasID)
 	{
 		// Ensure the provided BLAS index is within valid range
-		VL_CORE_ASSERT(blasID < m_Blas.size(), "There is no such index");
+		VK_CORE_ASSERT(blasID < m_Blas.size(), "There is no such index");
 
 		// Set up acceleration structure device address information
 		VkAccelerationStructureDeviceAddressInfoKHR addressInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR };
@@ -468,7 +468,7 @@ namespace VulkanHelper
 		VkQueryPool queryPool = VK_NULL_HANDLE;
 		if (compactionsCount > 0)  // Is compaction requested?
 		{
-			VL_CORE_ASSERT(compactionsCount == blasCount, "Don't allow mix of on/off compaction");
+			VK_CORE_ASSERT(compactionsCount == blasCount, "Don't allow mix of on/off compaction");
 			VkQueryPoolCreateInfo qpci{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO };
 			qpci.queryCount = blasCount;
 			qpci.queryType = VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR;

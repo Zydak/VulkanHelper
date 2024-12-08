@@ -34,7 +34,7 @@ namespace VulkanHelper
 		}
 
 		std::filesystem::path cwd = std::filesystem::current_path();
-		VL_CORE_ASSERT(pixels, "failed to load texture image! Path: {0}, Current working directory: {1}", path, cwd.string());
+		VK_CORE_ASSERT(pixels, "failed to load texture image! Path: {0}, Current working directory: {1}", path, cwd.string());
 		uint64_t sizeOfPixel = HDR ? sizeof(float) * 4 : sizeof(uint8_t) * 4;
 		VkDeviceSize imageSize = (uint64_t)sizeX * (uint64_t)sizeY * sizeOfPixel;
 
@@ -73,8 +73,8 @@ namespace VulkanHelper
 			aiProcess_FindInvalidData);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
-			VL_CORE_ERROR("Failed to load model: {0}", importer.GetErrorString());
-			VL_CORE_ASSERT(false, ""); // TODO: some error handling
+			VK_CORE_ERROR("Failed to load model: {0}", importer.GetErrorString());
+			VK_CORE_ASSERT(false, ""); // TODO: some error handling
 		}
 
 		ModelAsset asset;

@@ -26,7 +26,7 @@ namespace VulkanHelper
 		for (int i = 0; i < bindings.size(); i++)
 		{
 			// Ensure each binding is correctly initialized.
-			VL_CORE_ASSERT(bindings[i], "Incorrectly initialized binding in array!");
+			VK_CORE_ASSERT(bindings[i], "Incorrectly initialized binding in array!");
 
 			// Create a Vulkan descriptor set layout binding based on the provided Binding object.
 			VkDescriptorSetLayoutBinding layoutBinding{};
@@ -46,7 +46,7 @@ namespace VulkanHelper
 		descriptorSetLayoutInfo.pBindings = setLayoutBindings.data();
 
 		// Attempt to create the Vulkan descriptor set layout object.
-		VL_CORE_RETURN_ASSERT(vkCreateDescriptorSetLayout(Device::GetDevice(), &descriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayoutHandle),
+		VK_CORE_RETURN_ASSERT(vkCreateDescriptorSetLayout(Device::GetDevice(), &descriptorSetLayoutInfo, nullptr, &m_DescriptorSetLayoutHandle),
 			VK_SUCCESS,
 			"Failed to create descriptor set layout!"
 		);

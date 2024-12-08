@@ -18,7 +18,7 @@ namespace VulkanHelper
 		if (m_Initialized)
 			Destroy();
 
-		VL_CORE_ASSERT(createInfo, "Incorectly initialized image create info! Values");
+		VK_CORE_ASSERT(createInfo, "Incorectly initialized image create info! Values");
 		m_Usage = createInfo.Usage;
 		m_MemoryProperties = createInfo.Properties;
 		m_Allocation = new VmaAllocation();
@@ -148,7 +148,7 @@ namespace VulkanHelper
 
 	void Image::Resize(VkExtent2D newSize)
 	{
-		VL_CORE_ASSERT(m_Initialized, "Can't Resize Uninitialized Image!");
+		VK_CORE_ASSERT(m_Initialized, "Can't Resize Uninitialized Image!");
 
 		VulkanHelper::Image::CreateInfo imageInfo{};
 		imageInfo.Width = newSize.width;
@@ -225,7 +225,7 @@ namespace VulkanHelper
 		viewInfo.subresourceRange.levelCount = m_MipLevels;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = layerCount;
-		VL_CORE_RETURN_ASSERT(vkCreateImageView(Device::GetDevice(), &viewInfo, nullptr, &m_ImageViews[0]),
+		VK_CORE_RETURN_ASSERT(vkCreateImageView(Device::GetDevice(), &viewInfo, nullptr, &m_ImageViews[0]),
 			VK_SUCCESS,
 			"failed to create image view layer!"
 		);
@@ -633,7 +633,7 @@ namespace VulkanHelper
 	// And store the PDF into the ALPHA channel of pixels
 	std::vector<Image::EnvAccel> Image::CreateEnvAccel(float* pixels, uint32_t width, uint32_t height, float& average, float& integral)
 	{
-		VL_CORE_INFO("Creating Env Accel Structure...");
+		VK_CORE_INFO("Creating Env Accel Structure...");
 		const uint32_t rx = width;
 		const uint32_t ry = height;
 
@@ -869,7 +869,7 @@ namespace VulkanHelper
 			return 4 * 4;
 			break;
 		default:
-			VL_CORE_ASSERT(false, "Unsupported format! Format: {}", format);
+			VK_CORE_ASSERT(false, "Unsupported format! Format: {}", format);
 			break;
 		}
 

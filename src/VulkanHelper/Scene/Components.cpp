@@ -73,7 +73,7 @@ namespace VulkanHelper
 		{
 			ScriptInterface* scInterface = (ScriptInterface*)Serializer::CreateRegisteredClass(scriptClassNames[i]);
 
-			VL_CORE_ASSERT(scInterface != nullptr, "Script doesn't inherit from script interface!");
+			VK_CORE_ASSERT(scInterface != nullptr, "Script doesn't inherit from script interface!");
 
 			Scripts.push_back(scInterface);
 		}

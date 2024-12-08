@@ -38,7 +38,7 @@ namespace VulkanHelper
 	Asset* AssetManager::GetAsset(const AssetHandle& handle)
 	{
 		auto iter = s_Assets.find(handle);
-		VL_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
+		VK_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
 
 		return iter->second.Asset.get();
 	}
@@ -46,7 +46,7 @@ namespace VulkanHelper
 	bool AssetManager::IsAssetValid(const AssetHandle& handle)
 	{
 		auto iter = s_Assets.find(handle);
-		VL_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
+		VK_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
 
 		return iter->second.Asset->IsValid();
 	}
@@ -60,7 +60,7 @@ namespace VulkanHelper
 	void AssetManager::WaitToLoad(const AssetHandle& handle)
 	{
 		auto iter = s_Assets.find(handle);
-		VL_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
+		VK_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
 
 		if (iter->second.Future.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready)
 			return;
@@ -71,7 +71,7 @@ namespace VulkanHelper
 	bool AssetManager::IsAssetLoaded(const AssetHandle& handle)
 	{
 		auto iter = s_Assets.find(handle);
-		VL_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
+		VK_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
 
 		return iter->second.Future.wait_for(std::chrono::duration<float>(0)) == std::future_status::ready;
 	}
@@ -87,7 +87,7 @@ namespace VulkanHelper
 		}
 
 		size_t dotPos = path.find_last_of('.');
-		VL_CORE_ASSERT(dotPos != std::string::npos, "Failed to get file extension! Path: {}", path);
+		VK_CORE_ASSERT(dotPos != std::string::npos, "Failed to get file extension! Path: {}", path);
 		std::string extension = path.substr(dotPos, path.size() - dotPos);
 
 		std::shared_ptr<std::promise<void>> promise = std::make_shared<std::promise<void>>();
@@ -100,7 +100,7 @@ namespace VulkanHelper
 		{
 			s_ThreadPool.PushTask([](std::string path, std::shared_ptr<std::promise<void>> promise, AssetHandle handle)
 				{
-					VL_CORE_TRACE("Loading Texture: {}", path);
+					VK_CORE_TRACE("Loading Texture: {}", path);
 					Scope<Asset> asset = std::make_unique<TextureAsset>(std::move(AssetImporter::ImportTexture(path, false)));
 					asset->SetValid(true);
 					asset->SetPath(path);
@@ -142,7 +142,7 @@ namespace VulkanHelper
 					promise->set_value();
 				}, path, promise, handle);
 		}
-		else { VL_CORE_ASSERT(false, "Extension not supported! Extension: {}", extension); }
+		else { VK_CORE_ASSERT(false, "Extension not supported! Extension: {}", extension); }
 
 		return AssetHandle(handle);
 	}
@@ -174,7 +174,7 @@ namespace VulkanHelper
 
 	void AssetManager::UnloadAsset(const AssetHandle& handle)
 	{
-		VL_CORE_TRACE("Unloading asset: {}", handle.GetAsset()->GetPath());
+		VK_CORE_TRACE("Unloading asset: {}", handle.GetAsset()->GetPath());
 
 		// Immediately remove asset from m_Assets and then destroy everything on separate thread
 		s_AssetsMutex.lock();

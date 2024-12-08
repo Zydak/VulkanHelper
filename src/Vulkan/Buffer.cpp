@@ -91,7 +91,7 @@ namespace VulkanHelper
 		m_Allocation = new VmaAllocation();
 
 		// Assert the validity of the provided creation information.
- 		VL_CORE_ASSERT(createInfo, "Incorrectly Initialized Buffer::CreateInfo! Values: InstanceCount: {0}, InstanceSize: {1}, UsageFlags: {2}, MemoryPropertyFlags: {3}", createInfo.InstanceCount, createInfo.InstanceSize, createInfo.UsageFlags, createInfo.MemoryPropertyFlags);
+ 		VK_CORE_ASSERT(createInfo, "Incorrectly Initialized Buffer::CreateInfo! Values: InstanceCount: {0}, InstanceSize: {1}, UsageFlags: {2}, MemoryPropertyFlags: {3}", createInfo.InstanceCount, createInfo.InstanceSize, createInfo.UsageFlags, createInfo.MemoryPropertyFlags);
 
 		// Mark the buffer as initialized.
 		m_Initialized = true;
@@ -176,7 +176,7 @@ namespace VulkanHelper
 
 		if (size == VK_WHOLE_SIZE)
 		{
-			VL_CORE_ASSERT(false, "");
+			VK_CORE_ASSERT(false, "");
 		}
 
 		// Copy data from the source buffer to the destination buffer.
@@ -195,7 +195,7 @@ namespace VulkanHelper
 	VmaAllocationInfo Buffer::GetMemoryInfo() const
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		// Retrieve memory allocation information from VMA.
 		VmaAllocationInfo info{};
@@ -213,7 +213,7 @@ namespace VulkanHelper
 	VkDeviceAddress Buffer::GetDeviceAddress() const
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		// Prepare the buffer device address info.
 		VkBufferDeviceAddressInfo info = {};
@@ -303,10 +303,10 @@ namespace VulkanHelper
 	VkResult Buffer::Map(VkDeviceSize size, VkDeviceSize offset)
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		// Check if the buffer is not device local, as device local buffers cannot be mapped.
-		VL_CORE_ASSERT(!(m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), "Can't map device local buffer!");
+		VK_CORE_ASSERT(!(m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), "Can't map device local buffer!");
 
 		// Map the memory range of the buffer into CPU accessible memory.
 		VkResult result = vmaMapMemory(Device::GetAllocator(), *m_Allocation, &m_Mapped);
@@ -320,7 +320,7 @@ namespace VulkanHelper
 	void Buffer::Unmap()
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		// If the buffer is mapped, unmap the memory range.
 		if (m_Mapped)
@@ -370,13 +370,13 @@ namespace VulkanHelper
 	void Buffer::WriteToBuffer(void* data, VkDeviceSize size, VkDeviceSize offset, VkCommandBuffer cmdBuffer)
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		// Check if the data size is valid.
-		VL_CORE_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size, either resize the buffer or create a larger one");
+		VK_CORE_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size, either resize the buffer or create a larger one");
 
 		// Check if the data pointer is valid.
-		VL_CORE_ASSERT(data != nullptr, "Invalid data pointer");
+		VK_CORE_ASSERT(data != nullptr, "Invalid data pointer");
 
 		if (size == VK_WHOLE_SIZE)
 			size = m_BufferSize - offset;
@@ -414,7 +414,7 @@ namespace VulkanHelper
 		else // If the buffer is not device local, write directly to the buffer.
 		{
 			// Check if the buffer is mapped.
-			VL_CORE_ASSERT(m_Mapped, "Cannot copy to unmapped buffer");
+			VK_CORE_ASSERT(m_Mapped, "Cannot copy to unmapped buffer");
 
 			// Calculate the memory offset within the mapped buffer.
 			char* memOffset = reinterpret_cast<char*>(m_Mapped) + offset;
@@ -431,13 +431,13 @@ namespace VulkanHelper
 	void Buffer::ReadFromBuffer(void* outData, VkDeviceSize size /*= VK_WHOLE_SIZE*/, VkDeviceSize offset /*= 0*/)
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		// Check if the data size is valid.
-		VL_CORE_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size on reading!");
+		VK_CORE_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size on reading!");
 
 		// Check if the data pointer is valid.
-		VL_CORE_ASSERT(outData != nullptr, "Invalid outData pointer");
+		VK_CORE_ASSERT(outData != nullptr, "Invalid outData pointer");
 
 		if (size == VK_WHOLE_SIZE)
 			size = m_BufferSize - offset;
@@ -445,7 +445,7 @@ namespace VulkanHelper
 		// If the buffer is device local, use a staging buffer to transfer the data.
 		if (m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		{
-			VL_CORE_ASSERT((m_UsageFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) != 0, "Can't read from buffer that is DEVICE_LOCAL and wasn't create with USAGE_TRANSFERS_SRC_BIT!");
+			VK_CORE_ASSERT((m_UsageFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) != 0, "Can't read from buffer that is DEVICE_LOCAL and wasn't create with USAGE_TRANSFERS_SRC_BIT!");
 
 			// Create a staging buffer.
 			Buffer::CreateInfo info{};
@@ -472,7 +472,7 @@ namespace VulkanHelper
 		else // If the buffer is not device local, read directly to the buffer.
 		{
 			// Check if the buffer is mapped.
-			VL_CORE_ASSERT(m_Mapped, "Cannot read from unmapped buffer!");
+			VK_CORE_ASSERT(m_Mapped, "Cannot read from unmapped buffer!");
 
 			// Calculate the memory offset within the mapped buffer.
 			char* memOffset = reinterpret_cast<char*>(m_Mapped) + offset;
@@ -498,7 +498,7 @@ namespace VulkanHelper
 	VkResult Buffer::Flush(VkDeviceSize size, VkDeviceSize offset)
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		return vmaFlushAllocation(Device::GetAllocator(), *m_Allocation, offset, size);;
 	}
@@ -517,7 +517,7 @@ namespace VulkanHelper
 	VkResult Buffer::Invalidate(VkDeviceSize size, VkDeviceSize offset)
 	{
 		// Check if the Buffer has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Buffer Not Initialized!");
 
 		return vmaInvalidateAllocation(Device::GetAllocator(), *m_Allocation, offset, size);
 	}

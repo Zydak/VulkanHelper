@@ -9,8 +9,8 @@ namespace VulkanHelper
 
 	void GLFW_CALLBACK(int errCode, const char* message)
 	{
-		VL_CORE_ERROR("GLFW ERROR CODE: {0}", errCode);
-		VL_CORE_ERROR("{0}", message);
+		VK_CORE_ERROR("GLFW ERROR CODE: {0}", errCode);
+		VK_CORE_ERROR("{0}", message);
 	}
 
 	void Window::Init(CreateInfo& createInfo)
@@ -133,7 +133,7 @@ namespace VulkanHelper
 
 	void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
 	{
-		VL_CORE_RETURN_ASSERT(glfwCreateWindowSurface(instance, m_Window, nullptr, surface),
+		VK_CORE_RETURN_ASSERT(glfwCreateWindowSurface(instance, m_Window, nullptr, surface),
 			VK_SUCCESS, 
 			"failed to create window surface"
 		);

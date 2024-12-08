@@ -51,10 +51,10 @@ namespace VulkanHelper
 				return AssetHandle(handle);
 			}
 
-			VL_CORE_TRACE("Loading asset: {}", path);
+			VK_CORE_TRACE("Loading asset: {}", path);
 
 			size_t dotPos = path.find_last_of('.');
-			VL_CORE_ASSERT(dotPos != std::string::npos, "Failed to get file extension! Path: {}", path);
+			VK_CORE_ASSERT(dotPos != std::string::npos, "Failed to get file extension! Path: {}", path);
 			std::string extension = path.substr(dotPos, path.size() - dotPos);
 
 			std::shared_ptr<std::promise<void>> promise = std::make_shared<std::promise<void>>();

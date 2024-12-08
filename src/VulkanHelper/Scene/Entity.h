@@ -18,7 +18,7 @@ namespace VulkanHelper
 		template<typename T, typename... Args>
 		T& AddComponent(Args&&... args)
 		{
-			VL_CORE_ASSERT(!HasComponent<T>(), "Entity already has this component!");
+			VK_CORE_ASSERT(!HasComponent<T>(), "Entity already has this component!");
 			T& component = m_Scene->GetRegistry().emplace<T>(m_Handle, std::forward<Args>(args)...);
 			return component;
 		}

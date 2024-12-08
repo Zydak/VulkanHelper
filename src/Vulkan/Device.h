@@ -62,6 +62,8 @@ namespace VulkanHelper
 			std::vector<const char*> DeviceExtensions;
 			std::vector<const char*> OptionalExtensions;
 			VkPhysicalDeviceFeatures2 Features = {};
+
+			std::vector<int32_t> IgnoredMessageIDs;
 			
 			bool UseMemoryAddress = true;
 			bool UseRayTracing = false;
@@ -218,6 +220,5 @@ namespace VulkanHelper
 		static void vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo);
 		static void vkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo);
 		static void vkCmdEndRenderingKHR(VkCommandBuffer commandBuffer);
-		static void vkGetDeviceBufferMemoryRequirements(const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
 	};
 }

@@ -180,7 +180,7 @@ namespace VulkanHelper
 
 		if (bloomInfo.MipCount <= 0 || bloomInfo.MipCount > 10)
 		{
-			VL_CORE_WARN("Incorrect mips count! {}. Min = 1 & Max = 10", bloomInfo.MipCount);
+			VK_CORE_WARN("Incorrect mips count! {}. Min = 1 & Max = 10", bloomInfo.MipCount);
 		}
 		bloomInfo.MipCount = glm::clamp(bloomInfo.MipCount, (uint32_t)0, (uint32_t)10);
 
@@ -279,7 +279,7 @@ namespace VulkanHelper
 
 		if (mipsCount <= 0 || mipsCount > 10)
 		{
-			VL_CORE_WARN("Incorrect mips count! {}. Min = 1 & Max = 10", mipsCount);
+			VK_CORE_WARN("Incorrect mips count! {}. Min = 1 & Max = 10", mipsCount);
 		}
 		mipsCount = glm::clamp(mipsCount, (uint32_t)0, (uint32_t)10);
 

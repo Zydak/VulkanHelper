@@ -22,7 +22,7 @@ namespace VulkanHelper
 
 		if (!std::filesystem::exists(info.Filepath))
 		{
-			VL_CORE_ERROR("File does not exist: {}", info.Filepath);
+			VK_CORE_ERROR("File does not exist: {}", info.Filepath);
 			return false;
 		}
 
@@ -38,7 +38,7 @@ namespace VulkanHelper
 		createInfo.codeSize = data.size() * 4;
 		createInfo.pCode = data.data();
 
-		VL_CORE_RETURN_ASSERT(vkCreateShaderModule(Device::GetDevice(), &createInfo, nullptr, &m_ModuleHandle),
+		VK_CORE_RETURN_ASSERT(vkCreateShaderModule(Device::GetDevice(), &createInfo, nullptr, &m_ModuleHandle),
 			VK_SUCCESS,
 			"failed to create shader Module"
 		);
@@ -174,8 +174,6 @@ namespace VulkanHelper
 			std::vector<slang::CompilerOptionEntry> compilerOptions(2);
 			compilerOptions[0].name = slang::CompilerOptionName::Optimization;
 			compilerOptions[0].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL };
-			//compilerOptions[1].name = slang::CompilerOptionName::GLSLForceScalarLayout;
-			//compilerOptions[1].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, 1 };
 
 			slang::SessionDesc sessionDesc{};
 
@@ -196,7 +194,7 @@ namespace VulkanHelper
 			sessionDesc.searchPathCount = 1;
 
 			sessionDesc.compilerOptionEntries = compilerOptions.data();
-			sessionDesc.compilerOptionEntryCount = compilerOptions.size();
+			sessionDesc.compilerOptionEntryCount = (uint32_t)compilerOptions.size();
 
 			Microsoft::WRL::ComPtr<slang::ISession> session;
 			s_GlobalSession->createSession(sessionDesc, &session);
@@ -206,7 +204,11 @@ namespace VulkanHelper
 
 			if (diagnostics)
 			{
-				VL_CORE_ERROR((const char*)diagnostics->getBufferPointer());
+				std::string message((const char*)diagnostics->getBufferPointer());
+				if (message.find("warning") != std::string::npos)
+					VK_CORE_WARN(message);
+				else
+					VK_CORE_ERROR(message);
 			}
 
 			if (module == nullptr)
@@ -233,7 +235,11 @@ namespace VulkanHelper
 
 			if (diagnosticBlob)
 			{
-				VL_CORE_ERROR((const char*)diagnosticBlob->getBufferPointer());
+				std::string message((const char*)diagnosticBlob->getBufferPointer());
+				if (message.find("warning") != std::string::npos)
+					VK_CORE_WARN(message);
+				else
+					VK_CORE_ERROR(message);
 			}
 
 			if (res != 0)
@@ -248,13 +254,17 @@ namespace VulkanHelper
 
 			if (diagnostics1)
 			{
-				VL_CORE_ERROR((const char*)diagnostics1->getBufferPointer());
+				std::string message((const char*)diagnostics1->getBufferPointer());
+				if (message.find("warning") != std::string::npos)
+					VK_CORE_WARN(message);
+				else
+					VK_CORE_ERROR(message);
 			}
 
 			if (res != 0)
 				return data;
 
-			int codeSize = kernelBlob->getBufferSize();
+			int codeSize = (int)kernelBlob->getBufferSize();
 
 			data.resize(codeSize / 4);
 
@@ -283,7 +293,7 @@ namespace VulkanHelper
 			}
 			else
 			{
-				VL_CORE_INFO("Compiling shader {}", filepath);
+				VK_CORE_INFO("Compiling shader {}", filepath);
 
 				shaderc::Compiler compiler;
 				shaderc::CompileOptions options;
@@ -302,7 +312,7 @@ namespace VulkanHelper
 
 				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 				{
-					VL_CORE_ERROR("Failed to compile shader! {}", module.GetErrorMessage());
+					VK_CORE_ERROR("Failed to compile shader! {}", module.GetErrorMessage());
 					return std::vector<uint32_t>();
 				}
 
@@ -316,7 +326,7 @@ namespace VulkanHelper
 		}
 		else
 		{
-			VL_CORE_INFO("Compiling shader {}", filepath);
+			VK_CORE_INFO("Compiling shader {}", filepath);
 
 			shaderc::Compiler compiler;
 			shaderc::CompileOptions options;
@@ -334,7 +344,7 @@ namespace VulkanHelper
 
 			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
-				VL_CORE_ERROR("Failed to compile shader! {}", module.GetErrorMessage());
+				VK_CORE_ERROR("Failed to compile shader! {}", module.GetErrorMessage());
 				return std::vector<uint32_t>();
 			}
 
@@ -458,7 +468,7 @@ namespace VulkanHelper
 			return shaderc_mesh_shader;
 			break;
 		default:
-			VL_CORE_ASSERT(false, "Incorrect shader type");
+			VK_CORE_ASSERT(false, "Incorrect shader type");
 			break;
 		}
 

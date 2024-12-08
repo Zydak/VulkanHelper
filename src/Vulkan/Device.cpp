@@ -21,27 +21,35 @@ namespace VulkanHelper
 		{VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME, false}
 	};
 
+	static inline std::vector<int32_t> s_IgnoredMessageIDs;
+
 	/*
 	   *  @brief Callback function for Vulkan to be called by validation layers when needed
 	*/
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 	{
+		for (int i = 0; i < s_IgnoredMessageIDs.size(); i++)
+		{
+			if (pCallbackData->messageIdNumber == s_IgnoredMessageIDs[i])
+				return VK_FALSE;
+		}
+
 		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 		{
-			VL_CORE_INFO("Info: {0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+			VK_CORE_INFO("Info: {0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
 		}
 		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 		{
 			//VL_CORE_ERROR("");
 
-			VL_CORE_ERROR("Error\n\t{0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+			VK_CORE_ERROR("Error\n\t{0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
 		}
 		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 		{
 			//VL_CORE_WARN("");
 
-			VL_CORE_WARN("Warning\n\t{0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+			VK_CORE_WARN("Warning\n\t{0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
 		}
 		return VK_FALSE;
 	}
@@ -75,7 +83,9 @@ namespace VulkanHelper
 	 */
 	void Device::Init(CreateInfo& createInfo)
 	{
-		VL_CORE_ASSERT(!s_Initialized, "Device is already initialized!");
+		VK_CORE_ASSERT(!s_Initialized, "Device is already initialized!");
+
+		s_IgnoredMessageIDs = std::move(createInfo.IgnoredMessageIDs);
 
 		// Associate the provided window with the device
 		Device::s_Window = createInfo.Window;
@@ -122,7 +132,7 @@ namespace VulkanHelper
 	void Device::Destroy()
 	{
 		// Log message indicating deletion of Vulkan Device
-		VL_CORE_INFO("Deleting Vulkan Device");
+		VK_CORE_INFO("Deleting Vulkan Device");
 
 		// Destroy memory pools
 		for (auto& pool : s_Pools)
@@ -256,7 +266,7 @@ namespace VulkanHelper
 			// If the required extension is not found in the available set, raise an assertion
 			if (available.find(required) == available.end())
 			{
-				VL_CORE_ASSERT(false, "Missing glfw extension: {0}", required);
+				VK_CORE_ASSERT(false, "Missing glfw extension: {0}", required);
 			}
 		}
 	}
@@ -276,7 +286,7 @@ namespace VulkanHelper
 		PopulateDebugMessenger(createInfo);
 
 		// Attempt to create the debug messenger
-		VL_CORE_RETURN_ASSERT(CreateDebugUtilsMessengerEXT(s_Instance, &createInfo, nullptr, &s_DebugMessenger),
+		VK_CORE_RETURN_ASSERT(CreateDebugUtilsMessengerEXT(s_Instance, &createInfo, nullptr, &s_DebugMessenger),
 			VK_SUCCESS,
 			"Failed to setup debug messenger!"
 		);
@@ -317,7 +327,7 @@ namespace VulkanHelper
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "No Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_3;
+		appInfo.apiVersion = VK_API_VERSION_1_2;
 
 		// Set up instance creation information
 		vk::InstanceCreateInfo createInfo;
@@ -425,7 +435,7 @@ namespace VulkanHelper
 		allocatorInfo.instance = s_Instance;
 		allocatorInfo.physicalDevice = s_PhysicalDevice;
 		allocatorInfo.device = s_Device;
-		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
 		allocatorInfo.flags = VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
 
 		// Check if the memory priority extension is present
@@ -446,7 +456,7 @@ namespace VulkanHelper
 			allocatorInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 		// Create the memory allocator
-		VL_CORE_RETURN_ASSERT(vmaCreateAllocator(&allocatorInfo, &s_Allocator), VK_SUCCESS, "Failed to create VMA allocator");
+		VK_CORE_RETURN_ASSERT(vmaCreateAllocator(&allocatorInfo, &s_Allocator), VK_SUCCESS, "Failed to create VMA allocator");
 	}
 
 	/**
@@ -459,10 +469,6 @@ namespace VulkanHelper
 	 */
 	void Device::CreateMemoryPool(VkMemoryPropertyFlags propertyFlags, uint32_t memoryIndex, VmaPool& pool, VkDeviceSize MBSize, VkDeviceSize ByteSize, bool isImage)
 	{
-		static int x = 0;
-		VL_CORE_TRACE("Pool Allocation {}", x);
-		x++;
-
 		// Initialize memory pool creation info
 		VmaPoolCreateInfo poolInfo{};
 
@@ -470,12 +476,12 @@ namespace VulkanHelper
 		// Set block size based on MBSize or ByteSize
 		if (MBSize != 0)
 		{
-			VL_CORE_ASSERT(ByteSize == 0, "MBSize and ByteSize can't be both set!");
+			VK_CORE_ASSERT(ByteSize == 0, "MBSize and ByteSize can't be both set!");
 			poolInfo.blockSize = 1024 * 1024 * MBSize;
 		}
 		else if (ByteSize != 0)
 		{
-			VL_CORE_ASSERT(MBSize == 0, "MBSize and ByteSize can't be both set!");
+			VK_CORE_ASSERT(MBSize == 0, "MBSize and ByteSize can't be both set!");
 			poolInfo.blockSize = ByteSize;
 		}
 
@@ -485,7 +491,8 @@ namespace VulkanHelper
 		// Set pool priority
 		poolInfo.priority = 0.5f;
 
-		if (isImage == false && propertyFlags == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		// On AMD only VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT can be set as exportable and there's no need for exportable image memory
+		if (isImage == false && propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		{
 			if (std::find(s_DeviceExtensions.begin(), s_DeviceExtensions.end(), VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) != s_DeviceExtensions.end())
 			{
@@ -499,7 +506,7 @@ namespace VulkanHelper
 		}
 
 		// Create the memory pool
-		VL_CORE_RETURN_ASSERT(vmaCreatePool(s_Allocator, &poolInfo, &pool), VK_SUCCESS, "Failed to create memory pool!");
+		VK_CORE_RETURN_ASSERT(vmaCreatePool(s_Allocator, &poolInfo, &pool), VK_SUCCESS, "Failed to create memory pool!");
 	}
 
 	/**
@@ -518,7 +525,7 @@ namespace VulkanHelper
 		allocInfo.requiredFlags = flags;
 
 		// Find the memory type index matching the specified flags
-		VL_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndex(s_Allocator, flags, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index!");
+		VK_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndex(s_Allocator, flags, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index!");
 	}
 
 	/**
@@ -535,14 +542,8 @@ namespace VulkanHelper
 		allocInfo.priority = 0.5f;
 		allocInfo.requiredFlags = flags;
 
-		VkDeviceBufferMemoryRequirements devBufMemReq = { VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS };
-		devBufMemReq.pCreateInfo = &createInfo;
-		
-		VkMemoryRequirements2 memReq = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
-		Device::vkGetDeviceBufferMemoryRequirements(&devBufMemReq, &memReq);
-
 		// Find the memory type index suitable for the buffer
-		VL_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndexForBufferInfo(s_Allocator, &createInfo, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index for buffer info!");
+		VK_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndexForBufferInfo(s_Allocator, &createInfo, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index for buffer info!");
 	}
 
 	/**
@@ -560,7 +561,7 @@ namespace VulkanHelper
 		allocInfo.requiredFlags = flags;
 
 		// Find the memory type index suitable for the image
-		VL_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndexForImageInfo(s_Allocator, &createInfo, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index for image info!");
+		VK_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndexForImageInfo(s_Allocator, &createInfo, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index for image info!");
 	}
 
 	/**
@@ -575,7 +576,7 @@ namespace VulkanHelper
 	void Device::CreateBuffer(VkBufferCreateInfo& createInfo, VkBuffer& buffer, VmaAllocation& alloc, VkMemoryPropertyFlags customFlags, VmaPool* poolOut, bool noPool, VkDeviceSize minAlignment)
 	{
 		// Assert that the device has been initialized before creating the buffer
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 		// Find the memory type index suitable for the buffer
 		uint32_t memoryIndex = 0;
 		if (std::find(s_DeviceExtensions.begin(), s_DeviceExtensions.end(), VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) != s_DeviceExtensions.end())
@@ -615,12 +616,12 @@ namespace VulkanHelper
 			if (vmaCreateBufferWithAlignment(s_Allocator, &createInfo, &allocCreateInfo, minAlignment, &buffer, &alloc, nullptr) < 0)
 			{
 				// If creation fails, try again without specifying the pool
-				VL_CORE_ERROR("Allocating Buffer without pool");
+				VK_CORE_ERROR("Allocating Buffer without pool");
 				allocCreateInfo.pool = nullptr;
 				allocCreateInfo.requiredFlags = customFlags;
 				if (vmaCreateBufferWithAlignment(s_Allocator, &createInfo, &allocCreateInfo, minAlignment, &buffer, &alloc, nullptr) < 0)
 				{
-					VL_CORE_ASSERT(false, "Couldn't create a buffer!");
+					VK_CORE_ASSERT(false, "Couldn't create a buffer!");
 				}
 			}
 		}
@@ -643,7 +644,7 @@ namespace VulkanHelper
 				allocCreateInfo.requiredFlags = customFlags;
 				if (vmaCreateBufferWithAlignment(s_Allocator, &createInfo, &allocCreateInfo, minAlignment, &buffer, &alloc, nullptr) < 0)
 				{
-					VL_CORE_ASSERT(false, "Couldn't create a buffer!");
+					VK_CORE_ASSERT(false, "Couldn't create a buffer!");
 				}
 			}
 		}
@@ -660,7 +661,7 @@ namespace VulkanHelper
 	void Device::CreateImage(VkImageCreateInfo& createInfo, VkImage& image, VmaAllocation& alloc, VkMemoryPropertyFlags customFlags)
 	{
 		// Assert that the device has been initialized before creating the image
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		// Find the memory type index suitable for the image
 		uint32_t memoryIndex = 0;
@@ -680,14 +681,14 @@ namespace VulkanHelper
 				// If creation fails, try again without specifying the pool
 				allocCreateInfo.pool = nullptr;
 				allocCreateInfo.memoryTypeBits = memoryIndex;
-				VL_CORE_ERROR("Allocating Image without pool");
+				VK_CORE_ERROR("Allocating Image without pool");
 
 				if (vmaCreateImage(s_Allocator, &createInfo, &allocCreateInfo, &image, &alloc, nullptr) < 0)
 				{
-					VL_CORE_ASSERT(false, "Couldn't create an image!");
+					VK_CORE_ASSERT(false, "Couldn't create an image!");
 				}
 				static int x = 0;
-				VL_CORE_TRACE("Allocation {}", x);
+				VK_CORE_TRACE("Allocation {}", x);
 				x++;
 			}
 		}
@@ -696,14 +697,13 @@ namespace VulkanHelper
 			// Pool not found for the memory type index, create a new pool
 			s_ImagePools[memoryIndex] = VmaPool();
 			CreateMemoryPool(customFlags, memoryIndex, s_ImagePools[memoryIndex], 300, 0, true);
-			VL_CORE_ERROR("CREATING IMAGE POOL ----------------------------");
 
 			VmaAllocationCreateInfo allocCreateInfo = {};
 			allocCreateInfo.pool = s_ImagePools[memoryIndex];
 
 			if (vmaCreateImage(s_Allocator, &createInfo, &allocCreateInfo, &image, &alloc, nullptr) < 0)
 			{
-				VL_CORE_ASSERT(false, "Couldn't create an image!");
+				VK_CORE_ASSERT(false, "Couldn't create an image!");
 			}
 		}
 
@@ -740,7 +740,7 @@ namespace VulkanHelper
 #ifndef DISTRIBUTION
 
 		// Assert that the device has been initialized before setting the object name
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		// Initialize object name info structure
 		VkDebugUtilsObjectNameInfoEXT name_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
@@ -768,7 +768,7 @@ namespace VulkanHelper
 #ifndef DISTRIBUTION
 
 		// Assert that the device has been initialized before beginning the label
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		// Initialize debug label info structure
 		VkDebugUtilsLabelEXT utilsInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, name, *(float*)&color };
@@ -790,7 +790,7 @@ namespace VulkanHelper
 #ifndef DISTRIBUTION
 
 		// Assert that the device has been initialized before ending the label
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		// End the debug label for the command buffer
 		Device::vkCmdEndDebugUtilsLabelEXT(cmd);
@@ -813,7 +813,7 @@ namespace VulkanHelper
 #ifndef DISTRIBUTION
 
 		// Assert that the device has been initialized before inserting the label
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		// Initialize debug label info structure
 		VkDebugUtilsLabelEXT utilsInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, name, *(float*)&color };
@@ -870,8 +870,8 @@ namespace VulkanHelper
 		// Enumerate all physical devices available in the Vulkan instance
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(s_Instance, &deviceCount, nullptr);
-		VL_CORE_ASSERT(deviceCount != 0, "failed to find GPUs with Vulkan support!");
-		VL_CORE_INFO("Number of devices: {0}", deviceCount);
+		VK_CORE_ASSERT(deviceCount != 0, "failed to find GPUs with Vulkan support!");
+		VK_CORE_INFO("Number of devices: {0}", deviceCount);
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(s_Instance, &deviceCount, devices.data());
 
@@ -901,7 +901,7 @@ namespace VulkanHelper
 		}
 
 		// Assert if no suitable GPU is found
-		VL_CORE_ASSERT(s_PhysicalDevice != VK_NULL_HANDLE, "failed to find a suitable GPU!");
+		VK_CORE_ASSERT(s_PhysicalDevice != VK_NULL_HANDLE, "failed to find a suitable GPU!");
 
 		// Retrieve and store properties of the selected physical device for later use
 		s_Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -946,8 +946,8 @@ namespace VulkanHelper
 		s_MaxSampleCount = GetMaxSampleCount();
 
 		// Log the name of the selected physical device
-		VL_CORE_INFO("Physical device: {0}", s_Properties.properties.deviceName);
-		VL_CORE_INFO("\tSubgroup Size: {0}", s_SubgroupProperties.subgroupSize);
+		VK_CORE_INFO("Physical device: {0}", s_Properties.properties.deviceName);
+		VK_CORE_INFO("\tSubgroup Size: {0}", s_SubgroupProperties.subgroupSize);
 	}
 
 	/**
@@ -1006,7 +1006,7 @@ namespace VulkanHelper
 		}
 
 		// Create the logical device
-		VL_CORE_RETURN_ASSERT(vkCreateDevice(s_PhysicalDevice, &createInfo, nullptr, &s_Device),
+		VK_CORE_RETURN_ASSERT(vkCreateDevice(s_PhysicalDevice, &createInfo, nullptr, &s_Device),
 			VK_SUCCESS,
 			"failed to create logical device!"
 		);
@@ -1141,7 +1141,7 @@ namespace VulkanHelper
 	VkFormat Device::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 	{
 		// Ensure that the device is initialized
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		// Iterate through each candidate format
 		for (VkFormat format : candidates)
@@ -1176,7 +1176,7 @@ namespace VulkanHelper
 			poolInfo.queueFamilyIndex = queueFamilyIndices.GraphicsFamily;
 			poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-			VL_CORE_RETURN_ASSERT(vkCreateCommandPool(s_Device, &poolInfo, nullptr, &GetGraphicsCommandPool()),
+			VK_CORE_RETURN_ASSERT(vkCreateCommandPool(s_Device, &poolInfo, nullptr, &GetGraphicsCommandPool()),
 				VK_SUCCESS,
 				"failed to create graphics command pool!"
 			);
@@ -1189,7 +1189,7 @@ namespace VulkanHelper
 			poolInfo.queueFamilyIndex = queueFamilyIndices.ComputeFamily;
 			poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-			VL_CORE_RETURN_ASSERT(vkCreateCommandPool(s_Device, &poolInfo, nullptr, &GetComputeCommandPool()),
+			VK_CORE_RETURN_ASSERT(vkCreateCommandPool(s_Device, &poolInfo, nullptr, &GetComputeCommandPool()),
 				VK_SUCCESS,
 				"failed to create compute command pool!"
 			);
@@ -1206,7 +1206,7 @@ namespace VulkanHelper
 	uint32_t Device::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 	{
 		// Ensure that the device is initialized
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		/*
 			The VkPhysicalDeviceMemoryProperties structure has two arrays memoryTypes and memoryHeaps.
@@ -1241,7 +1241,7 @@ namespace VulkanHelper
 		}
 
 		// Assert if no suitable memory type is found
-		VL_CORE_ASSERT(false, "failed to find suitable memory type!");
+		VK_CORE_ASSERT(false, "failed to find suitable memory type!");
 		return 0;
 	}
 
@@ -1255,7 +1255,7 @@ namespace VulkanHelper
 	void Device::BeginSingleTimeCommands(VkCommandBuffer& buffer, VkCommandPool pool)
 	{
 		// Ensure that the device is initialized
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		// Allocate a command buffer from the specified pool
 		VkCommandBufferAllocateInfo allocInfo{};
@@ -1285,7 +1285,7 @@ namespace VulkanHelper
 	void Device::EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool)
 	{
 		// Ensure that the device is initialized
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		std::mutex* queueMutex = nullptr;
 		if (queue == s_GraphicsQueue)
@@ -1293,7 +1293,7 @@ namespace VulkanHelper
 		else if (queue == s_ComputeQueue)
 			queueMutex = &s_ComputeQueueMutex;
 
-		VL_CORE_ASSERT(queueMutex != nullptr, "?????");
+		VK_CORE_ASSERT(queueMutex != nullptr, "?????");
 
 		std::unique_lock<std::mutex> queueLock(*queueMutex);
 
@@ -1353,182 +1353,173 @@ namespace VulkanHelper
 
 	VkResult Device::vkCreateAccelerationStructureKHR(VkDevice device, VkAccelerationStructureCreateInfoKHR* createInfo, VkAccelerationStructureKHR* structure)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCreateAccelerationStructureKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCreateAccelerationStructureKHR");
 		if (func != nullptr) { return func(device, createInfo, nullptr, structure); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
 
 	void Device::vkDestroyAccelerationStructureKHR(VkDevice device, VkAccelerationStructureKHR structure)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkDestroyAccelerationStructureKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkDestroyAccelerationStructureKHR");
 		if (func != nullptr) { return func(device, structure, nullptr); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdBuildAccelerationStructuresKHR(VkCommandBuffer commandBuffer, uint32_t infoCount, const VkAccelerationStructureBuildGeometryInfoKHR* pInfos, const VkAccelerationStructureBuildRangeInfoKHR* const* ppBuildRangeInfos)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdBuildAccelerationStructuresKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdBuildAccelerationStructuresKHR");
 		if (func != nullptr) { return func(commandBuffer, infoCount, pInfos, ppBuildRangeInfos); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdWriteAccelerationStructuresPropertiesKHR(VkCommandBuffer commandBuffer, uint32_t accelerationStructureCount, const VkAccelerationStructureKHR* pAccelerationStructures, VkQueryType queryType, VkQueryPool queryPool, uint32_t firstQuery)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdWriteAccelerationStructuresPropertiesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdWriteAccelerationStructuresPropertiesKHR");
 		if (func != nullptr) { return func(commandBuffer, accelerationStructureCount, pAccelerationStructures, queryType, queryPool, firstQuery); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuffer, const VkCopyAccelerationStructureInfoKHR* pInfo)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdCopyAccelerationStructureKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdCopyAccelerationStructureKHR");
 		if (func != nullptr) { return func(commandBuffer, pInfo); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkGetAccelerationStructureBuildSizesKHR(VkDevice device, VkAccelerationStructureBuildTypeKHR buildType, const VkAccelerationStructureBuildGeometryInfoKHR* pBuildInfo, const uint32_t* pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR* pSizeInfo)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkGetAccelerationStructureBuildSizesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetAccelerationStructureBuildSizesKHR");
 		if (func != nullptr) { return func(device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	VkResult Device::vkCreateRayTracingPipelinesKHR(VkDevice device, VkDeferredOperationKHR deferredOperation, VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkRayTracingPipelineCreateInfoKHR* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCreateRayTracingPipelinesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCreateRayTracingPipelinesKHR");
 		if (func != nullptr) { return func(device, deferredOperation, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
 
 	VkDeviceAddress Device::vkGetAccelerationStructureDeviceAddressKHR(VkDevice device, const VkAccelerationStructureDeviceAddressInfoKHR* pInfo)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkGetAccelerationStructureDeviceAddressKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetAccelerationStructureDeviceAddressKHR");
 		if (func != nullptr) { return func(device, pInfo); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
 
 	VkResult Device::vkGetRayTracingShaderGroupHandlesKHR(VkDevice device, VkPipeline pipeline, uint32_t firstGroup, uint32_t groupCount, size_t dataSize, void* pData)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkGetRayTracingShaderGroupHandlesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetRayTracingShaderGroupHandlesKHR");
 		if (func != nullptr) { return func(device, pipeline, firstGroup, groupCount, dataSize, pData); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
 
 	void Device::vkCmdTraceRaysKHR(VkCommandBuffer commandBuffer, const VkStridedDeviceAddressRegionKHR* pRaygenShaderBindingTable, const VkStridedDeviceAddressRegionKHR* pMissShaderBindingTable, const VkStridedDeviceAddressRegionKHR* pHitShaderBindingTable, const VkStridedDeviceAddressRegionKHR* pCallableShaderBindingTable, uint32_t width, uint32_t height, uint32_t depth)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdTraceRaysKHR");
 		if (func != nullptr) { return func(commandBuffer, pRaygenShaderBindingTable, pMissShaderBindingTable, pHitShaderBindingTable, pCallableShaderBindingTable, width, height, depth); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdPushDescriptorSetKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdPushDescriptorSetKHR");
 		if (func != nullptr) { return func(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	VkResult Device::vkGetMemoryWin32HandleKHR(VkDevice device, const VkMemoryGetWin32HandleInfoKHR* pGetWin32HandleInfo, HANDLE* pHandle)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetMemoryWin32HandleKHR");
 		if (func != nullptr) { return func(device, pGetWin32HandleInfo, pHandle); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
 
 	VkResult Device::vkGetSemaphoreWin32HandleKHR(VkDevice device, const VkSemaphoreGetWin32HandleInfoKHR* pGetWin32HandleInfo, HANDLE* pHandle)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkGetSemaphoreWin32HandleKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetSemaphoreWin32HandleKHR");
 		if (func != nullptr) { return func(device, pGetWin32HandleInfo, pHandle); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
 
 	VkResult Device::vkSetDebugUtilsObjectNameEXT(VkDevice device, const VkDebugUtilsObjectNameInfoEXT* pNameInfo)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkSetDebugUtilsObjectNameEXT");
 		if (func != nullptr) { return func(device, pNameInfo); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
 
 	void Device::vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdInsertDebugUtilsLabelEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdInsertDebugUtilsLabelEXT");
 		if (func != nullptr) { return func(commandBuffer, pLabelInfo); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdEndDebugUtilsLabelEXT(VkCommandBuffer commandBuffer)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdEndDebugUtilsLabelEXT");
 		if (func != nullptr) { return func(commandBuffer); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdBeginDebugUtilsLabelEXT");
 		if (func != nullptr) { return func(commandBuffer, pLabelInfo); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdBeginRenderingKHR(VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdBeginRenderingKHR");
 		if (func != nullptr) { return func(commandBuffer, pRenderingInfo); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 	void Device::vkCmdEndRenderingKHR(VkCommandBuffer commandBuffer)
 	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
+		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
 		static auto func = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdEndRenderingKHR");
 		if (func != nullptr) { return func(commandBuffer); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
-	}
-
-	void Device::vkGetDeviceBufferMemoryRequirements(const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements)
-	{
-		VL_CORE_ASSERT(s_Initialized, "Device not Initialized!");
-
-		static auto func = (PFN_vkGetDeviceBufferMemoryRequirements)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetDeviceBufferMemoryRequirements");
-		if (func != nullptr) { return func(GetDevice(), pInfo, pMemoryRequirements); }
-		else { VL_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
+		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
 
 }

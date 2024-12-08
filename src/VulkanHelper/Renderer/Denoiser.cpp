@@ -30,17 +30,17 @@ namespace VulkanHelper
 		CreateSemaphore();
 
 		// Initialize CUDA
-		VL_CORE_RETURN_ASSERT(cudaFree(nullptr), 0, "Couldn't reset cuda");
+		VK_CORE_RETURN_ASSERT(cudaFree(nullptr), 0, "Couldn't reset cuda");
 
 		CUcontext cuCtx = nullptr;  // zero means take the current context
-		VL_CORE_RETURN_ASSERT(optixInit(), 0, "Couldn't initialize optix!");
+		VK_CORE_RETURN_ASSERT(optixInit(), 0, "Couldn't initialize optix!");
 
 		OptixDeviceContextOptions optixoptions = {};
 		optixoptions.logCallbackFunction = &contextLogCb;
 		optixoptions.logCallbackLevel = 4;
 
-		VL_CORE_RETURN_ASSERT(optixDeviceContextCreate(cuCtx, &optixoptions, &m_OptixDevice), 0, "Couldn't Create optix device context");
-		VL_CORE_RETURN_ASSERT(optixDeviceContextSetLogCallback(m_OptixDevice, contextLogCb, nullptr, 4), 0, "Couldn't Set Log Callback");
+		VK_CORE_RETURN_ASSERT(optixDeviceContextCreate(cuCtx, &optixoptions, &m_OptixDevice), 0, "Couldn't Create optix device context");
+		VK_CORE_RETURN_ASSERT(optixDeviceContextSetLogCallback(m_OptixDevice, contextLogCb, nullptr, 4), 0, "Couldn't Set Log Callback");
 
 		m_PixelFormat = OPTIX_PIXEL_FORMAT_FLOAT4;
 		m_SizeofPixel = (uint32_t)4 * sizeof(float);
@@ -53,7 +53,7 @@ namespace VulkanHelper
 
 		m_DenoiserOptions = d_options;
 		OptixDenoiserModelKind modelKind = OPTIX_DENOISER_MODEL_KIND_AOV;
-		VL_CORE_RETURN_ASSERT(optixDenoiserCreate(m_OptixDevice, modelKind, &m_DenoiserOptions, &m_Denoiser), 0, "Couldn't Create Optix Denoiser");
+		VK_CORE_RETURN_ASSERT(optixDenoiserCreate(m_OptixDevice, modelKind, &m_DenoiserOptions, &m_Denoiser), 0, "Couldn't Create Optix Denoiser");
 	
         m_Initialized = true;
     }
@@ -135,12 +135,12 @@ namespace VulkanHelper
             cudaExternalSemaphoreWaitParams waitParams{};
             waitParams.flags = 0;
             waitParams.params.fence.value = fenceValue;
-            VL_CORE_RETURN_ASSERT(cudaWaitExternalSemaphoresAsync(&m_Semaphore.Cu, &waitParams, 1, nullptr), 0, "Waiting for semaphore failed");
+            VK_CORE_RETURN_ASSERT(cudaWaitExternalSemaphoresAsync(&m_Semaphore.Cu, &waitParams, 1, nullptr), 0, "Waiting for semaphore failed");
         }
 
         if (m_Intensity != 0)
         {
-            VL_CORE_RETURN_ASSERT(optixDenoiserComputeIntensity(m_Denoiser, m_CudaStream, &layer.input, m_Intensity, m_ScratchBuffer,
+            VK_CORE_RETURN_ASSERT(optixDenoiserComputeIntensity(m_Denoiser, m_CudaStream, &layer.input, m_Intensity, m_ScratchBuffer,
                 m_DenoiserSizes.withoutOverlapScratchSizeInBytes), 0, "Computing Intensity Failed");
         }
 
@@ -150,20 +150,20 @@ namespace VulkanHelper
 
 
         // Execute the denoiser
-        VL_CORE_RETURN_ASSERT(optixDenoiserInvoke(m_Denoiser, m_CudaStream, &denoiserParams, m_StateBuffer,
+        VK_CORE_RETURN_ASSERT(optixDenoiserInvoke(m_Denoiser, m_CudaStream, &denoiserParams, m_StateBuffer,
             m_DenoiserSizes.stateSizeInBytes, &guideLayer, &layer, 1, 0, 0, m_ScratchBuffer,
             m_DenoiserSizes.withoutOverlapScratchSizeInBytes), 0, "Denoising Failed");
 
         cudaDeviceScheduleBlockingSync;
         cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
-        VL_CORE_RETURN_ASSERT(cudaDeviceSynchronize(), 0, "Synchronizing Cuda Failed");  // Making sure the denoiser is done
-        VL_CORE_RETURN_ASSERT(cudaStreamSynchronize(m_CudaStream), 0, "Synchronizing Stream Failed");
+        VK_CORE_RETURN_ASSERT(cudaDeviceSynchronize(), 0, "Synchronizing Cuda Failed");  // Making sure the denoiser is done
+        VK_CORE_RETURN_ASSERT(cudaStreamSynchronize(m_CudaStream), 0, "Synchronizing Stream Failed");
 
         cudaExternalSemaphoreSignalParams sigParams{};
         sigParams.flags = 0;
         ++fenceValue;
         sigParams.params.fence.value = fenceValue;
-        VL_CORE_RETURN_ASSERT(cudaSignalExternalSemaphoresAsync(&m_Semaphore.Cu, &sigParams, 1, m_CudaStream), 0, "Signaling Semaphore Failed");
+        VK_CORE_RETURN_ASSERT(cudaSignalExternalSemaphoresAsync(&m_Semaphore.Cu, &sigParams, 1, m_CudaStream), 0, "Signaling Semaphore Failed");
     }
 
     /**
@@ -217,22 +217,22 @@ namespace VulkanHelper
     {
         if (m_StateBuffer != 0)
         {
-            VL_CORE_RETURN_ASSERT(cudaFree((void*)m_StateBuffer), 0, "Couldn't Free State Buffer");
+            VK_CORE_RETURN_ASSERT(cudaFree((void*)m_StateBuffer), 0, "Couldn't Free State Buffer");
             m_StateBuffer = 0;
         }
         if (m_ScratchBuffer != 0)
         {
-            VL_CORE_RETURN_ASSERT(cudaFree((void*)m_ScratchBuffer), 0, "Couldn't Free Scratch Buffer");
+            VK_CORE_RETURN_ASSERT(cudaFree((void*)m_ScratchBuffer), 0, "Couldn't Free Scratch Buffer");
             m_ScratchBuffer = 0;
         }
         if (m_Intensity != 0)
         {
-            VL_CORE_RETURN_ASSERT(cudaFree((void*)m_Intensity), 0, "Couldn't Free Intensity Buffer");
+            VK_CORE_RETURN_ASSERT(cudaFree((void*)m_Intensity), 0, "Couldn't Free Intensity Buffer");
             m_Intensity = 0;
         }
         if (m_MinRGB != 0)
         {
-            VL_CORE_RETURN_ASSERT(cudaFree((void*)m_MinRGB), 0, "Couldn't Free MinRgb Buffer");
+            VK_CORE_RETURN_ASSERT(cudaFree((void*)m_MinRGB), 0, "Couldn't Free MinRgb Buffer");
             m_MinRGB = 0;
         }
     }
@@ -291,15 +291,15 @@ namespace VulkanHelper
 		CreateBufferHandles(m_PixelBufferOut);
 
 		//Computing the amount of memory needed to do the denoiser
-		VL_CORE_RETURN_ASSERT(optixDenoiserComputeMemoryResources(m_Denoiser, m_ImageSize.width, m_ImageSize.height, &m_DenoiserSizes), 0, "Computing Sizes Failed");
+		VK_CORE_RETURN_ASSERT(optixDenoiserComputeMemoryResources(m_Denoiser, m_ImageSize.width, m_ImageSize.height, &m_DenoiserSizes), 0, "Computing Sizes Failed");
 
-		VL_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_StateBuffer, m_DenoiserSizes.stateSizeInBytes), 0, "Allocating State Buffer Failed");
-		VL_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_ScratchBuffer, m_DenoiserSizes.withoutOverlapScratchSizeInBytes), 0, "Allocating Scratch Buffer Failed");
-		VL_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_MinRGB, 4 * sizeof(float)), 0, "Allocating MinRgb Buffer Failed");
+		VK_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_StateBuffer, m_DenoiserSizes.stateSizeInBytes), 0, "Allocating State Buffer Failed");
+		VK_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_ScratchBuffer, m_DenoiserSizes.withoutOverlapScratchSizeInBytes), 0, "Allocating Scratch Buffer Failed");
+		VK_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_MinRGB, 4 * sizeof(float)), 0, "Allocating MinRgb Buffer Failed");
 		if (m_PixelFormat == OPTIX_PIXEL_FORMAT_FLOAT3 || m_PixelFormat == OPTIX_PIXEL_FORMAT_FLOAT4)
-			VL_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_Intensity, sizeof(float)), 0, "Allocating Intensity Buffer Failed");
+			VK_CORE_RETURN_ASSERT(cudaMalloc((void**)&m_Intensity, sizeof(float)), 0, "Allocating Intensity Buffer Failed");
 
-		VL_CORE_RETURN_ASSERT(optixDenoiserSetup(m_Denoiser, m_CudaStream, m_ImageSize.width, m_ImageSize.height, m_StateBuffer,
+		VK_CORE_RETURN_ASSERT(optixDenoiserSetup(m_Denoiser, m_CudaStream, m_ImageSize.width, m_ImageSize.height, m_StateBuffer,
 			m_DenoiserSizes.stateSizeInBytes, m_ScratchBuffer, m_DenoiserSizes.withoutOverlapScratchSizeInBytes), 0, "Optix Denoiser Failed");
     }
 
@@ -327,13 +327,13 @@ namespace VulkanHelper
         cudaExtMemHandleDesc.handle.win32.handle = buf.Handle;
         
 		cudaExternalMemory_t cudaExtMemBuffer{};
-		VL_CORE_RETURN_ASSERT(cudaImportExternalMemory(&cudaExtMemBuffer, &cudaExtMemHandleDesc), 0, "Importing External Memory Failed");
+		VK_CORE_RETURN_ASSERT(cudaImportExternalMemory(&cudaExtMemBuffer, &cudaExtMemHandleDesc), 0, "Importing External Memory Failed");
         
         cudaExternalMemoryBufferDesc cudaExtBufferDesc{};
         cudaExtBufferDesc.offset = 0;
         cudaExtBufferDesc.size = memoryReq.size;
         cudaExtBufferDesc.flags = 0;
-        VL_CORE_RETURN_ASSERT(cudaExternalMemoryGetMappedBuffer(&buf.CudaPtr, cudaExtMemBuffer, &cudaExtBufferDesc), 0, "Cuda Getting Mapped Memory Failed");
+        VK_CORE_RETURN_ASSERT(cudaExternalMemoryGetMappedBuffer(&buf.CudaPtr, cudaExtMemBuffer, &cudaExtBufferDesc), 0, "Cuda Getting Mapped Memory Failed");
     
         cudaDestroyExternalMemory(cudaExtMemBuffer);
     }
@@ -390,7 +390,7 @@ namespace VulkanHelper
         externalSemaphoreHandleDesc.handle.fd = m_Semaphore.Handle;
 #endif
 
-        VL_CORE_RETURN_ASSERT(cudaImportExternalSemaphore(&m_Semaphore.Cu, &externalSemaphoreHandleDesc), 0, "Importing External Semaphore Failed");
+        VK_CORE_RETURN_ASSERT(cudaImportExternalSemaphore(&m_Semaphore.Cu, &externalSemaphoreHandleDesc), 0, "Importing External Semaphore Failed");
     }
 
 	void Denoiser::BufferCuda::Destroy()

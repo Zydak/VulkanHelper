@@ -13,7 +13,7 @@ namespace VulkanHelper
 		{
 			std::ofstream outputFile(filepath, std::ios::binary); // Open the file for writing
 
-			VL_CORE_ASSERT(outputFile.is_open(), "Failed to open file! {}", filepath);
+			VK_CORE_ASSERT(outputFile.is_open(), "Failed to open file! {}", filepath);
 
 			outputFile.write(reinterpret_cast<const char*>(data), byteSize);
 
@@ -24,7 +24,7 @@ namespace VulkanHelper
 		static void ReadFromFile(T* data, uint32_t byteSize, const std::string& filepath, uint32_t offset = 0)
 		{
 			std::ifstream file(filepath, std::ios::binary);
-			VL_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
+			VK_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
 
 			file.seekg(offset);
 
@@ -35,7 +35,7 @@ namespace VulkanHelper
 		static void ReadFromFileVec(std::vector<T>& data, const std::string& filepath)
 		{
 			std::ifstream file(filepath, std::ios::ate | std::ios::binary);
-			VL_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
+			VK_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
 
 			uint32_t fileSize = (uint32_t)(file.tellg());
 			file.seekg(0);
@@ -49,7 +49,7 @@ namespace VulkanHelper
 		static std::string ReadFromFile(const std::string& filepath)
 		{
 			std::ifstream file(filepath, std::ios::ate | std::ios::binary);
-			VL_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
+			VK_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
 
 			uint32_t fileSize = (uint32_t)(file.tellg());
 			file.seekg(0);

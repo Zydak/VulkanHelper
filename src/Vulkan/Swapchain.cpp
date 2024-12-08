@@ -170,7 +170,7 @@ namespace VulkanHelper
 			if (m_AvailablePresentModes[0].Available)
 				return VK_PRESENT_MODE_FIFO_KHR;
 			else
-				VL_CORE_ASSERT(false, "You chose unsupported format!");
+				VK_CORE_ASSERT(false, "You chose unsupported format!");
 			m_CurrentPresentMode = PresentModes::VSync;
 			break;
 
@@ -178,7 +178,7 @@ namespace VulkanHelper
 			if (m_AvailablePresentModes[1].Available)
 				return VK_PRESENT_MODE_IMMEDIATE_KHR;
 			else
-				VL_CORE_ASSERT(false, "You chose unsupported format!");
+				VK_CORE_ASSERT(false, "You chose unsupported format!");
 			m_CurrentPresentMode = PresentModes::Immediate;
 			break;
 
@@ -186,7 +186,7 @@ namespace VulkanHelper
 			if (m_AvailablePresentModes[2].Available)
 				return VK_PRESENT_MODE_MAILBOX_KHR;
 			else
-				VL_CORE_ASSERT(false, "You chose unsupported format!");
+				VK_CORE_ASSERT(false, "You chose unsupported format!");
 			m_CurrentPresentMode = PresentModes::MailBox;
 			break;
 		default:
@@ -241,7 +241,7 @@ namespace VulkanHelper
 		if (imageCount < m_MaxFramesInFlight)
 			imageCount += m_MaxFramesInFlight - imageCount;
 
-		VL_CORE_ASSERT(imageCount <= swapChainSupport.Capabilities.maxImageCount, "Image Count Is Too Big!");
+		VK_CORE_ASSERT(imageCount <= swapChainSupport.Capabilities.maxImageCount, "Image Count Is Too Big!");
 
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -279,7 +279,7 @@ namespace VulkanHelper
 
 		createInfo.oldSwapchain = m_OldSwapchain == nullptr ? VK_NULL_HANDLE : m_OldSwapchain->m_Swapchain;
 
-		VL_CORE_RETURN_ASSERT(vkCreateSwapchainKHR(Device::GetDevice(), &createInfo, nullptr, &m_Swapchain),
+		VK_CORE_RETURN_ASSERT(vkCreateSwapchainKHR(Device::GetDevice(), &createInfo, nullptr, &m_Swapchain),
 			VK_SUCCESS, "failed to create swap chain");
 
 		vkGetSwapchainImagesKHR(Device::GetDevice(), m_Swapchain, &imageCount, nullptr);
@@ -325,7 +325,7 @@ namespace VulkanHelper
 			createInfo.subresourceRange.baseArrayLayer = 0;
 			createInfo.subresourceRange.layerCount = 1;
 
-			VL_CORE_RETURN_ASSERT(vkCreateImageView(Device::GetDevice(), &createInfo, nullptr, &m_PresentableImageViews[i]),
+			VK_CORE_RETURN_ASSERT(vkCreateImageView(Device::GetDevice(), &createInfo, nullptr, &m_PresentableImageViews[i]),
 				VK_SUCCESS,
 				"failed to create texture image view"
 			);
@@ -464,7 +464,7 @@ namespace VulkanHelper
 				framebufferInfo.height = m_SwapchainExtent.height;
 				framebufferInfo.layers = 1;
 
-				VL_CORE_RETURN_ASSERT(vkCreateFramebuffer(Device::GetDevice(), &framebufferInfo, nullptr, &m_PresentableFramebuffers[i]),
+				VK_CORE_RETURN_ASSERT(vkCreateFramebuffer(Device::GetDevice(), &framebufferInfo, nullptr, &m_PresentableFramebuffers[i]),
 					VK_SUCCESS,
 					"failed to create framebuffer!"
 				);
@@ -505,7 +505,7 @@ namespace VulkanHelper
 
 		std::unique_lock<std::mutex> lock(Device::GetGraphicsQueueMutex());
 		vkResetFences(Device::GetDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
-		VL_CORE_RETURN_ASSERT(vkQueueSubmit(Device::GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]),
+		VK_CORE_RETURN_ASSERT(vkQueueSubmit(Device::GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]),
 			VK_SUCCESS,
 			"failed to submit draw command buffer!"
 		);
@@ -568,7 +568,7 @@ namespace VulkanHelper
 				vkCreateSemaphore(Device::GetDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
 				vkCreateFence(Device::GetDevice(), &fenceInfo, nullptr, &m_InFlightFences[i]) != VK_SUCCESS)
 			{
-				VL_CORE_ASSERT(false, "failed to create synchronization objects!");
+				VK_CORE_ASSERT(false, "failed to create synchronization objects!");
 			}
 		}
 	}

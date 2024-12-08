@@ -36,7 +36,7 @@ namespace VulkanHelper
 
 				Binding binding{};
 				binding.m_Type = bindings[i].Type;
-				VL_CORE_ASSERT(bindings[i].Type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, "");
+				VK_CORE_ASSERT(bindings[i].Type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, "");
 				for (int j = 0; j < (int)bindings[i].DescriptorsCount; j++)
 				{
 					binding.m_ImageInfo.push_back(emptyInfo);
@@ -76,7 +76,7 @@ namespace VulkanHelper
 			}
 			else 
 			{
-				VL_CORE_ASSERT(false, "Trying to create descriptor with unsupported binding type! type: {}", bindings[i].Type);
+				VK_CORE_ASSERT(false, "Trying to create descriptor with unsupported binding type! type: {}", bindings[i].Type);
 			}
 		}
 
@@ -152,20 +152,20 @@ namespace VulkanHelper
 	void DescriptorSet::AddImageSampler(uint32_t binding, const VkDescriptorImageInfo& info)
 	{
 		// Check if the DescriptorSet has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
 
 		// Check if the binding number is valid.
-		VL_CORE_ASSERT(m_DescriptorSetLayout.GetDescriptorSetLayoutBindings().size() >= binding, "There is no such binding: {0}");
+		VK_CORE_ASSERT(m_DescriptorSetLayout.GetDescriptorSetLayoutBindings().size() >= binding, "There is no such binding: {0}");
 
 		// Check if the binding type in the descriptor set layout matches VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER or VK_DESCRIPTOR_TYPE_STORAGE_IMAGE.
-		VL_CORE_ASSERT(
+		VK_CORE_ASSERT(
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 			"Wrong Binding Type! Type inside layout is: {}", m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type
 		);
 
 		// Check if the number of descriptors exceeds the specified count for the binding in the descriptor set layout.
-		VL_CORE_ASSERT(
+		VK_CORE_ASSERT(
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].DescriptorsCount >= m_BindingsWriteInfo[binding].m_ImageInfo.size(),
 			"Too many descriptors! Descriptor Count specified in layout: {0}",
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].DescriptorsCount
@@ -186,19 +186,19 @@ namespace VulkanHelper
 	void DescriptorSet::AddAccelerationStructure(uint32_t binding, const VkWriteDescriptorSetAccelerationStructureKHR& asInfo)
 	{
 		// Check if the descriptor set has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
 
 		// Check if the binding number is valid.
-		VL_CORE_ASSERT(m_DescriptorSetLayout.GetDescriptorSetLayoutBindings().size() >= binding, "There is no such binding: {0}");
+		VK_CORE_ASSERT(m_DescriptorSetLayout.GetDescriptorSetLayoutBindings().size() >= binding, "There is no such binding: {0}");
 
 		// Check if the binding type in the descriptor set layout matches VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR.
-		VL_CORE_ASSERT(
+		VK_CORE_ASSERT(
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
 			"Wrong Binding Type! Type inside layout is: {}", m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type
 		);
 
 		// Check if the number of descriptors exceeds the specified count for the binding in the descriptor set layout.
-		VL_CORE_ASSERT(
+		VK_CORE_ASSERT(
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].DescriptorsCount >= m_BindingsWriteInfo[binding].m_AccelInfo.size(),
 			"Too many descriptors! Descriptor Count specified in layout: {0}",
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].DescriptorsCount
@@ -214,20 +214,20 @@ namespace VulkanHelper
 	void DescriptorSet::AddBuffer(uint32_t binding, const VkDescriptorBufferInfo& info)
 	{
 		// Check if the descriptor set has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
 
 		// Check if the binding number is valid.
-		VL_CORE_ASSERT(m_DescriptorSetLayout.GetDescriptorSetLayoutBindings().size() > binding, "There is no such binding: {0}", binding);
+		VK_CORE_ASSERT(m_DescriptorSetLayout.GetDescriptorSetLayoutBindings().size() > binding, "There is no such binding: {0}", binding);
 
 		// Check if the binding type in the descriptor set layout matches VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER or VK_DESCRIPTOR_TYPE_STORAGE_BUFFER.
-		VL_CORE_ASSERT(
+		VK_CORE_ASSERT(
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			"Wrong Binding Type! Type inside layout is: {}", m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].Type
 		);
 
 		// Check if the number of descriptors exceeds the specified count for the binding in the descriptor set layout.
-		VL_CORE_ASSERT(
+		VK_CORE_ASSERT(
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].DescriptorsCount >= m_BindingsWriteInfo[binding].m_BufferInfo.size(),
 			"Too many descriptors! Descriptor Count specified in layout: {0}",
 			m_DescriptorSetLayout.GetDescriptorSetLayoutBindings()[binding].DescriptorsCount
@@ -245,7 +245,7 @@ namespace VulkanHelper
 	void DescriptorSet::Build()
 	{
 		// Check if the descriptor set has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
 
 		// Create a descriptor writer using the descriptor set layout and the descriptor pool.
 		DescriptorWriter writer(&m_DescriptorSetLayout, m_Pool);
@@ -270,7 +270,7 @@ namespace VulkanHelper
 			else
 			{
 				// This case should not happen. If it does, it indicates an unknown binding type.
-				VL_CORE_ASSERT(false, "Unknown binding type: {0}", binding.m_Type);
+				VK_CORE_ASSERT(false, "Unknown binding type: {0}", binding.m_Type);
 			}
 		}
 
@@ -282,7 +282,7 @@ namespace VulkanHelper
 	void DescriptorSet::UpdateImageSampler(uint32_t binding, const VkDescriptorImageInfo& info)
 	{
 		// Check if the descriptor set has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
 
 		// Create a descriptor writer.
 		DescriptorWriter writer(&m_DescriptorSetLayout, m_Pool);
@@ -298,7 +298,7 @@ namespace VulkanHelper
 	void DescriptorSet::UpdateBuffer(uint32_t binding, const VkDescriptorBufferInfo& info)
 	{
 		// Check if the descriptor set has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
 
 		// Create a descriptor writer.
 		DescriptorWriter writer(&m_DescriptorSetLayout, m_Pool);
@@ -321,7 +321,7 @@ namespace VulkanHelper
 	void DescriptorSet::Bind(uint32_t set, VkPipelineLayout layout, VkPipelineBindPoint bindPoint, VkCommandBuffer cmdBuffer) const
 	{
 		// Check if the DescriptorSet has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorSet Not Initialized!");
 
 		vkCmdBindDescriptorSets(
 			cmdBuffer,

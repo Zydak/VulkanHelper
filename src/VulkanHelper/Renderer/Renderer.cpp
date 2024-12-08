@@ -137,7 +137,7 @@ namespace VulkanHelper
 	 */
 	bool Renderer::BeginFrameInternal()
 	{
-		VL_CORE_ASSERT(!s_IsFrameStarted, "Can't call BeginFrame while already in progress!");
+		VK_CORE_ASSERT(!s_IsFrameStarted, "Can't call BeginFrame while already in progress!");
 
 		if (s_Window->WasWindowResized())
 		{
@@ -153,7 +153,7 @@ namespace VulkanHelper
 
 			return false;
 		}
-		VL_CORE_ASSERT(result == VK_SUCCESS, "failed to acquire swap chain image!");
+		VK_CORE_ASSERT(result == VK_SUCCESS, "failed to acquire swap chain image!");
 
 		s_IsFrameStarted = true;
 		auto commandBuffer = GetCurrentCommandBuffer();
@@ -161,7 +161,7 @@ namespace VulkanHelper
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		VL_CORE_RETURN_ASSERT(
+		VK_CORE_RETURN_ASSERT(
 			vkBeginCommandBuffer(commandBuffer, &beginInfo),
 			VK_SUCCESS,
 			"failed to begin recording command buffer!"
@@ -179,11 +179,11 @@ namespace VulkanHelper
 	{
 		bool retVal = true;
 		auto commandBuffer = GetCurrentCommandBuffer();
-		VL_CORE_ASSERT(s_IsFrameStarted, "Cannot call EndFrame while frame is not in progress");
+		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot call EndFrame while frame is not in progress");
 
 		// End recording the command buffer
 		auto success = vkEndCommandBuffer(commandBuffer);
-		VL_CORE_ASSERT(success == VK_SUCCESS, "Failed to record command buffer!");
+		VK_CORE_ASSERT(success == VK_SUCCESS, "Failed to record command buffer!");
 
 		// Submit the command buffer for execution and present the image
 		if (s_Window->WasWindowResized())
@@ -206,7 +206,7 @@ namespace VulkanHelper
 		}
 		else
 		{
-			VL_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
+			VK_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
 		}
 
 		// End the frame and update frame index
@@ -226,7 +226,7 @@ namespace VulkanHelper
 	 */
 	void Renderer::BeginRenderPass(const std::vector<VkClearValue>& clearColors, VkFramebuffer framebuffer, VkRenderPass renderPass, VkExtent2D extent)
 	{
-		VL_CORE_ASSERT(s_IsFrameStarted, "Cannot call BeginSwapchainRenderPass while frame is not in progress");
+		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot call BeginSwapchainRenderPass while frame is not in progress");
 
 		// Set up viewport
 		VkViewport viewport{};
@@ -267,7 +267,7 @@ namespace VulkanHelper
 	 */
 	void Renderer::EndRenderPass()
 	{
-		VL_CORE_ASSERT(s_IsFrameStarted, "Can't call EndSwapchainRenderPass while frame is not in progress");
+		VK_CORE_ASSERT(s_IsFrameStarted, "Can't call EndSwapchainRenderPass while frame is not in progress");
 		
 		vkCmdEndRenderPass(GetCurrentCommandBuffer());
 	}
@@ -525,7 +525,7 @@ namespace VulkanHelper
 			s_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ extent, PresentModes::VSync, m_MaxFramesInFlight, oldSwapchain });
 
 			// Check if the swap formats are consistent
-			VL_CORE_ASSERT(oldSwapchain->CompareSwapFormats(*s_Swapchain), "Swap chain image or depth formats have changed!");
+			VK_CORE_ASSERT(oldSwapchain->CompareSwapFormats(*s_Swapchain), "Swap chain image or depth formats have changed!");
 		}
 
 		// Recreate other resources dependent on the swapchain, such as pipelines or framebuffers
@@ -547,7 +547,7 @@ namespace VulkanHelper
 		allocInfo.commandBufferCount = (uint32_t)s_CommandBuffers.size();
 
 		// Allocate primary command buffers
-		VL_CORE_RETURN_ASSERT(
+		VK_CORE_RETURN_ASSERT(
 			vkAllocateCommandBuffers(Device::GetDevice(), &allocInfo, s_CommandBuffers.data()),
 			VK_SUCCESS,
 			"Failed to allocate command buffers!"
@@ -645,7 +645,7 @@ namespace VulkanHelper
 		unsigned error = lodepng::encode(filename, image, width, height);
 
 		//if there's an error, display it
-		VL_CORE_ASSERT(!error, "encoder error {} | {}", error, lodepng_error_text(error));
+		VK_CORE_ASSERT(!error, "encoder error {} | {}", error, lodepng_error_text(error));
 	}
 
 	void Renderer::InitImGui()
@@ -668,7 +668,7 @@ namespace VulkanHelper
 		if (font == NULL)
 			font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttf", 16.0f * scale); // Windows 7
 
-		VL_ASSERT(font != nullptr, "Couldn't load font C:\\Windows\\Fonts\\msyh.ttc/ttf!");
+		VK_CORE_ASSERT(font != nullptr, "Couldn't load font C:\\Windows\\Fonts\\msyh.ttc/ttf!");
 
 		ImGui_ImplGlfw_InitForVulkan(s_Window->GetGLFWwindow(), true);
 		ImGui_ImplVulkan_InitInfo info{};
@@ -796,7 +796,7 @@ namespace VulkanHelper
 	 */
 	VkCommandBuffer Renderer::GetCurrentCommandBuffer()
 	{
-		VL_CORE_ASSERT(s_IsFrameStarted, "Cannot get command buffer when frame is not in progress");
+		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot get command buffer when frame is not in progress");
 		return s_CommandBuffers[s_CurrentImageIndex];
 	}
 
@@ -807,7 +807,7 @@ namespace VulkanHelper
 	 */
 	int Renderer::GetFrameIndex()
 	{
-		VL_CORE_ASSERT(s_IsFrameStarted, "Cannot get frame index when frame is not in progress");
+		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot get frame index when frame is not in progress");
 		return s_CurrentFrameIndex;
 	}
 }

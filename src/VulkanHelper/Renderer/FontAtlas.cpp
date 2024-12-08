@@ -59,11 +59,11 @@ namespace VulkanHelper
 		if (!initialized)
 		{
 			ft = msdfgen::initializeFreetype();
-			VL_CORE_ASSERT(ft, "Failed to initialize freetype");
+			VK_CORE_ASSERT(ft, "Failed to initialize freetype");
 			initialized = true;
 		}
 		msdfgen::FontHandle* font = msdfgen::loadFont(ft, filepath.c_str());
-		VL_CORE_ASSERT(font, "Failed to load font: " + filepath);
+		VK_CORE_ASSERT(font, "Failed to load font: " + filepath);
 
 		static const uint32_t charsetRanges[] =
 		{
@@ -91,7 +91,7 @@ namespace VulkanHelper
 		atlasPacker.setScale(fontSize);
 		atlasPacker.setDimensions((int)atlasSize.x, (int)atlasSize.y);
 		uint32_t remaining = atlasPacker.pack(m_Glyphs.data(), (int)m_Glyphs.size());
-		VL_CORE_ASSERT(remaining == 0, "Failed to pack atlas");
+		VK_CORE_ASSERT(remaining == 0, "Failed to pack atlas");
 
 		int width, height;
 		atlasPacker.getDimensions(width, height);

@@ -94,10 +94,10 @@ namespace VulkanHelper
 	void DescriptorWriter::WriteBuffer(uint32_t binding, const VkDescriptorBufferInfo* bufferInfo)
 	{
 		// Check if the DescriptorWriter has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
 
 		// Check if the specified binding exists in the descriptor set layout.
-		VL_CORE_ASSERT(m_SetLayout->m_Bindings.size() > binding, "Layout does not contain specified binding: {0}", binding);
+		VK_CORE_ASSERT(m_SetLayout->m_Bindings.size() > binding, "Layout does not contain specified binding: {0}", binding);
 
 		// Retrieve the binding description from the descriptor set layout.
 		auto& bindingDescription = m_SetLayout->m_Bindings[binding];
@@ -125,10 +125,10 @@ namespace VulkanHelper
 	void DescriptorWriter::WriteAs(uint32_t binding, const VkWriteDescriptorSetAccelerationStructureKHR* asInfo)
 	{
 		// Check if the DescriptorWriter has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
 
 		// Check if the specified binding exists in the descriptor set layout.
-		VL_CORE_ASSERT(m_SetLayout->m_Bindings.size() > binding, "Layout does not contain specified binding: {0}", binding);
+		VK_CORE_ASSERT(m_SetLayout->m_Bindings.size() > binding, "Layout does not contain specified binding: {0}", binding);
 
 		// Retrieve the binding description from the descriptor set layout.
 		auto& bindingDescription = m_SetLayout->m_Bindings[binding];
@@ -156,10 +156,10 @@ namespace VulkanHelper
 	void DescriptorWriter::WriteImage(uint32_t binding, const VkDescriptorImageInfo* imageInfo)
 	{
 		// Check if the DescriptorWriter has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
 
 		// Check if the specified binding exists in the descriptor set layout.
-		VL_CORE_ASSERT(m_SetLayout->m_Bindings.size() > binding, "Layout does not contain specified binding: {0}", binding);
+		VK_CORE_ASSERT(m_SetLayout->m_Bindings.size() > binding, "Layout does not contain specified binding: {0}", binding);
 
 		// Retrieve the binding description from the descriptor set layout.
 		auto& bindingDescription = m_SetLayout->m_Bindings[binding];
@@ -187,12 +187,12 @@ namespace VulkanHelper
 	bool DescriptorWriter::Build(VkDescriptorSet* set, bool allocateNewSet)
 	{
 		// Check if the DescriptorWriter has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
 
 		if (allocateNewSet)
 		{
 			// Attempt to allocate a descriptor set from the descriptor pool using the descriptor set layout.
-			VL_CORE_RETURN_ASSERT(m_Pool->AllocateDescriptorSets(m_SetLayout->GetDescriptorSetLayoutHandle(), set),
+			VK_CORE_RETURN_ASSERT(m_Pool->AllocateDescriptorSets(m_SetLayout->GetDescriptorSetLayoutHandle(), set),
 				true,
 				"Failed to build descriptor. Pool is probably empty."
 			);
@@ -213,7 +213,7 @@ namespace VulkanHelper
 	void DescriptorWriter::Overwrite(VkDescriptorSet* set)
 	{
 		// Check if the DescriptorWriter has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "DescriptorWriter Not Initialized!");
 
 		// Assign the provided descriptor set to each write operation in the writes vector.
 		for (auto& write : m_Writes)

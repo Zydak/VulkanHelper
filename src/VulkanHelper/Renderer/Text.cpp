@@ -9,7 +9,7 @@ namespace VulkanHelper
 		if (m_Initialized)
 			Destroy();
 
-		VL_CORE_ASSERT(createInfo, "Incorectly initialized Text::CreateInfo!");
+		VK_CORE_ASSERT(createInfo, "Incorectly initialized Text::CreateInfo!");
 		m_Text = createInfo.Text;
 		m_Color = createInfo.Color;
 		m_Resizable = createInfo.Resizable;
@@ -96,7 +96,7 @@ namespace VulkanHelper
 
 	void Text::ChangeText(const std::string& text, float kerningOffset, VkCommandBuffer cmdBuffer)
 	{
-		VL_CORE_ASSERT(m_Resizable, "You have to set resizable flag in constructor!");
+		VK_CORE_ASSERT(m_Resizable, "You have to set resizable flag in constructor!");
 		m_Text = text;
 		m_KerningOffset = kerningOffset;
 

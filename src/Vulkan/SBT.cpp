@@ -9,8 +9,8 @@ namespace VulkanHelper
 		if (m_Initialized)
 			Destroy();
 
-		VL_CORE_ASSERT(*createInfo, "Incorectly Initialized SBT Create Info!");
-		VL_CORE_ASSERT(createInfo->RGenCount == 1, "RGenCount must be 1!");
+		VK_CORE_ASSERT(*createInfo, "Incorectly Initialized SBT Create Info!");
+		VK_CORE_ASSERT(createInfo->RGenCount == 1, "RGenCount must be 1!");
 
 		m_MissCount = createInfo->MissCount;
 		m_HitCount = createInfo->HitCount;
@@ -40,7 +40,7 @@ namespace VulkanHelper
 		uint32_t dataSize = handleCount * handleSize;
 		std::vector<uint8_t> handles(dataSize);
 		auto result = VulkanHelper::Device::vkGetRayTracingShaderGroupHandlesKHR(VulkanHelper::Device::GetDevice(), m_RayTracingPipeline->GetPipeline(), 0, handleCount, dataSize, handles.data());
-		VL_CORE_ASSERT(result == VK_SUCCESS, "Failed to get shader group handles!");
+		VK_CORE_ASSERT(result == VK_SUCCESS, "Failed to get shader group handles!");
 
 		// Allocate a buffer for storing the SBT.
 		VkDeviceSize sbtSize = m_RgenRegion.size + m_MissRegion.size + m_HitRegion.size + m_CallRegion.size;

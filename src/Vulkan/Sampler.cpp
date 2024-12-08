@@ -30,7 +30,7 @@ namespace VulkanHelper
 		samplerCreateInfo.anisotropyEnable = VK_FALSE;
 		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 		samplerCreateInfo.compareEnable = VK_FALSE;
-		VL_CORE_RETURN_ASSERT(vkCreateSampler(Device::GetDevice(), &samplerCreateInfo, nullptr, &m_SamplerHandle),
+		VK_CORE_RETURN_ASSERT(vkCreateSampler(Device::GetDevice(), &samplerCreateInfo, nullptr, &m_SamplerHandle),
 			VK_SUCCESS,
 			"failed to create texture sampler"
 		);

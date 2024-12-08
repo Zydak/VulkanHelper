@@ -32,7 +32,7 @@ namespace VulkanHelper
 		for (int i = 0; i < poolSizes.size(); i++)
 		{
 			// Ensure each pool size is correctly initialized.
-			VL_CORE_ASSERT(poolSizes[i], "Incorrectly initialized pool size!");
+			VK_CORE_ASSERT(poolSizes[i], "Incorrectly initialized pool size!");
 
 			// Convert PoolSize objects to Vulkan descriptor pool size objects.
 			VkDescriptorPoolSize poolSizeVK;
@@ -52,7 +52,7 @@ namespace VulkanHelper
 		descriptorPoolInfo.flags = poolFlags;
 
 		// Attempt to create the Vulkan descriptor pool.
-		VL_CORE_RETURN_ASSERT(vkCreateDescriptorPool(Device::GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPoolHandles[m_CurrentPool]),
+		VK_CORE_RETURN_ASSERT(vkCreateDescriptorPool(Device::GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPoolHandles[m_CurrentPool]),
 			VK_SUCCESS,
 			"Failed to create descriptor pool!"
 		);
@@ -146,7 +146,7 @@ namespace VulkanHelper
 	bool DescriptorPool::AllocateDescriptorSets(const VkDescriptorSetLayout descriptorSetLayout, VkDescriptorSet* descriptor)
 	{
 		// Check if the descriptor pool has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Pool Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Pool Not Initialized!");
 
 		// Prepare the descriptor set allocation information.
 		VkDescriptorSetAllocateInfo allocInfo{};
@@ -188,7 +188,7 @@ namespace VulkanHelper
 	void DescriptorPool::ResetPool(uint32_t index)
 	{
 		// Check if the descriptor pool has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Pool Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Pool Not Initialized!");
 
 		// Reset Pool
 		vkResetDescriptorPool(Device::GetDevice(), m_DescriptorPoolHandles[index], 0);
@@ -201,7 +201,7 @@ namespace VulkanHelper
 	void DescriptorPool::CreateNewPool()
 	{
 		// Check if the descriptor pool has been initialized.
-		VL_CORE_ASSERT(m_Initialized, "Pool Not Initialized!");
+		VK_CORE_ASSERT(m_Initialized, "Pool Not Initialized!");
 
 		// Resize the descriptor pool handles vector to accommodate a new descriptor pool.
 		m_DescriptorPoolHandles.resize(m_CurrentPool + 1);
@@ -214,7 +214,7 @@ namespace VulkanHelper
 		for (int i = 0; i < m_PoolSizes.size(); i++)
 		{
 			// Ensure each pool size is correctly initialized.
-			VL_CORE_ASSERT(m_PoolSizes[i], "Incorrectly initialized pool size!");
+			VK_CORE_ASSERT(m_PoolSizes[i], "Incorrectly initialized pool size!");
 
 			// Convert PoolSize objects to Vulkan descriptor pool size objects.
 			VkDescriptorPoolSize poolSizeVK;
@@ -235,7 +235,7 @@ namespace VulkanHelper
 
 		// Attempt to create the Vulkan descriptor pool.
 		m_DescriptorPoolHandles.push_back(VK_NULL_HANDLE);
-		VL_CORE_RETURN_ASSERT(vkCreateDescriptorPool(Device::GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPoolHandles[m_CurrentPool]),
+		VK_CORE_RETURN_ASSERT(vkCreateDescriptorPool(Device::GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPoolHandles[m_CurrentPool]),
 			VK_SUCCESS,
 			"Failed to create descriptor pool!"
 		);

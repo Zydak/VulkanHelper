@@ -70,7 +70,7 @@ namespace VulkanHelper
 			framebufferInfo.height = m_Extent.height;
 			framebufferInfo.layers = 1;
 
-			VL_CORE_RETURN_ASSERT(vkCreateFramebuffer(Device::GetDevice(), &framebufferInfo, nullptr, &m_FramebufferHandle),
+			VK_CORE_RETURN_ASSERT(vkCreateFramebuffer(Device::GetDevice(), &framebufferInfo, nullptr, &m_FramebufferHandle),
 				VK_SUCCESS,
 				"failed to create framebuffer!"
 			);
@@ -92,8 +92,8 @@ namespace VulkanHelper
 
 	void Framebuffer::Bind(VkCommandBuffer cmd, const std::vector<VkClearValue>& clearColors)
 	{
-		VL_CORE_ASSERT(m_RenderPass != VK_NULL_HANDLE, "Render Pass Not Created! You have to pass RenderPassInfo into framebuffer create info to create one!");
-		VL_CORE_ASSERT(m_FramebufferHandle != VK_NULL_HANDLE, "Framebuffer Not Created! You have to call Init() first!");
+		VK_CORE_ASSERT(m_RenderPass != VK_NULL_HANDLE, "Render Pass Not Created! You have to pass RenderPassInfo into framebuffer create info to create one!");
+		VK_CORE_ASSERT(m_FramebufferHandle != VK_NULL_HANDLE, "Framebuffer Not Created! You have to call Init() first!");
 
 		// Set up viewport
 		glm::vec2 extent = { m_Extent.width, m_Extent.height };
@@ -257,21 +257,21 @@ namespace VulkanHelper
 		bool useStoreOps = false;
 		if (!renderPassCreateInfo->FinalLayouts.empty())
 		{
-			VL_CORE_ASSERT(renderPassCreateInfo->FinalLayouts.size() == m_AttachmentFormats.size(),
+			VK_CORE_ASSERT(renderPassCreateInfo->FinalLayouts.size() == m_AttachmentFormats.size(),
 				"You have to specify final layout for all attachments"
 			);
 			useFinalLayouts = true;
 		}
 		if (!renderPassCreateInfo->LoadOP.empty())
 		{
-			VL_CORE_ASSERT(renderPassCreateInfo->LoadOP.size() == m_AttachmentFormats.size(),
+			VK_CORE_ASSERT(renderPassCreateInfo->LoadOP.size() == m_AttachmentFormats.size(),
 				"You have to specify LoadOp for all attachments"
 			);
 			useLoadOps = true;
 		}
 		if (!renderPassCreateInfo->StoreOP.empty())
 		{
-			VL_CORE_ASSERT(renderPassCreateInfo->StoreOP.size() == m_AttachmentFormats.size(),
+			VK_CORE_ASSERT(renderPassCreateInfo->StoreOP.size() == m_AttachmentFormats.size(),
 				"You have to specify StoreOp for all attachments"
 			);
 			useStoreOps = true;
@@ -285,7 +285,7 @@ namespace VulkanHelper
 		uint32_t depthCount = 0;
 		for (int i = 0; i < m_AttachmentFormats.size(); i++)
 		{
-			VL_CORE_ASSERT(depthCount <= 1, "Can't have multiple depth attachments!");
+			VK_CORE_ASSERT(depthCount <= 1, "Can't have multiple depth attachments!");
 
 			VkAttachmentDescription description = {};
 			description.format = ToVkFormat(m_AttachmentFormats[i]);
@@ -343,7 +343,7 @@ namespace VulkanHelper
 		renderPassInfo.dependencyCount = (uint32_t)renderPassCreateInfo->Dependencies.size();
 		renderPassInfo.pDependencies = renderPassCreateInfo->Dependencies.data();
 
-		VL_CORE_RETURN_ASSERT(vkCreateRenderPass(Device::GetDevice(), &renderPassInfo, nullptr, &m_RenderPass), 0, "Failed to create render pass!");
+		VK_CORE_RETURN_ASSERT(vkCreateRenderPass(Device::GetDevice(), &renderPassInfo, nullptr, &m_RenderPass), 0, "Failed to create render pass!");
 	}
 
 	VkFormat Framebuffer::ToVkFormat(FramebufferAttachment format)
@@ -368,7 +368,7 @@ namespace VulkanHelper
 		case FramebufferAttachment::Depth16: return VK_FORMAT_D16_UNORM;
 
 		default:
-			VL_CORE_ASSERT(false, "Format not supported");
+			VK_CORE_ASSERT(false, "Format not supported");
 			return VK_FORMAT_MAX_ENUM; // just to get rid of the warning
 		}
 	}

@@ -88,7 +88,7 @@ namespace VulkanHelper
 		graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 		graphicsPipelineInfo.basePipelineIndex = -1;
 
-		VL_CORE_RETURN_ASSERT(
+		VK_CORE_RETURN_ASSERT(
 			vkCreateGraphicsPipelines(Device::GetDevice(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &m_PipelineHandle),
 			VK_SUCCESS,
 			"failed to create graphics pipeline!"
@@ -96,7 +96,7 @@ namespace VulkanHelper
 
 		if (std::string(info.debugName) != std::string())
 		{
-			VL_SET_NAME(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
+			VK_SET_NAME(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
 		}
 
 		m_Initialized = true;
@@ -225,7 +225,7 @@ namespace VulkanHelper
 		computePipelineInfo.layout = m_PipelineLayout;
 		computePipelineInfo.stage = info.Shader->GetStageCreateInfo();
 
-		VL_CORE_RETURN_ASSERT(
+		VK_CORE_RETURN_ASSERT(
 			vkCreateComputePipelines(Device::GetDevice(), VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &m_PipelineHandle),
 			VK_SUCCESS,
 			"failed to create graphics pipeline!"
@@ -314,7 +314,7 @@ namespace VulkanHelper
 	std::vector<char> Pipeline::ReadFile(const std::string& filepath)
 	{
 		std::ifstream file(filepath, std::ios::ate | std::ios::binary);    // ate goes to the end of the file so reading filesize is easier and binary avoids text transformation
-		VL_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
+		VK_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
 
 		uint32_t fileSize = (uint32_t)(file.tellg());    // tellg gets current position in file
 		std::vector<char> buffer(fileSize);
@@ -339,7 +339,7 @@ namespace VulkanHelper
 		createInfo.codeSize = code.size();
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
-		VL_CORE_RETURN_ASSERT(vkCreateShaderModule(Device::GetDevice(), &createInfo, nullptr, shaderModule),
+		VK_CORE_RETURN_ASSERT(vkCreateShaderModule(Device::GetDevice(), &createInfo, nullptr, shaderModule),
 			VK_SUCCESS,
 			"failed to create shader Module"
 		);
@@ -366,7 +366,7 @@ namespace VulkanHelper
 			bindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
 			break;
 		default:
-			VL_CORE_ASSERT(false, "Undefined Pipeline Type!");
+			VK_CORE_ASSERT(false, "Undefined Pipeline Type!");
 			break;
 		}
 
@@ -387,7 +387,7 @@ namespace VulkanHelper
 		pipelineLayoutInfo.pSetLayouts = descriptorSetsLayouts.empty() ? nullptr : descriptorSetsLayouts.data();
 		pipelineLayoutInfo.pushConstantRangeCount = (pushConstants == nullptr) ? 0 : 1;
 		pipelineLayoutInfo.pPushConstantRanges = pushConstants;
-		VL_CORE_RETURN_ASSERT(vkCreatePipelineLayout(Device::GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout),
+		VK_CORE_RETURN_ASSERT(vkCreatePipelineLayout(Device::GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout),
 			VK_SUCCESS,
 			"failed to create pipeline layout!"
 		);
