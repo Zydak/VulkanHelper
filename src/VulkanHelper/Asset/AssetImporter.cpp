@@ -167,6 +167,7 @@ namespace VulkanHelper
 					material->Get(AI_MATKEY_ROUGHNESS_FACTOR, mat.Properties.Roughness);
 					material->Get(AI_MATKEY_METALLIC_FACTOR, mat.Properties.Metallic);
 					material->Get(AI_MATKEY_REFRACTI, mat.Properties.Ior);
+					material->Get(AI_MATKEY_TRANSMISSION_FACTOR, mat.Properties.Transparency);
 
 					mat.Properties.Roughness = glm::pow(mat.Properties.Roughness, 1.0f / 4.0f);
 
@@ -218,8 +219,6 @@ namespace VulkanHelper
 
 					mat.Properties.Color = glm::vec4(diffuseColor.r, diffuseColor.g, diffuseColor.b, 1.0f);
 					mat.Properties.EmissiveColor = glm::vec4(emissiveColor.r, emissiveColor.g, emissiveColor.b, emissiveColor.a);
-
-					mat.Properties.Transparency = 1.0f - diffuseColor.a;
 
 					std::unique_ptr<Asset> materialAsset = std::make_unique<MaterialAsset>(std::move(mat));
 					handle = AssetManager::AddAsset(path, std::move(materialAsset));
