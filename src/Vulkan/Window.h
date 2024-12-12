@@ -15,7 +15,41 @@ namespace VulkanHelper
 	struct Monitor
 	{
 		std::string Name;
-		GLFWmonitor* Monitor;
+		GLFWmonitor* MonitorPtr;
+
+		Monitor()
+			: Name(""), MonitorPtr(nullptr)
+		{
+
+		};
+
+		~Monitor() {};
+
+		explicit Monitor(Monitor&& other) noexcept 
+		{
+			Name = std::move(other.Name);
+			MonitorPtr = std::move(other.MonitorPtr);
+		};
+
+		explicit Monitor(const Monitor& other)
+		{
+			Name = other.Name;
+			MonitorPtr = other.MonitorPtr;
+		};
+
+		Monitor& operator=(const Monitor& other)
+		{
+			Name = other.Name;
+			MonitorPtr = other.MonitorPtr;
+			return *this;
+		};
+
+		Monitor& operator=(Monitor&& other) noexcept
+		{
+			Name = std::move(other.Name);
+			MonitorPtr = std::move(other.MonitorPtr);
+			return *this;
+		};
 	};
 
 	class Window 

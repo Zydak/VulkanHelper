@@ -44,8 +44,8 @@ namespace VulkanHelper
 		m_Monitors.resize(m_MonitorsCount);
 		for (int i = 0; i < m_MonitorsCount; i++)
 		{
-			m_Monitors[i].Monitor = monitorwRaw[i];
-			m_Monitors[i].Name = glfwGetMonitorName(m_Monitors[i].Monitor);
+			m_Monitors[i].MonitorPtr = monitorwRaw[i];
+			m_Monitors[i].Name = glfwGetMonitorName(m_Monitors[i].MonitorPtr);
 		}
 
 		int width, height, channels;
