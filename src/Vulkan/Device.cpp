@@ -75,13 +75,7 @@ namespace VulkanHelper
 		if (func != nullptr) { func(instance, debugMessenger, pAllocator); }
 	}
 
-	/**
-	 * @brief Initializes the Vulkan device for rendering.
-	 * 
-	 * @param window - window object to associate with the Vulkan device.
-	 * @param rayTracingSupport - Flag indicating whether ray tracing support is enabled.
-	 */
-	void Device::Init(CreateInfo& createInfo)
+	std::vector<Device::PhysicalDevice> Device::Init(CreateInfo& createInfo)
 	{
 		VK_CORE_ASSERT(!s_Initialized, "Device is already initialized!");
 
@@ -110,8 +104,49 @@ namespace VulkanHelper
 		// Create rendering surface
 		CreateSurface();
 
-		// Choose suitable physical device
-		PickPhysicalDevice();
+		//enumerate devices
+		return EnumeratePhysicalDevices();
+	}
+
+	void Device::Init(const PhysicalDevice& device)
+	{
+		if (!device.Requirements.IsSuitable())
+		{
+			VK_CORE_ERROR("You Chose incompatible device!");
+
+			if (!device.Requirements.UnsupportedButRequiredExtensions.empty())
+			{
+				VK_CORE_ERROR("It doesn't support following extensions which are listed as required:");
+				for (auto& extension : device.Requirements.UnsupportedButRequiredExtensions)
+				{
+					VK_CORE_ERROR("{}", extension);
+				}
+			}
+
+			if (!device.Requirements.QueueIndices.IsComplete())
+			{
+				VK_CORE_ERROR("It doesn't support following queue families:");
+				VK_CORE_ERROR("Graphics Family Queue Supported - {}", device.Requirements.QueueIndices.GraphicsFamilyHasValue);
+				VK_CORE_ERROR("Present Family Queue Supported - {}", device.Requirements.QueueIndices.PresentFamilyHasValue);
+				VK_CORE_ERROR("Compute Family Queue Supported - {}", device.Requirements.QueueIndices.ComputeFamilyHasValue);
+			}
+
+			if (!device.Requirements.SwapchainSupport.PresentModes.empty() && device.Requirements.SwapchainSupport.Formats.empty())
+				VK_CORE_ERROR("The swapchain is incompatible!");
+
+			VK_CORE_ASSERT(false, "");
+		}
+
+		s_PhysicalDevice = device;
+		s_Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+		s_Properties.pNext = &s_RayTracingProperties;
+		s_RayTracingProperties.pNext = &s_AccelerationStructureProperties;
+		s_AccelerationStructureProperties.pNext = &s_SubgroupProperties;
+		vkGetPhysicalDeviceProperties2(s_PhysicalDevice.Handle, &s_Properties);
+		s_MaxSampleCount = GetMaxSampleCount();
+
+		VK_CORE_INFO("Selected Physical device: {0}", s_Properties.properties.deviceName);
+		VK_CORE_INFO("\tSubgroup Size: {0}", s_SubgroupProperties.subgroupSize);
 
 		// Create logical device
 		CreateLogicalDevice();
@@ -433,7 +468,7 @@ namespace VulkanHelper
 		// Initialize allocator creation info
 		VmaAllocatorCreateInfo allocatorInfo{};
 		allocatorInfo.instance = s_Instance;
-		allocatorInfo.physicalDevice = s_PhysicalDevice;
+		allocatorInfo.physicalDevice = s_PhysicalDevice.Handle;
 		allocatorInfo.device = s_Device;
 		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
 		allocatorInfo.flags = VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
@@ -829,43 +864,24 @@ namespace VulkanHelper
 		CreateCommandPools();
 	}
 
-	/**
-	 * @brief Evaluates the suitability of a physical device for use in the application based on several criteria:
-	 * 1. Availability of required queue families (graphics, compute, etc.).
-	 * 2. Support for required device extensions.
-	 * 3. Adequacy of the swap chain (availability of formats and present modes).
-	 *
-	 * @param device - Vulkan physical device to be evaluated.
-	 * @return true if the device is suitable for use; false otherwise.
-	 */
-	bool Device::IsDeviceSuitable(VkPhysicalDevice device)
+	Device::PhysicalDeviceRequirements Device::IsDeviceSuitable(VkPhysicalDevice device)
 	{
+		Device::PhysicalDeviceRequirements requirements;
+
 		// Find queue families supported by the device
-		QueueFamilyIndices indices = FindQueueFamilies(device);
+		requirements.QueueIndices = FindQueueFamilies(device);
 
 		// Check if required device extensions are supported by the device
-		bool extensionsSupported = CheckDeviceExtensionSupport(device);
+		requirements.UnsupportedButRequiredExtensions = CheckDeviceExtensionSupport(device);
 
 		// Check if the swap chain is adequate (availability of formats and present modes)
-		bool swapChainAdequate = false;
-		if (extensionsSupported) 
-		{
-			SwapchainSupportDetails swapChainSupport = QuerySwapchainSupport(device);
-			swapChainAdequate = !swapChainSupport.Formats.empty() && !swapChainSupport.PresentModes.empty();
-		}
+		requirements.SwapchainSupport = QuerySwapchainSupport(device);
+		//swapChainAdequate = !swapChainSupport.Formats.empty() && !swapChainSupport.PresentModes.empty();
 
-		// Return true if all criteria for device suitability are met, false otherwise
-		return indices.IsComplete() && extensionsSupported && swapChainAdequate;
+		return requirements;
 	}
 
-	/**
-	 * @brief Enumerates all available physical devices and evaluates each one's suitability based on
-	 * specific criteria using the IsDeviceSuitable() function. It prioritizes discrete GPUs over integrated
-	 * GPUs if available. Once the suitable device is found, its properties are retrieved and stored for later use.
-	 *
-	 * If no suitable GPU is found, the function asserts.
-	 */
-	void Device::PickPhysicalDevice()
+	std::vector<Device::PhysicalDevice> Device::EnumeratePhysicalDevices()
 	{
 		// Enumerate all physical devices available in the Vulkan instance
 		uint32_t deviceCount = 0;
@@ -875,79 +891,62 @@ namespace VulkanHelper
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(s_Instance, &deviceCount, devices.data());
 
-		// Flag to track if a discrete GPU is found
-		bool discreteFound = false;
+		std::vector<Device::PhysicalDevice> outDevices(deviceCount);
 
 		// Iterate through all physical devices to find the most suitable one
-		for (const auto& device : devices) 
+		for (uint32_t i = 0; i < deviceCount; i++) 
 		{
-			if (IsDeviceSuitable(device)) 
+			outDevices[i].Handle = devices[i];
+			outDevices[i].Requirements = IsDeviceSuitable(devices[i]);
 			{
-				// Retrieve properties of the current device
-				VkPhysicalDeviceProperties properties;
-				vkGetPhysicalDeviceProperties(device, &properties);
+				// Retrieve and store properties of the selected physical device for later use
+				VkPhysicalDeviceProperties2 properties2{};
+				properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+				vkGetPhysicalDeviceProperties2(devices[i], &properties2);
+
+				// Determine the vendor
+				switch (properties2.properties.vendorID)
+				{
+				case 0x1002:
+					outDevices[i].Vendor = Vendor::AMD;
+					break;
+
+				case 0x10DE:
+					outDevices[i].Vendor = Vendor::NVIDIA;
+					break;
+
+				case 0x8086:
+					outDevices[i].Vendor = Vendor::INTEL;
+					break;
+
+				case 0x1010:
+					outDevices[i].Vendor = Vendor::ImgTec;
+					break;
+
+				case 0x13B5:
+					outDevices[i].Vendor = Vendor::ARM;
+					break;
+
+				case 0x5143:
+					outDevices[i].Vendor = Vendor::Qualcomm;
+					break;
+
+				default:
+					outDevices[i].Vendor = Vendor::Unknown;
+					break;
+				}
+
+				outDevices[i].Name = properties2.properties.deviceName;
 
 				// Prioritize discrete GPUs over integrated GPUs if available
-				if (properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+				if (properties2.properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 				{
-					s_PhysicalDevice = device;
-					discreteFound = true;
-				}
-				else if (properties.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU && !discreteFound)
-				{
-					s_PhysicalDevice = device;
+					outDevices[i].Discrete = true;
 				}
 			}
 		}
 
-		// Assert if no suitable GPU is found
-		VK_CORE_ASSERT(s_PhysicalDevice != VK_NULL_HANDLE, "failed to find a suitable GPU!");
-
-		// Retrieve and store properties of the selected physical device for later use
-		s_Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-		s_Properties.pNext = &s_RayTracingProperties;
-		s_RayTracingProperties.pNext = &s_AccelerationStructureProperties;
-		s_AccelerationStructureProperties.pNext = &s_SubgroupProperties;
-		vkGetPhysicalDeviceProperties2(s_PhysicalDevice, &s_Properties);
-
-		// Determine the vendor
-		switch (s_Properties.properties.vendorID)
-		{
-		case 0x1002:
-			m_Vendor = Vendor::AMD;
-			break;
-
-		case 0x10DE:
-			m_Vendor = Vendor::NVIDIA;
-			break;
-
-		case 0x8086:
-			m_Vendor = Vendor::INTEL;
-			break;
-
-		case 0x1010:
-			m_Vendor = Vendor::ImgTec;
-			break;
-
-		case 0x13B5:
-			m_Vendor = Vendor::ARM;
-			break;
-
-		case 0x5143:
-			m_Vendor = Vendor::Qualcomm;
-			break;
-
-		default:
-			m_Vendor = Vendor::Unknown;
-			break;
-		}
-
-		// Get the maximum sample count supported by the device
-		s_MaxSampleCount = GetMaxSampleCount();
-
-		// Log the name of the selected physical device
-		VK_CORE_INFO("Physical device: {0}", s_Properties.properties.deviceName);
-		VK_CORE_INFO("\tSubgroup Size: {0}", s_SubgroupProperties.subgroupSize);
+		return outDevices;
 	}
 
 	/**
@@ -957,7 +956,7 @@ namespace VulkanHelper
 	void Device::CreateLogicalDevice()
 	{
 		// Find queue families supported by the physical device
-		QueueFamilyIndices indices = FindQueueFamilies(s_PhysicalDevice);
+		QueueFamilyIndices indices = FindQueueFamilies(s_PhysicalDevice.Handle);
 
 		// Prepare queue creation information
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -1006,7 +1005,7 @@ namespace VulkanHelper
 		}
 
 		// Create the logical device
-		VK_CORE_RETURN_ASSERT(vkCreateDevice(s_PhysicalDevice, &createInfo, nullptr, &s_Device),
+		VK_CORE_RETURN_ASSERT(vkCreateDevice(s_PhysicalDevice.Handle, &createInfo, nullptr, &s_Device),
 			VK_SUCCESS,
 			"failed to create logical device!"
 		);
@@ -1025,15 +1024,7 @@ namespace VulkanHelper
 		s_Window->CreateWindowSurface(s_Instance, &s_Surface); 
 	}
 
-	/**
-	 * @brief Enumerates the available device extensions on the physical device
-	 * and checks if all required extensions specified in s_DeviceExtensions are supported.
-	 * Additionally, it marks optional extensions specified in s_OptionalExtensions as supported if available.
-	 *
-	 * @param device - Vulkan physical device to check for extension support.
-	 * @return True if all required extensions are supported, false otherwise.
-	 */
-	bool Device::CheckDeviceExtensionSupport(VkPhysicalDevice device)
+	std::set<std::string> Device::CheckDeviceExtensionSupport(VkPhysicalDevice device)
 	{
 		// Get the count of available device extensions
 		uint32_t extensionCount;
@@ -1067,7 +1058,7 @@ namespace VulkanHelper
 		}
 
 		// Return true if all required extensions are supported, false otherwise
-		return requiredExtensions.empty();
+		return requiredExtensions;
 	}
 
 	/**
@@ -1148,7 +1139,7 @@ namespace VulkanHelper
 		{
 			// Retrieve format properties
 			VkFormatProperties props;
-			vkGetPhysicalDeviceFormatProperties(s_PhysicalDevice, format, &props);
+			vkGetPhysicalDeviceFormatProperties(s_PhysicalDevice.Handle, format, &props);
 
 			// Check if the format supports the specified tiling and features
 			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) { return format; }
@@ -1216,7 +1207,7 @@ namespace VulkanHelper
 			from, but you can imagine that this can affect performance.
 		*/
 		VkPhysicalDeviceMemoryProperties memProperties;
-		vkGetPhysicalDeviceMemoryProperties(s_PhysicalDevice, &memProperties);
+		vkGetPhysicalDeviceMemoryProperties(s_PhysicalDevice.Handle, &memProperties);
 
 		// Iterate through each memory type
 		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
@@ -1329,7 +1320,6 @@ namespace VulkanHelper
 	VkPhysicalDeviceFeatures2 Device::s_Features;
 	VkInstance Device::s_Instance = {};
 	VkDebugUtilsMessengerEXT Device::s_DebugMessenger = {};
-	VkPhysicalDevice Device::s_PhysicalDevice = {};
 	VkDevice Device::s_Device = {};
 	VkSurfaceKHR Device::s_Surface = {};
 	Window* Device::s_Window = {};

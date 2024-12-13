@@ -38,7 +38,7 @@ namespace VulkanHelper
 		bool PresentFamilyHasValue = false;
 		bool ComputeFamilyHasValue = false;
 
-		bool IsComplete() { return GraphicsFamilyHasValue && PresentFamilyHasValue && ComputeFamilyHasValue; }
+		bool IsComplete() const { return GraphicsFamilyHasValue && PresentFamilyHasValue && ComputeFamilyHasValue; }
 	};
 
 	struct Extension
@@ -69,7 +69,34 @@ namespace VulkanHelper
 			bool UseRayTracing = false;
 		};
 
-		static void Init(CreateInfo &createInfo);
+		struct PhysicalDeviceRequirements
+		{
+			SwapchainSupportDetails SwapchainSupport;
+			QueueFamilyIndices QueueIndices;
+			std::set<std::string> UnsupportedButRequiredExtensions; // This has to be for device to be suitable
+
+			bool IsSuitable() const
+			{
+				return QueueIndices.IsComplete() && UnsupportedButRequiredExtensions.empty() && !SwapchainSupport.Formats.empty() && !SwapchainSupport.PresentModes.empty();
+			}
+		};
+
+		struct PhysicalDevice
+		{
+			std::string Name = "INVALID DEVICE";
+			Vendor Vendor = Vendor::Unknown;
+			PhysicalDeviceRequirements Requirements{};
+			bool Discrete = false;
+			VkPhysicalDevice Handle = VK_NULL_HANDLE;
+
+			bool IsSuitable() const
+			{
+				return Requirements.IsSuitable();
+			}
+		};
+
+		static [[nodiscard]] std::vector<PhysicalDevice> Init(CreateInfo &createInfo);
+		static void Init(const PhysicalDevice& device);
 		static void Destroy();
 
 		~Device();
@@ -81,10 +108,10 @@ namespace VulkanHelper
 
 		static inline VkInstance GetInstance() { return s_Instance; }
 		static inline VkDevice GetDevice() { return s_Device; }
-		static inline VkPhysicalDevice GetPhysicalDevice() { return s_PhysicalDevice; }
-		static inline SwapchainSupportDetails GetSwapchainSupport() { return QuerySwapchainSupport(s_PhysicalDevice); }
+		static inline VkPhysicalDevice GetPhysicalDevice() { return s_PhysicalDevice.Handle; }
+		static inline SwapchainSupportDetails GetSwapchainSupport() { return QuerySwapchainSupport(s_PhysicalDevice.Handle); }
 		static inline VkSurfaceKHR GetSurface() { return s_Surface; }
-		static inline QueueFamilyIndices FindPhysicalQueueFamilies() { return FindQueueFamilies(s_PhysicalDevice); }
+		static inline QueueFamilyIndices FindPhysicalQueueFamilies() { return FindQueueFamilies(s_PhysicalDevice.Handle); }
 		static inline VkCommandPool& GetGraphicsCommandPool() { return s_CommandPools[std::this_thread::get_id()].GraphicsCommandPool; }
 		static inline VkCommandPool& GetComputeCommandPool() { return s_CommandPools[std::this_thread::get_id()].ComputeCommandPool; }
 		static inline VkQueue GetGraphicsQueue() { return s_GraphicsQueue; }
@@ -92,7 +119,7 @@ namespace VulkanHelper
 		static inline VkQueue GetComputeQueue() { return s_ComputeQueue; }
 		static inline VkPhysicalDeviceAccelerationStructurePropertiesKHR GetAccelerationProperties() { return s_AccelerationStructureProperties; }
 		static inline void WaitIdle() { vkDeviceWaitIdle(s_Device); }
-		static inline Vendor GetVendor() { return m_Vendor; }
+		static inline Vendor GetVendor() { return s_PhysicalDevice.Vendor; }
 
 		static inline VmaAllocator GetAllocator() { return s_Allocator; }
 
@@ -135,7 +162,7 @@ namespace VulkanHelper
 
 		static std::vector<const char*> GetRequiredGlfwExtensions();
 		static void CheckRequiredGlfwExtensions();
-		static bool IsDeviceSuitable(VkPhysicalDevice device);
+		static PhysicalDeviceRequirements IsDeviceSuitable(VkPhysicalDevice device);
 		static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
 		static void CreateMemoryAllocator();
@@ -147,13 +174,13 @@ namespace VulkanHelper
 		static void CreateInstance();
 		static void SetupDebugMessenger();
 		static void CreateSurface();
-		static void PickPhysicalDevice();
+		static std::vector<PhysicalDevice> EnumeratePhysicalDevices();
 		static void CreateLogicalDevice();
 		static void CreateCommandPools();
 
 		static void PopulateDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 		static bool CheckValidationLayerSupport();
-		static bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+		static std::set<std::string> CheckDeviceExtensionSupport(VkPhysicalDevice device);
 		static SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice device);
 
 		static VkExportMemoryAllocateInfo s_ExportMemoryInfo;
@@ -164,12 +191,11 @@ namespace VulkanHelper
 		static std::unordered_map<uint32_t, VmaPool> s_Pools;
 		static inline std::unordered_map<uint32_t, VmaPool> s_ImagePools;
 		static VkPhysicalDeviceProperties2 s_Properties;
-		static inline Vendor m_Vendor;
 		static VkSampleCountFlagBits s_MaxSampleCount;
 		static VkPhysicalDeviceFeatures2 s_Features;
 		static VkInstance s_Instance;
 		static VkDebugUtilsMessengerEXT s_DebugMessenger;
-		static VkPhysicalDevice s_PhysicalDevice;
+		static inline PhysicalDevice s_PhysicalDevice;
 		static VkDevice s_Device;
 		static VkSurfaceKHR s_Surface;
 		static Window* s_Window;

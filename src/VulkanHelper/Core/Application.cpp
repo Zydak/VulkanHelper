@@ -33,7 +33,21 @@ namespace VulkanHelper
 		deviceInfo.UseRayTracing = appInfo.EnableRayTracingSupport;
 		deviceInfo.UseMemoryAddress = appInfo.UseMemoryAddress;
 		deviceInfo.IgnoredMessageIDs = std::move(appInfo.IgnoredMessageIDs);
-		Device::Init(deviceInfo);
+
+		std::vector<Device::PhysicalDevice> devices = Device::Init(deviceInfo);
+
+		Device::PhysicalDevice finalChoice;
+		for (int i = 0; i < devices.size(); i++)
+		{
+			if (devices[i].IsSuitable())
+			{
+				if (finalChoice.Discrete == false)
+					finalChoice = devices[i];
+			}
+		}
+
+		Device::Init(finalChoice);
+
 		Renderer::Init(*m_Window, appInfo.MaxFramesInFlight);
 		Input::Init(m_Window->GetGLFWwindow());
 
