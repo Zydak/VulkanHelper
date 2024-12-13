@@ -32,11 +32,11 @@ namespace VulkanHelper
 		deviceInfo.Window = m_Window.get();
 		deviceInfo.UseRayTracing = appInfo.EnableRayTracingSupport;
 		deviceInfo.UseMemoryAddress = appInfo.UseMemoryAddress;
-		deviceInfo.IgnoredMessageIDs = std::move(appInfo.IgnoredMessageIDs);
+		deviceInfo.IgnoredMessageIDs = appInfo.IgnoredMessageIDs;
 
 		std::vector<Device::PhysicalDevice> devices = Device::Init(deviceInfo);
 
-		Device::PhysicalDevice finalChoice;
+		Device::PhysicalDevice finalChoice = devices[0];
 		for (int i = 0; i < devices.size(); i++)
 		{
 			if (devices[i].IsSuitable())
