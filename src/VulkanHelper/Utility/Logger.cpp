@@ -13,19 +13,19 @@ namespace VulkanHelper
 
 	void Logger::Init()
 	{
-		//std::remove("VulkanHelper.log");
-		//std::vector<spdlog::sink_ptr> sinks;
-		//
-		//sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_st>());
-		//sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_st>("VulkanHelper.log"));
+		std::remove("VulkanHelper.log");
 
-		spdlog::set_pattern("%^[%T] %n: %v%$");
-		//s_CoreLogger = std::make_shared<spdlog::logger>("VULTURE_CORE", begin(sinks), end(sinks));
-		s_CoreLogger = spdlog::stdout_color_mt("VulkanHelper CORE");
+		auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>(spdlog::color_mode::always);
+		consoleSink->set_level(spdlog::level::trace);
+		consoleSink->set_pattern("%^[%T] %n: %v%$");
+		
+		auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("VulkanHelper.log");
+		fileSink->set_level(spdlog::level::trace);
+		fileSink->set_pattern("%^[%T] %n: %v%$");
+
+		s_CoreLogger = std::make_shared<spdlog::logger>("CORE", spdlog::sinks_init_list{ consoleSink, fileSink });
+		s_ClientLogger = std::make_shared<spdlog::logger>("APP", spdlog::sinks_init_list{ consoleSink, fileSink });
 		s_CoreLogger->set_level(spdlog::level::trace);
-
-		//s_ClientLogger = std::make_shared<spdlog::logger>("APP", begin(sinks), end(sinks));
-		s_ClientLogger = spdlog::stdout_color_mt("APP");
 		s_ClientLogger->set_level(spdlog::level::trace);
 	}
 

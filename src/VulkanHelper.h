@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef VL_ENTRY_POINT
-#include "Vulkan-Helper/src/VulkanHelper/core/EntryPoint.h"
-#endif
-
 #include "Vulkan-Helper/src/VulkanHelper/core/Application.h"
 #include "Vulkan-Helper/src/VulkanHelper/core/Input.h"
 #include "Vulkan-Helper/src/VulkanHelper/Scene/Components.h"

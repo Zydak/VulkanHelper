@@ -89,9 +89,41 @@ namespace VulkanHelper
 			bool Discrete = false;
 			VkPhysicalDevice Handle = VK_NULL_HANDLE;
 
-			bool IsSuitable() const
+			/*
+			 *	@brief Returns whether device is suitable for use given all the requirements in VulkanHelper::QueryDevices().
+			 *	
+			 *	@param outError - Message telling why the device isn't suitable for use. e.g. which extensions are missing.
+			 */
+			bool IsSuitable(std::string& outError) const
 			{
-				return Requirements.IsSuitable();
+				if (!Requirements.IsSuitable())
+				{
+					outError.append(std::format("{} device is incompatible!", Name));
+
+					if (!Requirements.UnsupportedButRequiredExtensions.empty())
+					{
+						outError.append("\nIt doesn't support following extensions which are listed as required:");
+						for (auto& extension : Requirements.UnsupportedButRequiredExtensions)
+						{
+							outError.append(std::format("\n\t{}", extension));
+						}
+					}
+
+					if (!Requirements.QueueIndices.IsComplete())
+					{
+						outError.append(std::format("\nIt doesn't support following queue families:"));
+						outError.append(std::format("\n\tGraphics Family Queue Supported - {}", Requirements.QueueIndices.GraphicsFamilyHasValue));
+						outError.append(std::format("\n\tPresent Family Queue Supported - {}", Requirements.QueueIndices.PresentFamilyHasValue));
+						outError.append(std::format("\n\tCompute Family Queue Supported - {}", Requirements.QueueIndices.ComputeFamilyHasValue));
+					}
+
+					if (Requirements.SwapchainSupport.PresentModes.empty() || Requirements.SwapchainSupport.Formats.empty())
+						outError.append("\nThe swapchain can't be created on this device!");
+
+					return false;
+				}
+				else
+					return true;
 			}
 		};
 

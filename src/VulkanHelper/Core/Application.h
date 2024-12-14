@@ -6,39 +6,37 @@
 
 namespace VulkanHelper
 {
-	struct ApplicationInfo
+	struct WindowInfo
 	{
 		uint32_t WindowWidth = 600;
 		uint32_t WindowHeight = 600;
-		uint32_t MaxFramesInFlight = 2;
-		std::string WorkingDirectory = "";
 		std::string Name = "";
 		std::string Icon = "";
+		std::string WorkingDirectory = "";
+	};
+
+	struct QueryDevicesInfo
+	{
+		std::shared_ptr<Window> Window;
 		bool EnableRayTracingSupport = false;
 		bool UseMemoryAddress = true;
 		std::vector<const char*> DeviceExtensions;
 		std::vector<const char*> OptionalExtensions;
-		std::vector<int32_t> IgnoredMessageIDs;
 		VkPhysicalDeviceFeatures2 Features = VkPhysicalDeviceFeatures2();
+		std::vector<int32_t> IgnoredMessageIDs;
 	};
 
-	class Application
+	struct InitializationInfo
 	{
-	public:
-		Application(const ApplicationInfo& appInfo);
-		virtual ~Application();
-
-		virtual void Destroy() = 0;
-		virtual void OnUpdate(double delta) = 0;
-
-		void Run();
-	protected:
-
-		ApplicationInfo m_ApplicationInfo;
-		Ref<Window> m_Window;
+		std::shared_ptr<Window> Window;
+		VulkanHelper::Device::PhysicalDevice PhysicalDevice;
+		uint32_t MaxFramesInFlight = 2;
 	};
 
-	// defined by client
-	Application* CreateApplication();
+	std::shared_ptr<Window> InitWindow(const WindowInfo& windowInfo);
+	std::vector<Device::PhysicalDevice> QueryDevices(const QueryDevicesInfo& queryInfo);
+	void Init(const InitializationInfo& initInfo);
+	void EndFrame();
+	void Destroy();
 
 }

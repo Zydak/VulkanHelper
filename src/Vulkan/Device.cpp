@@ -75,6 +75,9 @@ namespace VulkanHelper
 		if (func != nullptr) { func(instance, debugMessenger, pAllocator); }
 	}
 
+	/*
+	 * @brief Initializes vulkan instance and returns list of physical devices available on your PC.
+	 */
 	std::vector<Device::PhysicalDevice> Device::Init(CreateInfo& createInfo)
 	{
 		VK_CORE_ASSERT(!s_Initialized, "Device is already initialized!");
@@ -108,6 +111,9 @@ namespace VulkanHelper
 		return EnumeratePhysicalDevices();
 	}
 
+	/*
+	 * @brief Finishes Vulkan setup with given physical device.
+	 */
 	void Device::Init(const PhysicalDevice& device)
 	{
 		if (!device.Requirements.IsSuitable())

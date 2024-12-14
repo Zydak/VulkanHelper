@@ -10,50 +10,47 @@
 
 namespace VulkanHelper
 {
-	Application::Application(const ApplicationInfo& appInfo)
-		: m_ApplicationInfo(appInfo)
+
+	std::shared_ptr<VulkanHelper::Window> InitWindow(const WindowInfo& windowInfo)
 	{
-		if (!appInfo.WorkingDirectory.empty())
-			std::filesystem::current_path(appInfo.WorkingDirectory);
+		if (!windowInfo.WorkingDirectory.empty())
+			std::filesystem::current_path(windowInfo.WorkingDirectory);
 
 		Logger::Init();
 		VK_CORE_TRACE("LOGGER INITIALIZED");
+
 		Window::CreateInfo winInfo;
-		winInfo.Width = (int)appInfo.WindowWidth;
-		winInfo.Height = (int)appInfo.WindowHeight;
-		winInfo.Name = appInfo.Name;
-		winInfo.Icon = appInfo.Icon;
-		m_Window = std::make_shared<Window>(winInfo);
+		winInfo.Width = (int)windowInfo.WindowWidth;
+		winInfo.Height = (int)windowInfo.WindowHeight;
+		winInfo.Name = windowInfo.Name;
+		winInfo.Icon = windowInfo.Icon;
+		return std::make_shared<Window>(winInfo);
+	}
 
+	std::vector<VulkanHelper::Device::PhysicalDevice> QueryDevices(const QueryDevicesInfo& queryInfo)
+	{
 		Device::CreateInfo deviceInfo{};
-		deviceInfo.DeviceExtensions = appInfo.DeviceExtensions;
-		deviceInfo.OptionalExtensions = appInfo.OptionalExtensions;
-		deviceInfo.Features = appInfo.Features;
-		deviceInfo.Window = m_Window.get();
-		deviceInfo.UseRayTracing = appInfo.EnableRayTracingSupport;
-		deviceInfo.UseMemoryAddress = appInfo.UseMemoryAddress;
-		deviceInfo.IgnoredMessageIDs = appInfo.IgnoredMessageIDs;
+		deviceInfo.DeviceExtensions = queryInfo.DeviceExtensions;
+		deviceInfo.OptionalExtensions = queryInfo.OptionalExtensions;
+		deviceInfo.Features = queryInfo.Features;
+		deviceInfo.Window = queryInfo.Window.get();
+		deviceInfo.UseRayTracing = queryInfo.EnableRayTracingSupport;
+		deviceInfo.UseMemoryAddress = queryInfo.UseMemoryAddress;
+		deviceInfo.IgnoredMessageIDs = queryInfo.IgnoredMessageIDs;
 
-		std::vector<Device::PhysicalDevice> devices = Device::Init(deviceInfo);
+		return Device::Init(deviceInfo);
+	}
 
-		Device::PhysicalDevice finalChoice = devices[0];
-		for (int i = 0; i < devices.size(); i++)
-		{
-			if (devices[i].IsSuitable())
-			{
-				if (finalChoice.Discrete == false)
-					finalChoice = devices[i];
-			}
-		}
+	void Init(const InitializationInfo& initInfo)
+	{
+		Device::Init(initInfo.PhysicalDevice);
 
-		Device::Init(finalChoice);
-
-		Renderer::Init(*m_Window, appInfo.MaxFramesInFlight);
-		Input::Init(m_Window->GetGLFWwindow());
+		Renderer::Init(*initInfo.Window, initInfo.MaxFramesInFlight);
+		Input::Init(initInfo.Window->GetGLFWwindow());
 
 		const uint32_t coresCount = std::thread::hardware_concurrency();
 		AssetManager::Init({ coresCount / 2 });
-		DeleteQueue::Init({ appInfo.MaxFramesInFlight });
+		DeleteQueue::Init({ initInfo.MaxFramesInFlight });
 
 		REGISTER_CLASS_IN_SERIALIZER(ScriptComponent);
 		REGISTER_CLASS_IN_SERIALIZER(TransformComponent);
@@ -64,34 +61,19 @@ namespace VulkanHelper
 		REGISTER_CLASS_IN_SERIALIZER(BloomSettingsComponent);
 	}
 
-	Application::~Application()
+	void EndFrame()
 	{
-		VK_CORE_INFO("Closing");
+		DeleteQueue::UpdateQueue();
 	}
 
-	void Application::Run()
+	void Destroy()
 	{
-		VK_CORE_TRACE("\n\n\n\nMAIN LOOP START\n\n\n\n");
-		Timer timer;
-		double deltaTime = 0.0f;
-
-		while (!m_Window->ShouldClose())
-		{
-			timer.Reset();
-			m_Window->PollEvents();
-
-			OnUpdate(deltaTime);
-			deltaTime = timer.ElapsedSeconds();
-
-			DeleteQueue::UpdateQueue();
-		}
-
 		vkDeviceWaitIdle(Device::GetDevice());
 
 		Renderer::Destroy();
-		Destroy();
 		AssetManager::Destroy();
 		DeleteQueue::Destroy();
 		Device::Destroy();
 	}
+
 }
