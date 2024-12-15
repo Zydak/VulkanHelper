@@ -205,10 +205,10 @@ namespace VulkanHelper
 			if (diagnostics)
 			{
 				std::string message((const char*)diagnostics->getBufferPointer());
-				if (message.find("warning") != std::string::npos)
-					VK_CORE_WARN(message);
-				else
+				if (message.find(": error") != std::string::npos)
 					VK_CORE_ERROR(message);
+				else
+					VK_CORE_WARN(message);
 			}
 
 			if (module == nullptr)
@@ -236,10 +236,10 @@ namespace VulkanHelper
 			if (diagnosticBlob)
 			{
 				std::string message((const char*)diagnosticBlob->getBufferPointer());
-				if (message.find("warning") != std::string::npos)
-					VK_CORE_WARN(message);
-				else
+				if (message.find(": error") != std::string::npos)
 					VK_CORE_ERROR(message);
+				else
+					VK_CORE_WARN(message);
 			}
 
 			if (res != 0)
@@ -255,10 +255,10 @@ namespace VulkanHelper
 			if (diagnostics1)
 			{
 				std::string message((const char*)diagnostics1->getBufferPointer());
-				if (message.find("warning") != std::string::npos)
-					VK_CORE_WARN(message);
-				else
+				if (message.find(": error") != std::string::npos)
 					VK_CORE_ERROR(message);
+				else
+					VK_CORE_WARN(message);
 			}
 
 			if (res != 0)
