@@ -49,7 +49,7 @@ namespace VulkanHelper
 		Input::Init(initInfo.Window->GetGLFWwindow());
 
 		const uint32_t coresCount = std::thread::hardware_concurrency();
-		AssetManager::Init({ coresCount / 2 });
+		AssetManager::Init({ 1 });
 		DeleteQueue::Init({ initInfo.MaxFramesInFlight });
 
 		REGISTER_CLASS_IN_SERIALIZER(ScriptComponent);

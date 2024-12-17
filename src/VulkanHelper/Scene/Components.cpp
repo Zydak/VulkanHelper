@@ -188,7 +188,7 @@ namespace VulkanHelper
 		mesh.Init({ &vertices, &indices });
 
 		// Create the asset
-		std::unique_ptr<VulkanHelper::Asset> meshAsset = std::make_unique<VulkanHelper::MeshAsset>(std::move(mesh));
+		std::unique_ptr<VulkanHelper::Asset> meshAsset = std::make_unique<VulkanHelper::MeshAsset>(path, std::move(mesh));
 		AssetHandle = AssetManager::AddAsset(path, std::move(meshAsset));
 	}
 
@@ -315,27 +315,20 @@ namespace VulkanHelper
 		std::hash<std::string> hash;
 		VulkanHelper::AssetHandle handle = VulkanHelper::AssetHandle(AssetHandle::CreateInfo{ hash(materialName) });
 
-		if (!handle.DoesHandleExist())
-		{
-			MaterialTextures textures{};
+		MaterialTextures textures{};
 
-			textures.SetAlbedo(AssetManager::LoadAsset(names[0]));
-			textures.SetNormal(AssetManager::LoadAsset(names[1]));
-			textures.SetRoughness(AssetManager::LoadAsset(names[2]));
-			textures.SetMetallness(AssetManager::LoadAsset(names[3]));
+		textures.SetAlbedo(AssetManager::LoadAsset(names[0]));
+		textures.SetNormal(AssetManager::LoadAsset(names[1]));
+		textures.SetRoughness(AssetManager::LoadAsset(names[2]));
+		textures.SetMetallness(AssetManager::LoadAsset(names[3]));
 
-			VulkanHelper::Material mat;
-			mat.Properties = std::move(props);
-			mat.Textures = std::move(textures);
-			mat.MaterialName = materialName;
+		VulkanHelper::Material mat;
+		mat.Properties = std::move(props);
+		mat.Textures = std::move(textures);
+		mat.MaterialName = materialName;
 
-			std::unique_ptr<Asset> asset = std::make_unique<MaterialAsset>(std::move(mat));
-			AssetHandle = AssetManager::AddAsset(materialName, std::move(asset));
-		}
-		else
-		{
-			AssetHandle = handle;
-		}
+		std::unique_ptr<Asset> asset = std::make_unique<MaterialAsset>(materialName, std::move(mat));
+		AssetHandle = AssetManager::AddAsset(materialName, std::move(asset));
 	}
 
 	std::vector<char> TonemapperSettingsComponent::Serialize()

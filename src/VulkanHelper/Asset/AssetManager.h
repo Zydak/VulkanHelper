@@ -24,11 +24,12 @@ namespace VulkanHelper
 
 		AssetManager() = delete;
 
+		static AssetHandle CreateHandleFromPath(const std::string& path);
+
 		static void Init(const CreateInfo& createInfo);
 		static void Destroy();
 
 		static Asset* GetAsset(const AssetHandle& handle);
-		static bool IsAssetValid(const AssetHandle& handle);
 		static bool DoesHandleExist(const AssetHandle& handle);
 
 		static void WaitToLoad(const AssetHandle& handle);
@@ -65,9 +66,8 @@ namespace VulkanHelper
 
 			s_ThreadPool.PushTask([](std::string path, std::shared_ptr<std::promise<void>> promise, AssetHandle handle)
 				{
-					Scope<Asset> asset = std::make_unique<SceneAsset>(std::move(AssetImporter::ImportScene<T...>(path)));
-					asset->SetValid(true);
-					asset->SetPath(path);
+					Scope<Asset> asset = std::make_unique<SceneAsset>(path, std::move(AssetImporter::ImportScene<T...>(path)));
+					asset->m_Path = path;
 			
 					std::unique_lock<std::mutex> lock(s_AssetsMutex);
 					s_Assets[handle].Asset = std::move(asset);
@@ -78,8 +78,7 @@ namespace VulkanHelper
 
 			return AssetHandle(handle);
 		}
-		inline static std::unordered_map<AssetHandle, uint32_t> s_TexturesReferenceCount;
-		inline static std::mutex s_TexturesReferenceCountMutex;
+		inline static std::unordered_map<uint64_t, std::atomic<uint32_t>> s_AssetsReferenceCount;
 	private:
 
 		inline static std::unordered_map<AssetHandle, AssetWithFuture> s_Assets;

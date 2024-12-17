@@ -18,25 +18,8 @@ namespace VulkanHelper
 		Scene,
 	};
 
-	class Asset
-	{
-	public:
-		virtual ~Asset() {};
-
-		virtual AssetType GetAssetType() = 0;
-
-		inline void SetValid(bool val) { Valid = val; }
-		inline bool IsValid() const { return Valid; }
-		inline void SetPath(const std::string& path) { Path = path; }
-		inline std::string GetPath() { return Path; }
-	protected:
-		bool Valid = false;
-		std::string Path = "";
-
-		friend AssetManager;
-	};
-
 	class Material;
+	class Asset;
 
 	class AssetHandle
 	{
@@ -64,7 +47,6 @@ namespace VulkanHelper
 		Material* GetMaterial() const;
 		Scene* GetScene() const;
 		Image* GetImage() const;
-		bool IsAssetValid() const;
 		bool DoesHandleExist() const;
 		bool IsAssetLoaded() const;
 
@@ -82,6 +64,23 @@ namespace VulkanHelper
 		bool m_Initialized = false;
 
 		void Reset();
+	};
+
+	class Asset
+	{
+	public:
+		Asset(const AssetHandle& handle, const std::string& path);
+		virtual ~Asset();
+
+		virtual AssetType GetAssetType() = 0;
+
+		inline std::string GetPath() { return m_Path; }
+		inline AssetHandle GetHandle() { return m_AssetHandle; }
+	private:
+		std::string m_Path = "";
+		AssetHandle m_AssetHandle;
+
+		friend class AssetManager;
 	};
 
 	class MaterialProperties
@@ -165,12 +164,16 @@ namespace VulkanHelper
 	class TextureAsset : public Asset
 	{
 	public:
-		explicit TextureAsset(Image&& image) { Image = std::move(image); };
-		~TextureAsset() {};
+		TextureAsset(const std::string& path);
+
+		explicit TextureAsset(const std::string& path, Image&& image);
+
+		virtual ~TextureAsset() {};
 		explicit TextureAsset(const TextureAsset& other) = delete;
 		TextureAsset& operator=(const TextureAsset& other) = delete;
-		explicit TextureAsset(TextureAsset&& other) noexcept { Image = std::move(other.Image); }
-		TextureAsset& operator=(TextureAsset&& other) noexcept { Image = std::move(other.Image); return *this; };
+		TextureAsset& operator=(TextureAsset&& other) noexcept = delete;
+
+		explicit TextureAsset(TextureAsset&& other) noexcept;
 
 		virtual AssetType GetAssetType() override { return AssetType::Texture; }
 		VulkanHelper::Image Image;
@@ -179,12 +182,15 @@ namespace VulkanHelper
 	class MeshAsset : public Asset
 	{
 	public:
-		explicit MeshAsset(Mesh&& mesh) { Mesh = std::move(mesh); };
-		~MeshAsset() {};
+		MeshAsset(const std::string& path);
+		explicit MeshAsset(const std::string& path, Mesh&& mesh);
+
+		virtual ~MeshAsset() {};
 		explicit MeshAsset(const MeshAsset& other) = delete;
 		MeshAsset& operator=(const MeshAsset& other) = delete;
-		explicit MeshAsset(MeshAsset&& other) noexcept { Mesh = std::move(other.Mesh); }
-		MeshAsset& operator=(MeshAsset&& other) noexcept { Mesh = std::move(other.Mesh); return *this; };
+		MeshAsset& operator=(MeshAsset&& other) noexcept = delete;
+
+		explicit MeshAsset(MeshAsset&& other) noexcept;
 
 		virtual AssetType GetAssetType() override { return AssetType::Mesh; }
 		VulkanHelper::Mesh Mesh;
@@ -193,11 +199,16 @@ namespace VulkanHelper
 	class MaterialAsset : public Asset
 	{
 	public:
-		explicit MaterialAsset(Material&& material) { Material = std::move(material); };
+		MaterialAsset(const std::string& path);
+		virtual ~MaterialAsset() {};
+
+		explicit MaterialAsset(const std::string& path, Material&& material);
+
 		explicit MaterialAsset(const MaterialAsset& other) = delete;
 		MaterialAsset& operator=(const MaterialAsset& other) = delete;
-		explicit MaterialAsset(MaterialAsset&& other) noexcept { Material = std::move(other.Material); }
-		MaterialAsset& operator=(MaterialAsset&& other) noexcept { Material = std::move(other.Material); return *this; };
+		MaterialAsset& operator=(MaterialAsset&& other) noexcept = delete;
+
+		explicit MaterialAsset(MaterialAsset&& other) noexcept;
 
 		virtual AssetType GetAssetType() override { return AssetType::Material; }
 		VulkanHelper::Material Material;
@@ -206,26 +217,20 @@ namespace VulkanHelper
 	class ModelAsset : public Asset
 	{
 	public:
-		ModelAsset() = default;
-		~ModelAsset() = default;
+		ModelAsset(const std::string& path);
+
+		virtual ~ModelAsset() {};
 		explicit ModelAsset(const ModelAsset& other) = delete;
 		ModelAsset& operator=(const ModelAsset& other) = delete;
-		ModelAsset(ModelAsset&& other) noexcept 
+		ModelAsset(ModelAsset&& other) noexcept
+			: Asset(other.GetHandle(), other.GetPath())
 		{ 
 			Meshes = std::move(other.Meshes);
 			MeshNames = std::move(other.MeshNames);
 			Materials = std::move(other.Materials);
 			MeshTransfrorms = std::move(other.MeshTransfrorms);
 		}
-		ModelAsset& operator=(ModelAsset&& other) noexcept 
-		{ 
-			Meshes = std::move(other.Meshes); 
-			Materials = std::move(other.Materials);
-			MeshNames = std::move(other.MeshNames);
-			MeshTransfrorms = std::move(other.MeshTransfrorms);
-
-			return *this;
-		};
+		ModelAsset& operator=(ModelAsset&& other) noexcept = delete;
 
 		virtual AssetType GetAssetType() override { return AssetType::Model; }
 		
@@ -240,12 +245,14 @@ namespace VulkanHelper
 	class SceneAsset : public Asset
 	{
 	public:
-		SceneAsset(VulkanHelper::Scene&& scene) { Scene = std::move(scene); };
+		SceneAsset(const std::string& path, VulkanHelper::Scene&& scene);
+		virtual ~SceneAsset() {};
 
 		explicit SceneAsset(const SceneAsset& other) = delete;
-		explicit SceneAsset(SceneAsset&& other) noexcept { Scene = std::move(other.Scene); };
 		SceneAsset& operator=(const SceneAsset& other) = delete;
-		SceneAsset& operator=(SceneAsset&& other) noexcept { Scene = std::move(other.Scene); return *this; };
+		SceneAsset& operator=(SceneAsset&& other) noexcept = delete;
+
+		explicit SceneAsset(SceneAsset&& other) noexcept;
 
 		virtual AssetType GetAssetType() override { return AssetType::Scene; }
 		VulkanHelper::Scene Scene;

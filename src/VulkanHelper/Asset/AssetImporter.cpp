@@ -77,7 +77,7 @@ namespace VulkanHelper
 			VK_CORE_ASSERT(false, ""); // TODO: some error handling
 		}
 
-		ModelAsset asset;
+		ModelAsset asset(path);
 
 		int index = 0;
 		ProcessAssimpNode(scene->mRootNode, scene, path, &asset, index);
@@ -134,10 +134,12 @@ namespace VulkanHelper
 				}
 				path += std::to_string(indexMesh);
 
+				AssetHandle handle(AssetHandle::CreateInfo{ hash(path) });
+
 				Mesh vlMesh(mesh, scene);
 
-				std::unique_ptr<Asset> meshAsset = std::make_unique<MeshAsset>(std::move(vlMesh));
-				AssetHandle handle = AssetManager::AddAsset(path, std::move(meshAsset));
+				std::unique_ptr<Asset> meshAsset = std::make_unique<MeshAsset>(path, std::move(vlMesh));
+				AssetManager::AddAsset(path, std::move(meshAsset));
 
 				outAsset->MeshNames.push_back(meshName);
 				outAsset->Meshes.push_back(handle);
@@ -220,8 +222,8 @@ namespace VulkanHelper
 					mat.Properties.Color = glm::vec4(diffuseColor.r, diffuseColor.g, diffuseColor.b, 1.0f);
 					mat.Properties.EmissiveColor = glm::vec4(emissiveColor.r, emissiveColor.g, emissiveColor.b, emissiveColor.a);
 
-					std::unique_ptr<Asset> materialAsset = std::make_unique<MaterialAsset>(std::move(mat));
-					handle = AssetManager::AddAsset(path, std::move(materialAsset));
+					std::unique_ptr<Asset> materialAsset = std::make_unique<MaterialAsset>(path, std::move(mat));
+					AssetManager::AddAsset(path, std::move(materialAsset));
 				}
 
 				outAsset->Materials.push_back(handle);

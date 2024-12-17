@@ -44,12 +44,26 @@ namespace VulkanHelper
 		m_Handle = createInfo.Handle;
 
 		m_Initialized = true;
+
+		// Increase reference count
+		if (!AssetManager::s_AssetsReferenceCount.contains(m_Handle))
+			AssetManager::s_AssetsReferenceCount[m_Handle] = 1;
+		else
+			AssetManager::s_AssetsReferenceCount[m_Handle] += 1;
 	}
 
 	void AssetHandle::Destroy()
 	{
 		if (!m_Initialized)
 			return;
+
+		// Decrease reference count
+		AssetManager::s_AssetsReferenceCount[m_Handle] -= 1;
+
+		// If there are no references then unload the asset
+		// <= 2 because 1 handle is stored inside the m_Assets map and one in Asset itself
+		if (AssetManager::s_AssetsReferenceCount[m_Handle] <= 2 && DoesHandleExist())
+			AssetManager::UnloadAsset(*this);
 
 		m_Initialized = false;
 	}
@@ -115,14 +129,6 @@ namespace VulkanHelper
 		return &dynamic_cast<TextureAsset*>( AssetManager::GetAsset(*this))->Image;
 	}
 
-	bool AssetHandle::IsAssetValid() const
-	{
-		if (!m_Initialized)
-			return false;
-
-		return AssetManager::IsAssetValid(*this);
-	}
-
 	bool AssetHandle::DoesHandleExist() const
 	{
 		if (!m_Initialized)
@@ -179,6 +185,12 @@ namespace VulkanHelper
 		return m_Handle == other;
 	}
 
+	ModelAsset::ModelAsset(const std::string& path)
+		: Asset(AssetManager::CreateHandleFromPath(path), path)
+	{
+
+	}
+
 	void ModelAsset::CreateEntities(VulkanHelper::Scene* outScene, bool addMaterials)
 	{
 		for (int i = 0; i < Meshes.size(); i++)
@@ -225,27 +237,7 @@ namespace VulkanHelper
 
 	MaterialTextures::~MaterialTextures()
 	{
-		if (!AlbedoTexture.DoesHandleExist() && !NormalTexture.DoesHandleExist() && !RoughnessTexture.DoesHandleExist() && !MetallnessTexture.DoesHandleExist())
-			return;
 
-		AssetManager::s_TexturesReferenceCountMutex.lock();
-		AssetManager::s_TexturesReferenceCount[AlbedoTexture]--;
-		AssetManager::s_TexturesReferenceCount[NormalTexture]--;
-		AssetManager::s_TexturesReferenceCount[RoughnessTexture]--;
-		AssetManager::s_TexturesReferenceCount[MetallnessTexture]--;
-
-		if (AlbedoTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[AlbedoTexture] == 0)
-			AlbedoTexture.Unload();
-
-		if (NormalTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[NormalTexture] == 0)
-			NormalTexture.Unload();
-
-		if (RoughnessTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[RoughnessTexture] == 0)
-			RoughnessTexture.Unload();
-
-		if (MetallnessTexture.DoesHandleExist() && AssetManager::s_TexturesReferenceCount[MetallnessTexture] == 0)
-			MetallnessTexture.Unload();
-		AssetManager::s_TexturesReferenceCountMutex.unlock();
 	};
 
 	void MaterialTextures::CreateSet()
@@ -294,56 +286,99 @@ namespace VulkanHelper
 
 	void MaterialTextures::SetAlbedo(AssetHandle handle)
 	{
-		AssetManager::s_TexturesReferenceCountMutex.lock();
-
-		if (AssetManager::s_TexturesReferenceCount.contains(handle))
-			AssetManager::s_TexturesReferenceCount[handle] += 1;
-		else
-			AssetManager::s_TexturesReferenceCount[handle] = 1;
-
 		AlbedoTexture = handle;
-
-		AssetManager::s_TexturesReferenceCountMutex.unlock();
 	}
 
 	void MaterialTextures::SetNormal(AssetHandle handle)
 	{
-		AssetManager::s_TexturesReferenceCountMutex.lock();
-
-		if (AssetManager::s_TexturesReferenceCount.contains(handle))
-			AssetManager::s_TexturesReferenceCount[handle] += 1;
-		else
-			AssetManager::s_TexturesReferenceCount[handle] = 1;
-
 		NormalTexture = handle;
-		AssetManager::s_TexturesReferenceCountMutex.unlock();
 	}
 
 	void MaterialTextures::SetRoughness(AssetHandle handle)
 	{
-		AssetManager::s_TexturesReferenceCountMutex.lock();
-
-		if (AssetManager::s_TexturesReferenceCount.contains(handle))
-			AssetManager::s_TexturesReferenceCount[handle] += 1;
-		else
-			AssetManager::s_TexturesReferenceCount[handle] = 1;
-
 		RoughnessTexture = handle;
-		AssetManager::s_TexturesReferenceCountMutex.unlock();
 	}
 
 	void MaterialTextures::SetMetallness(AssetHandle handle)
 	{
-		AssetManager::s_TexturesReferenceCountMutex.lock();
-
-		if (AssetManager::s_TexturesReferenceCount.contains(handle))
-			AssetManager::s_TexturesReferenceCount[handle] += 1;
-		else
-			AssetManager::s_TexturesReferenceCount[handle] = 1;
-
 		MetallnessTexture = handle;
+	}
 
-		AssetManager::s_TexturesReferenceCountMutex.unlock();
+	Asset::Asset(const AssetHandle& handle, const std::string& path)
+	{
+		m_AssetHandle = handle;
+		m_Path = path;
+	}
+
+	Asset::~Asset()
+	{
+
+	}
+
+	MeshAsset::MeshAsset(const std::string& path)
+		: Asset(AssetManager::CreateHandleFromPath(path), path)
+	{
+
+	}
+
+	MeshAsset::MeshAsset(const std::string& path, VulkanHelper::Mesh&& mesh)
+		: Asset(AssetManager::CreateHandleFromPath(path), path), Mesh(std::move(mesh))
+	{
+
+	};
+
+	MeshAsset::MeshAsset(MeshAsset&& other) noexcept
+		: Asset(other.GetHandle(), other.GetPath()), Mesh(std::move(other.Mesh))
+	{
+
+	}
+
+	TextureAsset::TextureAsset(const std::string& path, VulkanHelper::Image&& image)
+		: Asset(AssetManager::CreateHandleFromPath(path), path), Image(std::move(image))
+	{
+
+	};
+
+	TextureAsset::TextureAsset(const std::string& path)
+		: Asset(AssetManager::CreateHandleFromPath(path), path)
+	{
+
+	}
+
+	TextureAsset::TextureAsset(TextureAsset&& other) noexcept
+		: Asset(other.GetHandle(), other.GetPath()), Image(std::move(other.Image))
+	{
+
+	}
+
+	MaterialAsset::MaterialAsset(const std::string& path)
+		: Asset(AssetManager::CreateHandleFromPath(path), path)
+	{
+
+	}
+
+	MaterialAsset::MaterialAsset(const std::string& path, VulkanHelper::Material&& material)
+		: Asset(AssetManager::CreateHandleFromPath(path), path), Material(std::move(material))
+	{
+
+	};
+
+	MaterialAsset::MaterialAsset(MaterialAsset&& other) noexcept
+		: Asset(other.GetHandle(), other.GetPath()), Material(std::move(other.Material))
+	{
+
+	}
+
+	SceneAsset::SceneAsset(const std::string& path, VulkanHelper::Scene&& scene)
+		: Asset(AssetManager::CreateHandleFromPath(path), path), Scene(std::move(scene))
+	{
+
+	};
+
+	SceneAsset::SceneAsset(SceneAsset&& other) noexcept
+		: Asset(other.GetHandle(), other.GetPath()), Scene(std::move(other.Scene))
+	{
+
 	}
 
 }

@@ -4,6 +4,12 @@
 
 namespace VulkanHelper
 {
+	VulkanHelper::AssetHandle AssetManager::CreateHandleFromPath(const std::string& path)
+	{
+		std::hash<std::string> hash;
+		return AssetHandle::CreateInfo{ hash(path) };
+	}
+
 	void AssetManager::Init(const CreateInfo& createInfo)
 	{
 		if (s_Initialized)
@@ -26,7 +32,6 @@ namespace VulkanHelper
 			if (iterator == s_Assets.end())
 				break;
 
-			iterator->second.Asset.reset();
 			s_Assets.erase(iterator->first);
 		}
 
@@ -41,14 +46,6 @@ namespace VulkanHelper
 		VK_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
 
 		return iter->second.Asset.get();
-	}
-
-	bool AssetManager::IsAssetValid(const AssetHandle& handle)
-	{
-		auto iter = s_Assets.find(handle);
-		VK_CORE_ASSERT(iter != s_Assets.end(), "There is no such handle!");
-
-		return iter->second.Asset->IsValid();
 	}
 
 	bool AssetManager::DoesHandleExist(const AssetHandle& handle)
@@ -101,9 +98,8 @@ namespace VulkanHelper
 			s_ThreadPool.PushTask([](std::string path, std::shared_ptr<std::promise<void>> promise, AssetHandle handle)
 				{
 					VK_CORE_TRACE("Loading Texture: {}", path);
-					Scope<Asset> asset = std::make_unique<TextureAsset>(std::move(AssetImporter::ImportTexture(path, false)));
-					asset->SetValid(true);
-					asset->SetPath(path);
+					Scope<Asset> asset = std::make_unique<TextureAsset>(path, std::move(AssetImporter::ImportTexture(path, false)));
+					asset->m_Path = path;
 		
 					std::unique_lock<std::mutex> lock(s_AssetsMutex);
 					s_Assets[handle].Asset = std::move(asset);
@@ -117,8 +113,7 @@ namespace VulkanHelper
 			s_ThreadPool.PushTask([](std::string path, std::shared_ptr<std::promise<void>> promise, AssetHandle handle)
 				{
 					Scope<Asset> asset = std::make_unique<ModelAsset>(std::move(AssetImporter::ImportModel(path)));
-					asset->SetValid(true);
-					asset->SetPath(path);
+					asset->m_Path = path;
 		
 					std::unique_lock<std::mutex> lock(s_AssetsMutex);
 					s_Assets[handle].Asset = std::move(asset);
@@ -131,9 +126,8 @@ namespace VulkanHelper
 		{
 			s_ThreadPool.PushTask([](std::string path, std::shared_ptr<std::promise<void>> promise, AssetHandle handle)
 				{
-					Scope<Asset> asset = std::make_unique<TextureAsset>(std::move(AssetImporter::ImportTexture(path, true)));
-					asset->SetValid(true);
-					asset->SetPath(path);
+					Scope<Asset> asset = std::make_unique<TextureAsset>(path, std::move(AssetImporter::ImportTexture(path, true)));
+					asset->m_Path = path;
 		
 					std::unique_lock<std::mutex> lock(s_AssetsMutex);
 					s_Assets[handle].Asset = std::move(asset);
@@ -159,9 +153,7 @@ namespace VulkanHelper
 		}
 
 		std::shared_ptr<std::promise<void>> promise = std::make_shared<std::promise<void>>();
-
-		asset->SetValid(true);
-		asset->SetPath(path);
+		asset->m_Path = path;
 
 		std::unique_lock<std::mutex> lock(s_AssetsMutex);
 		s_Assets[handle] = { promise->get_future(), std::move(asset) };
