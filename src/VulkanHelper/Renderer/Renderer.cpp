@@ -594,8 +594,8 @@ namespace VulkanHelper
 			info.AttributeDesc = Mesh::Vertex::GetAttributeDescriptions();
 			info.BindingDesc = Mesh::Vertex::GetBindingDescriptions();
 
-			VulkanHelper::Shader shader1({ "../Vulkan-Helper/src/VulkanHelper/Shaders/HDRToPresentable.vert", VK_SHADER_STAGE_VERTEX_BIT });
-			VulkanHelper::Shader shader2({ "../Vulkan-Helper/src/VulkanHelper/Shaders/HDRToPresentable.frag", VK_SHADER_STAGE_FRAGMENT_BIT });
+			VulkanHelper::Shader shader1({ "../Vulkan-Helper/src/VulkanHelper/Shaders/HDRToPresentableVert.glsl", VK_SHADER_STAGE_VERTEX_BIT, {}, true });
+			VulkanHelper::Shader shader2({ "../Vulkan-Helper/src/VulkanHelper/Shaders/HDRToPresentableFrag.glsl", VK_SHADER_STAGE_FRAGMENT_BIT, {}, true });
 			info.Shaders.push_back(&shader1);
 			info.Shaders.push_back(&shader2);
 			info.CullMode = VK_CULL_MODE_BACK_BIT;
@@ -620,7 +620,7 @@ namespace VulkanHelper
 			DescriptorSetLayout imageLayout({ bin, bin1 });
 
 			Pipeline::ComputeCreateInfo info{};
-			Shader shader({ "../Vulkan-Helper/src/VulkanHelper/Shaders/EnvToCubemap.comp" , VK_SHADER_STAGE_COMPUTE_BIT });
+			Shader shader({ "../Vulkan-Helper/src/VulkanHelper/Shaders/EnvToCubemap.glsl" , VK_SHADER_STAGE_COMPUTE_BIT, {}, true });
 			info.Shader = &shader;
 
 			// Descriptor set layouts for the pipeline

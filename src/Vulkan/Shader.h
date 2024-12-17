@@ -25,6 +25,8 @@ namespace VulkanHelper
 			VkShaderStageFlagBits Type;
 
 			std::vector<Define> Defines;
+
+			bool CacheToFile = false;
 		};
 
 		[[nodiscard]] bool Init(const CreateInfo& info);
@@ -49,7 +51,7 @@ namespace VulkanHelper
 
 		std::string ReadShaderFile(const std::string& filepath);
 		void CreateCacheDir();
-		std::vector<uint32_t> CompileSource(const std::string& filepath, const std::vector<Define>& defines);
+		std::vector<uint32_t> CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile);
 		shaderc_shader_kind VkStageToScStage(VkShaderStageFlagBits stage);
 
 		VkShaderModule m_ModuleHandle = VK_NULL_HANDLE;

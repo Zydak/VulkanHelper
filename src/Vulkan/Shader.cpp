@@ -6,8 +6,6 @@
 #include <shaderc/libshaderc_util/file_finder.h>
 #include <shaderc/glslc/file_includer.h>
 
-#include "dxcapi.h"
-
 namespace VulkanHelper
 {
 	bool Shader::Init(const CreateInfo& info)
@@ -28,7 +26,7 @@ namespace VulkanHelper
 
 		m_Type = info.Type;
 
-		std::vector<uint32_t> data = CompileSource(info.Filepath, info.Defines);
+		std::vector<uint32_t> data = CompileSource(info.Filepath, info.Defines, info.CacheToFile);
 		if (data.empty())
 			return false;
 
@@ -106,65 +104,19 @@ namespace VulkanHelper
 		return str; // Return the original string if no slash is found or if the last character is a slash
 	}
 
-	std::vector<uint32_t> Shader::CompileSource(const std::string& filepath, const std::vector<Define>& defines)
+	std::vector<uint32_t> Shader::CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile)
 	{
-		if (filepath.find(".hlsl") != std::string::npos)
+		size_t dotPos = filepath.find_last_of('.');
+		std::string extension = filepath.substr(dotPos, filepath.size() - dotPos);
+		std::vector<uint32_t> data;
+		std::string shaderName = GetLastPartAfterLastSlash(filepath);
+
+		if (std::filesystem::exists("CachedShaders/" + shaderName + ".cache"))
 		{
-			std::vector<uint32_t> data;
-			std::wstring wfilepath(filepath.begin(), filepath.end());
-
-			HRESULT hres;
-
-			std::string source = File::ReadFromFile(filepath);
-
-			Microsoft::WRL::ComPtr<IDxcUtils> utils;
-			Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
-			Microsoft::WRL::ComPtr<IDxcIncludeHandler> includer;
-
-			hres = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(utils.GetAddressOf()));
-			hres = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(compiler.GetAddressOf()));
-			hres = utils->CreateDefaultIncludeHandler(&includer);
-			Microsoft::WRL::ComPtr<IDxcBlobEncoding> sourceBlob;
-			hres = utils->LoadFile(wfilepath.data(), nullptr, &sourceBlob);
-
-			DxcBuffer sourceBuffer;
-			sourceBuffer.Ptr = sourceBlob->GetBufferPointer();
-			sourceBuffer.Size = sourceBlob->GetBufferSize();
-			sourceBuffer.Encoding = DXC_CP_ACP;
-
-			std::vector<LPCWSTR> arguments = {
-				// (Optional) name of the shader file to be displayed e.g. in an error message
-				wfilepath.c_str(),
-				// Shader main entry point
-				L"-E", L"main",
-				// Shader target profile
-				L"-T", L"lib_6_3",
-				// Compile to SPIRV
-				L"-spirv",
-
-				L"-fspv-target-env=vulkan1.1spirv1.4"
-			};
-
-			Microsoft::WRL::ComPtr<IDxcResult> compiledShaderBuffer{ nullptr };
-			hres = compiler->Compile(&sourceBuffer, arguments.data(), (uint32_t)arguments.size(), includer.Get(), IID_PPV_ARGS(&compiledShaderBuffer));
-
-			//Microsoft::WRL::ComPtr<IDxcBlobEncoding> errorBlob;
-			//hres = compiledShaderBuffer->GetErrorBuffer(&errorBlob);
-			//std::cerr << "Shader compilation failed :\n\n" << (const char*)errorBlob->GetBufferPointer();
-
-			Microsoft::WRL::ComPtr<IDxcBlob> code;
-			hres = compiledShaderBuffer->GetResult(&code);
-
-			data.resize(code->GetBufferSize() / 4);
-			memcpy(data.data(), code->GetBufferPointer(), code->GetBufferSize());
-
-			return data;
+			File::ReadFromFileVec(data, "CachedShaders/" + shaderName + ".cache");
 		}
-
-		if (filepath.find(".slang") != std::string::npos)
+		else if (extension == ".slang")
 		{
-			std::vector<uint32_t> data;
-
 			slang::TargetDesc targetDesc{};
 			targetDesc.format = SLANG_SPIRV;
 			targetDesc.profile = s_GlobalSession->findProfile("spirv_1_4");
@@ -269,62 +221,8 @@ namespace VulkanHelper
 			data.resize(codeSize / 4);
 
 			memcpy(data.data(), kernelBlob->getBufferPointer(), codeSize);
-
-			return data;
 		}
-
-		CreateCacheDir();
-		std::string sourceToCache = ReadShaderFile(filepath);
-
-		for (int i = 0; i < defines.size(); i++)
-		{
-			sourceToCache += (defines[i].Name + defines[i].Value);
-		}
-
-		std::string shaderName = GetLastPartAfterLastSlash(filepath);
-		if (std::filesystem::exists("CachedShaders/" + shaderName + ".cache"))
-		{
-			std::string cashedSrc = File::ReadFromFile("CachedShaders/" + shaderName + ".cache");
-			if (sourceToCache == cashedSrc)
-			{
-				std::vector<uint32_t> data;
-				File::ReadFromFileVec(data, "CachedShaders/" + shaderName + ".spv");
-				return data;
-			}
-			else
-			{
-				VK_CORE_INFO("Compiling shader {}", filepath);
-
-				shaderc::Compiler compiler;
-				shaderc::CompileOptions options;
-				options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-				options.SetOptimizationLevel(shaderc_optimization_level_performance);
-				options.SetSourceLanguage(shaderc_source_language::shaderc_source_language_glsl);
-				for (int i = 0; i < defines.size(); i++)
-				{
-					options.AddMacroDefinition(defines[i].Name, defines[i].Value);
-				}
-				shaderc_util::FileFinder fileFinder;
-				options.SetIncluder(std::make_unique<glslc::FileIncluder>(&fileFinder));
-
-				std::string source = File::ReadFromFile(filepath);
-				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, VkStageToScStage(m_Type), filepath.c_str(), options);
-
-				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
-				{
-					VK_CORE_ERROR("Failed to compile shader! {}", module.GetErrorMessage());
-					return std::vector<uint32_t>();
-				}
-
-				std::vector<uint32_t> data(module.cbegin(), module.cend());
-
-				File::WriteToFile(sourceToCache.c_str(), (uint32_t)sourceToCache.size(), ("CachedShaders/" + shaderName + ".cache"));
-				File::WriteToFile(data.data(), sizeof(uint32_t) * (uint32_t)data.size(), ("CachedShaders/" + shaderName + ".spv"));
-
-				return data;
-			}
-		}
-		else
+		else if (extension == ".glsl")
 		{
 			VK_CORE_INFO("Compiling shader {}", filepath);
 
@@ -348,13 +246,20 @@ namespace VulkanHelper
 				return std::vector<uint32_t>();
 			}
 
-			std::vector<uint32_t> data(module.cbegin(), module.cend());
-
-			File::WriteToFile(sourceToCache.c_str(), (uint32_t)sourceToCache.size(), ("CachedShaders/" + shaderName + ".cache"));
-			File::WriteToFile(data.data(), sizeof(uint32_t) * (uint32_t)data.size(), ("CachedShaders/" + shaderName + ".spv"));
-
-			return data;
+			data = std::vector<uint32_t>(module.cbegin(), module.cend());
 		}
+		else
+		{
+			VK_CORE_ASSERT(false, "The extension of shader has be either .slang or .glsl to indicate what language does it use! Given extension is {}", extension);
+		}
+
+		if (cacheToFile)
+		{
+			CreateCacheDir();
+			File::WriteToFile(data.data(), sizeof(uint32_t)* (uint32_t)data.size(), ("CachedShaders/" + shaderName + ".cache"));
+		}
+
+		return data;
 	}
 
 	void Shader::CreateCacheDir()

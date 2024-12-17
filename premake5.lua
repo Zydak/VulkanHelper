@@ -56,8 +56,6 @@ project "Vulkan-Helper"
         "lib/slang/lib/*.lib",
         "lodepng",
         "imNodeFlow",
-        "dxcompiler.dll",
-        "lib/dxc/lib/x64/dxcompiler.lib",
     }
 
     defines { "_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS" }
