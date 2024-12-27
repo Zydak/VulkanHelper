@@ -7,6 +7,7 @@
 
 #include "Scene/Components.h"
 #include "Asset/Serializer.h"
+#include "Audio/Audio.h"
 
 namespace VulkanHelper
 {
@@ -18,6 +19,8 @@ namespace VulkanHelper
 
 		Logger::Init();
 		VK_CORE_TRACE("LOGGER INITIALIZED");
+		Audio::Init();
+		VK_CORE_TRACE("AUDIO INITIALIZED");
 
 		Window::CreateInfo winInfo;
 		winInfo.Width = (int)windowInfo.WindowWidth;
@@ -31,6 +34,11 @@ namespace VulkanHelper
 	{
 		Device::CreateInfo deviceInfo{};
 		deviceInfo.DeviceExtensions = queryInfo.DeviceExtensions;
+
+		// If the swapchain extension is absent push it
+		if (std::find(queryInfo.DeviceExtensions.begin(), queryInfo.DeviceExtensions.end(), VK_KHR_SWAPCHAIN_EXTENSION_NAME) == queryInfo.DeviceExtensions.end())
+			deviceInfo.DeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
 		deviceInfo.OptionalExtensions = queryInfo.OptionalExtensions;
 		deviceInfo.Features = queryInfo.Features;
 		deviceInfo.Window = queryInfo.Window.get();
@@ -70,6 +78,7 @@ namespace VulkanHelper
 	{
 		vkDeviceWaitIdle(Device::GetDevice());
 
+		Audio::Destroy();
 		Renderer::Destroy();
 		AssetManager::Destroy();
 		DeleteQueue::Destroy();

@@ -6,7 +6,7 @@ include "lib/assimp"
 include "lib/lodepng"
 include "lib/imNodeFlow"
 
-project "Vulkan-Helper"
+project "VulkanHelper"
 	architecture "x86_64"
     kind "StaticLib"
     language "C++"
@@ -56,6 +56,8 @@ project "Vulkan-Helper"
         "lib/slang/lib/*.lib",
         "lodepng",
         "imNodeFlow",
+        "lib/portaudio/*.lib",
+        "lib/libsndfile/lib/*.lib",
     }
 
     defines { "_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS" }

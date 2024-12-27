@@ -27,7 +27,7 @@ namespace VulkanHelper
 			DescriptorSetLayout imageLayout({ bin, bin1 });
 
 			Pipeline::ComputeCreateInfo info{};
-			Shader shader({ "../Vulkan-Helper/src/VulkanHelper/Shaders/SeparateBrightValues.glsl" , VK_SHADER_STAGE_COMPUTE_BIT, {}, true });
+			Shader shader({ "../VulkanHelper/src/VulkanHelper/Shaders/SeparateBrightValues.glsl" , VK_SHADER_STAGE_COMPUTE_BIT, {}, true });
 			info.Shader = &shader;
 			info.PushConstants = m_Push.GetRangePtr();
 
@@ -47,7 +47,7 @@ namespace VulkanHelper
 			DescriptorSetLayout imageLayout({ bin, bin1 });
 
 			Pipeline::ComputeCreateInfo info{};
-			Shader shader({ "../Vulkan-Helper/src/VulkanHelper/Shaders/BloomUpSample.glsl" , VK_SHADER_STAGE_COMPUTE_BIT, {}, true });
+			Shader shader({ "../VulkanHelper/src/VulkanHelper/Shaders/BloomUpSample.glsl" , VK_SHADER_STAGE_COMPUTE_BIT, {}, true });
 			info.Shader = &shader;
 			info.PushConstants = m_Push.GetRangePtr();
 
@@ -67,7 +67,7 @@ namespace VulkanHelper
 			DescriptorSetLayout imageLayout({ bin, bin1 });
 
 			Pipeline::ComputeCreateInfo info{};
-			Shader shader({ "../Vulkan-Helper/src/VulkanHelper/Shaders/BloomDownSample.glsl" , VK_SHADER_STAGE_COMPUTE_BIT, {}, true });
+			Shader shader({ "../VulkanHelper/src/VulkanHelper/Shaders/BloomDownSample.glsl" , VK_SHADER_STAGE_COMPUTE_BIT, {}, true });
 			info.Shader = &shader;
 			info.PushConstants = m_Push.GetRangePtr();
 
