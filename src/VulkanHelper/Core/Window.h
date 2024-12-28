@@ -9,6 +9,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 
+#include "Input.h"
+
 namespace VulkanHelper
 {
 
@@ -52,6 +54,14 @@ namespace VulkanHelper
 		};
 	};
 
+	class Window;
+
+	struct UserPointer
+	{
+		Window* Window;
+		Input* Input;
+	};
+
 	class Window 
 	{
 	public:
@@ -75,6 +85,8 @@ namespace VulkanHelper
 		Window& operator=(const Window&) = delete;
 		Window(Window&& other) noexcept;
 		Window& operator=(Window&& other) noexcept;
+
+		inline Input* GetInput() { return &m_Input; }
 
 		void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 		void PollEvents();
@@ -108,6 +120,8 @@ namespace VulkanHelper
 		GLFWwindow* m_Window = nullptr;
 		std::vector<Monitor> m_Monitors;
 		int m_MonitorsCount = 0;
+		Input m_Input;
+		UserPointer m_UserPointer;
 
 		bool m_Initialized = false;
 

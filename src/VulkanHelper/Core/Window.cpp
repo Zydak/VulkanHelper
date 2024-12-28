@@ -36,8 +36,8 @@ namespace VulkanHelper
 
 		glfwSetWindowSize(m_Window, m_Width, m_Height);
 
-		glfwSetWindowUserPointer(m_Window, this);
 		glfwSetFramebufferSizeCallback(m_Window, ResizeCallback);
+		glfwSetKeyCallback(m_Window, Input::KeyCallback);
 		glfwSetErrorCallback(GLFW_CALLBACK);
 
 		GLFWmonitor** monitorwRaw = glfwGetMonitors(&m_MonitorsCount);
@@ -65,6 +65,13 @@ namespace VulkanHelper
 
 			stbi_image_free(iconData);
 		}
+
+		m_Input.Init(m_Window);
+
+		m_UserPointer.Input = &m_Input;
+		m_UserPointer.Window = this;
+
+		glfwSetWindowUserPointer(m_Window, &m_UserPointer);
 
 		m_Initialized = true;
 	}
@@ -168,10 +175,11 @@ namespace VulkanHelper
 	}
 
 	void Window::ResizeCallback(GLFWwindow* window, int width, int height) {
-		auto _window = (Window*)(glfwGetWindowUserPointer(window));
-		_window->m_Resized = true;
-		_window->m_Width = width;
-		_window->m_Height = height;
+
+		UserPointer* userPointer = (UserPointer*)(glfwGetWindowUserPointer(window));
+		userPointer->Window->m_Resized = true;
+		userPointer->Window->m_Width = width;
+		userPointer->Window->m_Height = height;
 	}
 
 	void Window::Reset()

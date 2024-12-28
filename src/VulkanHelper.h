@@ -21,6 +21,7 @@
 #include "VulkanHelper/src/VulkanHelper/Effects/Bloom.h"
 #include "VulkanHelper/src/VulkanHelper/Effects/Effect.h"
 #include "VulkanHelper/src/VulkanHelper/Math/Math.h"
+#include "VulkanHelper/src/VulkanHelper/Utility/Utility.h"
 
 #include "VulkanHelper/src/VulkanHelper/Asset/AssetManager.h"
 #include "VulkanHelper/src/VulkanHelper/Asset/Serializer.h"

@@ -54,7 +54,6 @@ namespace VulkanHelper
 		Device::Init(initInfo.PhysicalDevice);
 
 		Renderer::Init(*initInfo.Window, initInfo.MaxFramesInFlight);
-		Input::Init(initInfo.Window->GetGLFWwindow());
 
 		const uint32_t coresCount = std::thread::hardware_concurrency();
 		AssetManager::Init({ coresCount / 2 });
