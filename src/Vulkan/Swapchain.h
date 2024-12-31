@@ -32,6 +32,7 @@ namespace VulkanHelper
 			PresentModes PrefferedPresentMode = PresentModes::VSync;
 			uint32_t MaxFramesInFlight = 0;
 			Ref<Swapchain> PreviousSwapchain = nullptr;
+			VkSurfaceKHR Surface;
 		};
 
 		void Init(const CreateInfo& createInfo);
@@ -48,10 +49,10 @@ namespace VulkanHelper
 
 		inline VkRenderPass GetSwapchainRenderPass() const { return m_RenderPass; }
 
-		VkFramebuffer GetPresentableFrameBuffer(int frameIndex) const { return m_PresentableFramebuffers[frameIndex]; };
+		VkFramebuffer GetPresentableFrameBuffer(int imageIndex) const { return m_PresentableFramebuffers[imageIndex]; };
 
-		inline VkImageView GetPresentableImageView(int frameIndex) const { return m_PresentableImageViews[frameIndex]; }
-		inline VkImage GetPresentableImage(int frameIndex) const { return m_PresentableImages[frameIndex]; }
+		inline VkImageView GetPresentableImageView(int imageIndex) const { return m_PresentableImageViews[imageIndex]; }
+		inline VkImage GetPresentableImage(int imageIndex) const { return m_PresentableImages[imageIndex]; }
 
 		inline uint32_t GetWidth() const { return m_SwapchainExtent.width; }
 		inline uint32_t GetHeight() const { return m_SwapchainExtent.height; }
@@ -93,6 +94,7 @@ namespace VulkanHelper
 		Ref<Swapchain> m_OldSwapchain;
 		VkSwapchainKHR m_Swapchain;
 		VkExtent2D m_WindowExtent;
+		VkSurfaceKHR m_Surface;
 
 		uint32_t m_CurrentFrame = 0;
 		std::vector<VkFramebuffer> m_PresentableFramebuffers;

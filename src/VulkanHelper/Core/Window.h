@@ -11,6 +11,8 @@
 
 #include "Input.h"
 
+#include "Renderer/Renderer.h"
+
 namespace VulkanHelper
 {
 
@@ -68,13 +70,18 @@ namespace VulkanHelper
 
 		struct CreateInfo
 		{
-			int Width;
-			int Height;
-			std::string Name;
-			std::string Icon;
+			int Width = 0;
+			int Height = 0;
+			std::string Name = "";
+			std::string Icon = "";
+
+			bool Resizable = true;
+
+			uint32_t FramesInFlight = 2;
 		};
 
 		void Init(CreateInfo& createInfo);
+		void InitRenderer();
 		void Destroy();
 
 		Window() = default;
@@ -83,13 +90,14 @@ namespace VulkanHelper
 
 		Window(const Window&) = delete;
 		Window& operator=(const Window&) = delete;
-		Window(Window&& other) noexcept;
-		Window& operator=(Window&& other) noexcept;
+		Window(Window&& other) = delete;
+		Window& operator=(Window&& other) = delete;
 
 		inline Input* GetInput() { return &m_Input; }
 
-		void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 		void PollEvents();
+
+		inline VkSurfaceKHR GetSurface() const { return m_Surface; }
 
 		inline bool WasWindowResized() const { return m_Resized; }
 		inline bool ShouldClose() const { return glfwWindowShouldClose(m_Window); }
@@ -109,13 +117,20 @@ namespace VulkanHelper
 
 		inline bool IsInitialized() const { return m_Initialized; }
 
+		inline Renderer* GetRenderer() { return &m_Renderer; }
+
 	private:
 		static void ResizeCallback(GLFWwindow* window, int width, int height);
+		void CreateWindowSurface();
 
 		int m_Width = 0;
 		int m_Height = 0;
 		std::string m_Name = "";
 		bool m_Resized = false;
+
+		uint32_t m_FramesInFlight = 0;
+		Renderer m_Renderer;
+		VkSurfaceKHR m_Surface;
 
 		GLFWwindow* m_Window = nullptr;
 		std::vector<Monitor> m_Monitors;

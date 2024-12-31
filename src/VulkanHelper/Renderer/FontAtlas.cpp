@@ -5,6 +5,8 @@
 
 #include "msdf-atlas-gen/msdf-atlas-gen.h"
 
+#include "Core/Window.h"
+
 namespace VulkanHelper
 {
 	// T and S are types, N number of channels
@@ -49,7 +51,7 @@ namespace VulkanHelper
 		return tex;
 	}
 
-	void FontAtlas::Init(const std::string& filepath, const std::string& fontName, float fontSize, const glm::vec2& atlasSize)
+	void FontAtlas::Init(const CreateInfo& createInfo)
 	{
 		if (m_Initialized)
 			Destroy();
@@ -62,8 +64,8 @@ namespace VulkanHelper
 			VK_CORE_ASSERT(ft, "Failed to initialize freetype");
 			initialized = true;
 		}
-		msdfgen::FontHandle* font = msdfgen::loadFont(ft, filepath.c_str());
-		VK_CORE_ASSERT(font, "Failed to load font: " + filepath);
+		msdfgen::FontHandle* font = msdfgen::loadFont(ft, createInfo.Filepath.c_str());
+		VK_CORE_ASSERT(font, "Failed to load font: " + createInfo.Filepath);
 
 		static const uint32_t charsetRanges[] =
 		{
@@ -88,8 +90,8 @@ namespace VulkanHelper
 		atlasPacker.setPixelRange(2.0f);
 		atlasPacker.setMiterLimit(1.0f);
 		atlasPacker.setPadding(1);
-		atlasPacker.setScale(fontSize);
-		atlasPacker.setDimensions((int)atlasSize.x, (int)atlasSize.y);
+		atlasPacker.setScale(createInfo.FontSize);
+		atlasPacker.setDimensions((int)createInfo.AtlasSize.x, (int)createInfo.AtlasSize.y);
 		uint32_t remaining = atlasPacker.pack(m_Glyphs.data(), (int)m_Glyphs.size());
 		VK_CORE_ASSERT(remaining == 0, "Failed to pack atlas");
 
@@ -115,8 +117,8 @@ namespace VulkanHelper
 		msdfgen::deinitializeFreetype(ft);
 
 		DescriptorSetLayout::Binding bin{ 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT };
-		m_DescriptorSet.Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin });
-		m_DescriptorSet.AddImageSampler(0, { VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), m_AtlasTexture->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+		m_DescriptorSet.Init(&createInfo.Context.Window->GetRenderer()->GetDescriptorPool(), { bin });
+		m_DescriptorSet.AddImageSampler(0, { createInfo.Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), m_AtlasTexture->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
 		m_DescriptorSet.Build();
 
 		m_Initialized = true;
@@ -133,10 +135,10 @@ namespace VulkanHelper
 		Reset();
 	}
 
-	FontAtlas::FontAtlas(const std::string& filepath, const std::string& fontName, float fontSize, const glm::vec2& atlasSize)
-		: m_FontName(fontName), m_Sampler({})
+	FontAtlas::FontAtlas(const CreateInfo& createInfo)
+		: m_FontName(createInfo.FontName), m_Sampler({})
 	{
-		Init(filepath, fontName, fontSize, atlasSize);
+		Init(createInfo);
 	}
 
 	FontAtlas::FontAtlas(FontAtlas&& other) noexcept

@@ -2,7 +2,6 @@
 #include "entt/entt.h"
 #include "pch.h"
 #include "../Math/Transform.h"
-#include "Core/Window.h"
 #include "Utility/Utility.h"
 
 #include "System.h"

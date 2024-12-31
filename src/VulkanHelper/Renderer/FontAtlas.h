@@ -9,17 +9,28 @@
 #include "Vulkan/Image.h"
 #include "Vulkan/DescriptorSet.h"
 
+#include "Core/Context.h"
+
 namespace VulkanHelper
 {
 	// TODO: use asset manager
 	class FontAtlas
 	{
 	public:
-		void Init(const std::string& filepath, const std::string& fontName, float fontSize, const glm::vec2& atlasSize);
+		struct CreateInfo
+		{
+			VulkanHelperContext Context;
+			std::string Filepath = "";
+			std::string FontName = "";
+			glm::vec2 AtlasSize = { 0, 0 };
+			float FontSize = 0;
+		};
+
+		void Init(const CreateInfo& createInfo);
 		void Destroy();
 
 		FontAtlas() = default;
-		FontAtlas(const std::string& filepath, const std::string& fontName, float fontSize, const glm::vec2& atlasSize);
+		FontAtlas(const CreateInfo& createInfo);
 		~FontAtlas();
 
 		FontAtlas(const FontAtlas& other) = delete;

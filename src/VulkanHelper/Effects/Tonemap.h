@@ -7,6 +7,8 @@
 #include "Vulkan/Pipeline.h"
 #include "Vulkan/PushConstant.h"
 
+#include "Core/Context.h"
+
 namespace VulkanHelper
 {
 	class Tonemap
@@ -25,6 +27,8 @@ namespace VulkanHelper
 
 		struct CreateInfo
 		{
+			VulkanHelperContext Context;
+
 			Image* InputImage = nullptr;
 			Image* OutputImage = nullptr;
 		};
@@ -70,6 +74,7 @@ namespace VulkanHelper
 
 		void RecompileShader(Tonemappers tonemapper, bool chromaticAberration);
 
+		VulkanHelperContext m_Context;
 		DescriptorSet m_Descriptor;
 		Pipeline m_Pipeline;
 		PushConstant<TonemapInfo> m_Push;

@@ -4,6 +4,8 @@
 #include "Renderer/Renderer.h"
 #include "Vulkan/DeleteQueue.h"
 
+#include "Core/Window.h"
+
 namespace VulkanHelper
 {
 
@@ -11,6 +13,8 @@ namespace VulkanHelper
 	{
 		if (m_Initialized)
 			Destroy();
+
+		m_Context = info.Context;
 
 		m_InputImage = info.InputImage;
 		m_OutputImage = info.OutputImage;
@@ -250,7 +254,7 @@ namespace VulkanHelper
 		m_OutputImage = info.OutputImage;
 
 		VkDescriptorImageInfo imageInfo = { 
-			VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), // input image is copied to output at the start of bloom pass
+			m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), // input image is copied to output at the start of bloom pass
 			m_OutputImage->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		};
@@ -261,7 +265,7 @@ namespace VulkanHelper
 		);
 
 		imageInfo = { 
-			VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(),
+			m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(),
 			m_OutputImage->GetImageView(),
 			VK_IMAGE_LAYOUT_GENERAL 
 		};
@@ -292,16 +296,16 @@ namespace VulkanHelper
 			DescriptorSetLayout::Binding bin{ 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT };
 			DescriptorSetLayout::Binding bin1{ 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT };
 
-			m_SeparateBrightValuesSet.Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin, bin1 });
+			m_SeparateBrightValuesSet.Init(&m_Context.Window->GetRenderer()->GetDescriptorPool(), { bin, bin1 });
 			m_SeparateBrightValuesSet.AddImageSampler(
 				0,
-				{ VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), // input image is copied to output at the start of bloom pass
+				{ m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), // input image is copied to output at the start of bloom pass
 				m_OutputImage->GetImageView(),
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
 			);
 			m_SeparateBrightValuesSet.AddImageSampler(
 				1,
-				{ VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(),
+				{ m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(),
 				m_BloomImages[0].GetImageView(),
 				VK_IMAGE_LAYOUT_GENERAL }
 			);
@@ -320,16 +324,16 @@ namespace VulkanHelper
 			for (j = 0; j < m_AccumulateSet.size() - 1; j++)
 			{
 				descIdx = (mipsCount)-j;
-				m_AccumulateSet[j].Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin, bin1 });
+				m_AccumulateSet[j].Init(&m_Context.Window->GetRenderer()->GetDescriptorPool(), { bin, bin1 });
 
-				m_AccumulateSet[j].AddImageSampler(0, { VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), m_BloomImages[descIdx].GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
-				m_AccumulateSet[j].AddImageSampler(1, { VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), m_BloomImages[descIdx - 1].GetImageView(), VK_IMAGE_LAYOUT_GENERAL });
+				m_AccumulateSet[j].AddImageSampler(0, { m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), m_BloomImages[descIdx].GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+				m_AccumulateSet[j].AddImageSampler(1, { m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), m_BloomImages[descIdx - 1].GetImageView(), VK_IMAGE_LAYOUT_GENERAL });
 				m_AccumulateSet[j].Build();
 			}
-			m_AccumulateSet[j].Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin, bin1 });
+			m_AccumulateSet[j].Init(&m_Context.Window->GetRenderer()->GetDescriptorPool(), { bin, bin1 });
 
-			m_AccumulateSet[j].AddImageSampler(0, { VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), m_BloomImages[descIdx].GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
-			m_AccumulateSet[j].AddImageSampler(1, { VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), m_OutputImage->GetImageView(), VK_IMAGE_LAYOUT_GENERAL });
+			m_AccumulateSet[j].AddImageSampler(0, { m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), m_BloomImages[descIdx].GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+			m_AccumulateSet[j].AddImageSampler(1, { m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), m_OutputImage->GetImageView(), VK_IMAGE_LAYOUT_GENERAL });
 			m_AccumulateSet[j].Build();
 		}
 
@@ -342,11 +346,11 @@ namespace VulkanHelper
 			m_DownSampleSet.resize(mipsCount);
 			for (int j = 0; j < m_DownSampleSet.size(); j++)
 			{
-				m_DownSampleSet[j].Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin, bin1 });
-				m_DownSampleSet[j].AddImageSampler(0, { VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), m_BloomImages[j].GetImageView() ,
+				m_DownSampleSet[j].Init(&m_Context.Window->GetRenderer()->GetDescriptorPool(), { bin, bin1 });
+				m_DownSampleSet[j].AddImageSampler(0, { m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), m_BloomImages[j].GetImageView() ,
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
 				);
-				m_DownSampleSet[j].AddImageSampler(1, { VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(), m_BloomImages[j + 1].GetImageView(),
+				m_DownSampleSet[j].AddImageSampler(1, { m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(), m_BloomImages[j + 1].GetImageView(),
 					VK_IMAGE_LAYOUT_GENERAL }
 				);
 				m_DownSampleSet[j].Build();

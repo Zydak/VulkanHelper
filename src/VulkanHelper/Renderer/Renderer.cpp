@@ -2,6 +2,8 @@
 #include "Renderer.h"
 #include "Scene/Scene.h"
 #include "Scene/Components.h"
+#include "Core/Window.h"
+#include "Vulkan/Instance.h"
 
 #include "lodepng.h"
 
@@ -17,32 +19,30 @@ namespace VulkanHelper
 {
 	void Renderer::Destroy()
 	{
-		if (!s_Initialized)
+		if (!m_Initialized)
 			return;
 
-		s_Initialized = false;
+		m_Initialized = false;
 		vkDeviceWaitIdle(Device::GetDevice());
-		vkFreeCommandBuffers(Device::GetDevice(), Device::GetGraphicsCommandPool(), (uint32_t)s_CommandBuffers.size(), s_CommandBuffers.data());
+		vkFreeCommandBuffers(Device::GetDevice(), Device::GetGraphicsCommandPool(), (uint32_t)m_CommandBuffers.size(), m_CommandBuffers.data());
 
-		s_Swapchain.reset();
+		m_Swapchain.reset();
 
-		s_EnvToCubemapDescriptorSet.reset();
+		m_EnvToCubemapDescriptorSet.reset();
 
-		s_RendererLinearSampler.Destroy();
-		s_RendererLinearSamplerRepeat.Destroy();
-		s_RendererNearestSampler.Destroy();
+		m_RendererLinearSampler.Destroy();
+		m_RendererLinearSamplerRepeat.Destroy();
+		m_RendererNearestSampler.Destroy();
 
-		s_HDRToPresentablePipeline.Destroy();
-		s_EnvToCubemapPipeline.Destroy();
+		m_HDRToPresentablePipeline.Destroy();
+		m_EnvToCubemapPipeline.Destroy();
 
-		s_QuadMesh.Destroy();
-		s_Pool.reset();
+		m_QuadMesh.Destroy();
+		m_Pool.reset();
 
 #ifdef VL_IMGUI
-		ImGui_ImplVulkan_DestroyDeviceObjects();
-#endif
-
 		DestroyImGui();
+#endif
 	}
 
 	static void CheckVkResult(VkResult err)
@@ -52,17 +52,61 @@ namespace VulkanHelper
 		if (err < 0) abort();
 	}
 
-	void Renderer::Init(Window& window, uint32_t maxFramesInFlight)
+	Renderer::Renderer(Renderer&& other) noexcept
+	{
+		m_MaxFramesInFlight = std::move(other.m_MaxFramesInFlight);
+		m_Pool = std::move(other.m_Pool);
+		m_Context = std::move(other.m_Context);
+		m_CommandBuffers = std::move(other.m_CommandBuffers);
+		m_Swapchain = std::move(other.m_Swapchain);
+		m_IsFrameStarted = std::move(other.m_IsFrameStarted);
+		m_CurrentImageIndex = std::move(other.m_CurrentImageIndex);
+		m_CurrentFrameIndex = std::move(other.m_CurrentFrameIndex);
+		m_QuadMesh = std::move(other.m_QuadMesh);
+		m_RendererLinearSampler = std::move(other.m_RendererLinearSampler);
+		m_RendererLinearSamplerRepeat = std::move(other.m_RendererLinearSamplerRepeat);
+		m_RendererNearestSampler = std::move(other.m_RendererNearestSampler);
+		m_EnvToCubemapDescriptorSet = std::move(other.m_EnvToCubemapDescriptorSet);
+		m_HDRToPresentablePipeline = std::move(other.m_HDRToPresentablePipeline);
+		m_EnvToCubemapPipeline = std::move(other.m_EnvToCubemapPipeline);
+		m_ImGuiFunction = std::move(other.m_ImGuiFunction);
+		m_Initialized = std::move(other.m_Initialized);
+	}
+
+	Renderer& Renderer::operator=(Renderer&& other) noexcept
+	{
+		m_MaxFramesInFlight = std::move(other.m_MaxFramesInFlight);
+		m_Pool = std::move(other.m_Pool);
+		m_Context = std::move(other.m_Context);
+		m_CommandBuffers = std::move(other.m_CommandBuffers);
+		m_Swapchain = std::move(other.m_Swapchain);
+		m_IsFrameStarted = std::move(other.m_IsFrameStarted);
+		m_CurrentImageIndex = std::move(other.m_CurrentImageIndex);
+		m_CurrentFrameIndex = std::move(other.m_CurrentFrameIndex);
+		m_QuadMesh = std::move(other.m_QuadMesh);
+		m_RendererLinearSampler = std::move(other.m_RendererLinearSampler);
+		m_RendererLinearSamplerRepeat = std::move(other.m_RendererLinearSamplerRepeat);
+		m_RendererNearestSampler = std::move(other.m_RendererNearestSampler);
+		m_EnvToCubemapDescriptorSet = std::move(other.m_EnvToCubemapDescriptorSet);
+		m_HDRToPresentablePipeline = std::move(other.m_HDRToPresentablePipeline);
+		m_EnvToCubemapPipeline = std::move(other.m_EnvToCubemapPipeline);
+		m_ImGuiFunction = std::move(other.m_ImGuiFunction);
+		m_Initialized = std::move(other.m_Initialized);
+
+		return *this;
+	}
+
+	void Renderer::Init(const VulkanHelperContext& context, uint32_t maxFramesInFlight)
 	{
 		m_MaxFramesInFlight = maxFramesInFlight;
 
 		CreatePool();
-		s_RendererLinearSampler.Init(SamplerInfo(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR));
-		s_RendererLinearSamplerRepeat.Init(SamplerInfo(VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR));
-		s_RendererNearestSampler.Init(SamplerInfo(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST));
+		m_RendererLinearSampler.Init(SamplerInfo(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR));
+		m_RendererLinearSamplerRepeat.Init(SamplerInfo(VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR));
+		m_RendererNearestSampler.Init(SamplerInfo(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST));
 
-		s_Initialized = true;
-		s_Window = &window;
+		m_Initialized = true;
+		m_Context = context;
 		CreateDescriptorSets();
 		RecreateSwapchain();
 		CreateCommandBuffers();
@@ -83,36 +127,14 @@ namespace VulkanHelper
 		};
 
 
-		s_QuadMesh.Init({ &vertices, &indices });
+		m_QuadMesh.Init({ &vertices, &indices });
 
 		InitImGui();
 	}
 
-	/*
-	 * @brief Begins recording a command buffer for rendering. If it returns false, you should
-	 * recreate all resources that are tied to the swapchain (for example framebuffers with the swapchain extent).
-	 *
-	 * @return True if the frame started successfully; false if window was resized.
-	 */
-	bool Renderer::BeginFrame()
-	{
-		return BeginFrameInternal();
-	}
-
-	/*
-	 * @brief End recording a command buffer for rendering. If it returns false, you should
-	 * recreate all resources that are tied to the swapchain (for example framebuffers with the swapchain extent).
-	 *
-	 * @return True if the frame ended successfully; false if window was resized.
-	 */
-	bool Renderer::EndFrame()
-	{
-		return EndFrameInternal();
-	}
-
 	void Renderer::SetImGuiFunction(std::function<void()> fn)
 	{
-		s_ImGuiFunction = fn;
+		m_ImGuiFunction = fn;
 	}
 
 	void Renderer::RayTrace(VkCommandBuffer cmdBuf, SBT* sbt, VkExtent2D imageSize, uint32_t depth /* = 1*/)
@@ -135,27 +157,34 @@ namespace VulkanHelper
 	 *
 	 * @return True if the frame started successfully; false if the swap chain needs recreation.
 	 */
-	bool Renderer::BeginFrameInternal()
+	bool Renderer::BeginFrame()
 	{
-		VK_CORE_ASSERT(!s_IsFrameStarted, "Can't call BeginFrame while already in progress!");
+		VK_CORE_ASSERT(!m_IsFrameStarted, "Can't call BeginFrame while already in progress!");
 
-		if (s_Window->WasWindowResized())
+		auto extent = m_Context.Window->GetExtent();
+		if (extent.width == 0 || extent.height == 0)
 		{
-			s_Window->ResetWindowResizedFlag();
-			RecreateSwapchain();
-
+			// If the extent is 0 the window is either minimized or someone resized it to 0. In either case skip the rendering
 			return false;
 		}
 
-		auto result = s_Swapchain->AcquireNextImage(s_CurrentImageIndex);
+		if (m_Context.Window->WasWindowResized())
+		{
+			m_Context.Window->ResetWindowResizedFlag();
+			RecreateSwapchain();
+
+			//return false;
+		}
+
+		auto result = m_Swapchain->AcquireNextImage(m_CurrentImageIndex);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			RecreateSwapchain();
 
-			return false;
+			//return false;
 		}
 		VK_CORE_ASSERT(result == VK_SUCCESS, "failed to acquire swap chain image!");
 
-		s_IsFrameStarted = true;
+		m_IsFrameStarted = true;
 		auto commandBuffer = GetCurrentCommandBuffer();
 
 		VkCommandBufferBeginInfo beginInfo{};
@@ -171,48 +200,22 @@ namespace VulkanHelper
 
 	/*
 	 * @brief Finalizes the recorded command buffer, submits it for execution, and presents the swap chain image.
-	 * If the swap chain is out of date, it triggers swap chain recreation and returns false.
-	 *
-	 * @return True if the frame ended successfully; false if the swap chain needs recreation.
 	 */
-	bool Renderer::EndFrameInternal()
+	void Renderer::EndFrame() 
 	{
 		bool retVal = true;
 		auto commandBuffer = GetCurrentCommandBuffer();
-		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot call EndFrame while frame is not in progress");
+		VK_CORE_ASSERT(m_IsFrameStarted, "Cannot call EndFrame while frame is not in progress");
 
 		// End recording the command buffer
 		auto success = vkEndCommandBuffer(commandBuffer);
 		VK_CORE_ASSERT(success == VK_SUCCESS, "Failed to record command buffer!");
 
-		// Submit the command buffer for execution and present the image
-		if (s_Window->WasWindowResized())
-		{
-			s_Window->ResetWindowResizedFlag();
-			RecreateSwapchain();
-
-			s_IsFrameStarted = false;
-			s_CurrentFrameIndex = (s_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
-
-			return false;
-		}
-		auto result = s_Swapchain->SubmitCommandBuffers(&commandBuffer, s_CurrentImageIndex);
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-		{
-			// Recreate swap chain or handle window resize
-			s_Window->ResetWindowResizedFlag();
-			RecreateSwapchain();
-			retVal = false;
-		}
-		else
-		{
-			VK_CORE_ASSERT(result == VK_SUCCESS, "Failed to present swap chain image!");
-		}
+		m_Swapchain->SubmitCommandBuffers(&commandBuffer, m_CurrentImageIndex);
 
 		// End the frame and update frame index
-		s_IsFrameStarted = false;
-		s_CurrentFrameIndex = (s_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
-		return retVal;
+		m_IsFrameStarted = false;
+		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
 	}
 
 	/*
@@ -226,7 +229,7 @@ namespace VulkanHelper
 	 */
 	void Renderer::BeginRenderPass(const std::vector<VkClearValue>& clearColors, VkFramebuffer framebuffer, VkRenderPass renderPass, VkExtent2D extent)
 	{
-		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot call BeginSwapchainRenderPass while frame is not in progress");
+		VK_CORE_ASSERT(m_IsFrameStarted, "Cannot call BeginSwapchainRenderPass while frame is not in progress");
 
 		// Set up viewport
 		VkViewport viewport{};
@@ -267,7 +270,7 @@ namespace VulkanHelper
 	 */
 	void Renderer::EndRenderPass()
 	{
-		VK_CORE_ASSERT(s_IsFrameStarted, "Can't call EndSwapchainRenderPass while frame is not in progress");
+		VK_CORE_ASSERT(m_IsFrameStarted, "Can't call EndSwapchainRenderPass while frame is not in progress");
 		
 		vkCmdEndRenderPass(GetCurrentCommandBuffer());
 	}
@@ -364,29 +367,29 @@ namespace VulkanHelper
 		// Begin the render pass
 		BeginRenderPass(
 			clearColors,
-			s_Swapchain->GetPresentableFrameBuffer(s_CurrentImageIndex),
-			s_Swapchain->GetSwapchainRenderPass(),
-			s_Swapchain->GetSwapchainExtent()
+			m_Swapchain->GetPresentableFrameBuffer(m_CurrentImageIndex),
+			m_Swapchain->GetSwapchainRenderPass(),
+			m_Swapchain->GetSwapchainExtent()
 		);
 		// Bind the geometry pipeline
-		s_HDRToPresentablePipeline.Bind(GetCurrentCommandBuffer());
+		m_HDRToPresentablePipeline.Bind(GetCurrentCommandBuffer());
 
 		descriptorWithImageSampler->Bind(
 			0,
-			s_HDRToPresentablePipeline.GetPipelineLayout(),
+			m_HDRToPresentablePipeline.GetPipelineLayout(),
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
 			GetCurrentCommandBuffer()
 		);
 
-		s_QuadMesh.Bind(GetCurrentCommandBuffer());
-		s_QuadMesh.Draw(GetCurrentCommandBuffer(), 1);
+		m_QuadMesh.Bind(GetCurrentCommandBuffer());
+		m_QuadMesh.Draw(GetCurrentCommandBuffer(), 1);
 
 #ifdef VL_IMGUI
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		s_ImGuiFunction();
+		m_ImGuiFunction();
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VulkanHelper::Renderer::GetCurrentCommandBuffer());
@@ -402,16 +405,16 @@ namespace VulkanHelper
 		clearColors.emplace_back(VkClearValue{ 0.0f, 0.0f, 0.0f, 0.0f });
 		BeginRenderPass(
 			clearColors,
-			s_Swapchain->GetPresentableFrameBuffer(s_CurrentImageIndex),
-			s_Swapchain->GetSwapchainRenderPass(),
-			s_Swapchain->GetSwapchainExtent()
+			m_Swapchain->GetPresentableFrameBuffer(m_CurrentImageIndex),
+			m_Swapchain->GetSwapchainRenderPass(),
+			m_Swapchain->GetSwapchainExtent()
 		);
 
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		s_ImGuiFunction();
+		m_ImGuiFunction();
 
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), VulkanHelper::Renderer::GetCurrentCommandBuffer());
@@ -425,7 +428,7 @@ namespace VulkanHelper
 		image->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, GetCurrentCommandBuffer());
 
 		Image::TransitionImageLayout(
-			s_Swapchain->GetPresentableImage(s_CurrentImageIndex),
+			m_Swapchain->GetPresentableImage(m_CurrentImageIndex),
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -441,7 +444,7 @@ namespace VulkanHelper
 		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		blit.srcSubresource.layerCount = 1;
 		blit.dstOffsets[0] = { 0, 0, 0 };
-		blit.dstOffsets[1] = { (int32_t)s_Swapchain->GetSwapchainExtent().width, (int32_t)s_Swapchain->GetSwapchainExtent().height, 1 };
+		blit.dstOffsets[1] = { (int32_t)m_Swapchain->GetSwapchainExtent().width, (int32_t)m_Swapchain->GetSwapchainExtent().height, 1 };
 		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		blit.dstSubresource.layerCount = 1;
 
@@ -449,7 +452,7 @@ namespace VulkanHelper
 			GetCurrentCommandBuffer(),
 			image->GetImage(),
 			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			s_Swapchain->GetPresentableImage(s_CurrentImageIndex),
+			m_Swapchain->GetPresentableImage(m_CurrentImageIndex),
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
 			&blit,
@@ -457,7 +460,7 @@ namespace VulkanHelper
 		);
 
 		Image::TransitionImageLayout(
-			s_Swapchain->GetPresentableImage(s_CurrentImageIndex),
+			m_Swapchain->GetPresentableImage(m_CurrentImageIndex),
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -473,11 +476,11 @@ namespace VulkanHelper
 		{
 			DescriptorSetLayout::Binding bin{ 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT };
 			DescriptorSetLayout::Binding bin1{ 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT };
-			s_EnvToCubemapDescriptorSet = std::make_shared<VulkanHelper::DescriptorSet>();
-			s_EnvToCubemapDescriptorSet->Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin, bin1 });
-			s_EnvToCubemapDescriptorSet->AddImageSampler(0, { GetLinearSampler().GetSamplerHandle(), envMap->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
-			s_EnvToCubemapDescriptorSet->AddImageSampler(1, { GetLinearSampler().GetSamplerHandle(), cubemap->GetImageView(), VK_IMAGE_LAYOUT_GENERAL });
-			s_EnvToCubemapDescriptorSet->Build();
+			m_EnvToCubemapDescriptorSet = std::make_shared<VulkanHelper::DescriptorSet>();
+			m_EnvToCubemapDescriptorSet->Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin, bin1 });
+			m_EnvToCubemapDescriptorSet->AddImageSampler(0, { GetLinearSampler().GetSamplerHandle(), envMap->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+			m_EnvToCubemapDescriptorSet->AddImageSampler(1, { GetLinearSampler().GetSamplerHandle(), cubemap->GetImageView(), VK_IMAGE_LAYOUT_GENERAL });
+			m_EnvToCubemapDescriptorSet->Build();
 		}
 
 		VkCommandBuffer cmdBuf;
@@ -485,8 +488,8 @@ namespace VulkanHelper
 
 		cubemap->TransitionImageLayout(VK_IMAGE_LAYOUT_GENERAL, cmdBuf);
 
-		s_EnvToCubemapPipeline.Bind(cmdBuf);
-		s_EnvToCubemapDescriptorSet->Bind(0, s_EnvToCubemapPipeline.GetPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE, cmdBuf);
+		m_EnvToCubemapPipeline.Bind(cmdBuf);
+		m_EnvToCubemapDescriptorSet->Bind(0, m_EnvToCubemapPipeline.GetPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE, cmdBuf);
 
 		vkCmdDispatch(cmdBuf, cubemap->GetImageSize().width / 8 + 1, cubemap->GetImageSize().height / 8 + 1, 1);
 
@@ -500,32 +503,26 @@ namespace VulkanHelper
 	 */
 	void Renderer::RecreateSwapchain()
 	{
-		// Wait for the window to have a valid extent
-		auto extent = s_Window->GetExtent();
-		while (extent.width == 0 || extent.height == 0)
-		{
-			extent = s_Window->GetExtent();
-			glfwWaitEvents();
-		}
+		auto extent = m_Context.Window->GetExtent();
 
 		// Wait for the device to be idle before recreating the swapchain
 		vkDeviceWaitIdle(Device::GetDevice());
 
 		// Recreate the swapchain
-		if (s_Swapchain == nullptr)
+		if (m_Swapchain == nullptr)
 		{
-			s_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ extent, PresentModes::VSync, m_MaxFramesInFlight, nullptr });
+			m_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ extent, PresentModes::VSync, m_MaxFramesInFlight, nullptr, m_Context.Window->GetSurface() });
 		}
 		else
 		{
 			// Move the old swapchain into a shared pointer to ensure it is properly cleaned up
-			std::shared_ptr<Swapchain> oldSwapchain = std::move(s_Swapchain);
+			std::shared_ptr<Swapchain> oldSwapchain = std::move(m_Swapchain);
 
 			// Create a new swapchain using the old one as a reference
-			s_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ extent, PresentModes::VSync, m_MaxFramesInFlight, oldSwapchain });
+			m_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ extent, PresentModes::VSync, m_MaxFramesInFlight, oldSwapchain, m_Context.Window->GetSurface() });
 
 			// Check if the swap formats are consistent
-			VK_CORE_ASSERT(oldSwapchain->CompareSwapFormats(*s_Swapchain), "Swap chain image or depth formats have changed!");
+			VK_CORE_ASSERT(oldSwapchain->CompareSwapFormats(*m_Swapchain), "Swap chain image or depth formats have changed!");
 		}
 
 		// Recreate other resources dependent on the swapchain, such as pipelines or framebuffers
@@ -538,24 +535,24 @@ namespace VulkanHelper
 	void Renderer::CreateCommandBuffers()
 	{
 		// Resize the command buffer array to match the number of swap chain images
-		s_CommandBuffers.resize(s_Swapchain->GetImageCount());
+		m_CommandBuffers.resize(m_Swapchain->GetImageCount());
 
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocInfo.commandPool = Device::GetGraphicsCommandPool();
-		allocInfo.commandBufferCount = (uint32_t)s_CommandBuffers.size();
+		allocInfo.commandBufferCount = (uint32_t)m_CommandBuffers.size();
 
 		// Allocate primary command buffers
 		VK_CORE_RETURN_ASSERT(
-			vkAllocateCommandBuffers(Device::GetDevice(), &allocInfo, s_CommandBuffers.data()),
+			vkAllocateCommandBuffers(Device::GetDevice(), &allocInfo, m_CommandBuffers.data()),
 			VK_SUCCESS,
 			"Failed to allocate command buffers!"
 		);
 
-		for (uint32_t i = 0; i < s_Swapchain->GetImageCount(); i++)
+		for (uint32_t i = 0; i < m_Swapchain->GetImageCount(); i++)
 		{
-			Device::SetObjectName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)s_CommandBuffers[i], "Main Frame Command Buffer");
+			Device::SetObjectName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)m_CommandBuffers[i], "Main Frame Command Buffer");
 		}
 	}
 
@@ -574,7 +571,7 @@ namespace VulkanHelper
 
 		if (Device::UseRayTracing())
 			poolSizes.emplace_back(DescriptorPool::PoolSize{ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, (m_MaxFramesInFlight) * 100 });
-		s_Pool = std::make_unique<DescriptorPool>(poolSizes, (m_MaxFramesInFlight) * 10000, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+		m_Pool = std::make_unique<DescriptorPool>(poolSizes, (m_MaxFramesInFlight) * 10000, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 	}
 
 	/**
@@ -599,9 +596,9 @@ namespace VulkanHelper
 			info.Shaders.push_back(&shader1);
 			info.Shaders.push_back(&shader2);
 			info.CullMode = VK_CULL_MODE_BACK_BIT;
-			info.Width = s_Swapchain->GetWidth();
-			info.Height = s_Swapchain->GetHeight();
-			info.RenderPass = s_Swapchain->GetSwapchainRenderPass();
+			info.Width = m_Swapchain->GetWidth();
+			info.Height = m_Swapchain->GetHeight();
+			info.RenderPass = m_Swapchain->GetSwapchainRenderPass();
 
 			info.DescriptorSetLayouts = {
 				imageLayout.GetDescriptorSetLayoutHandle()
@@ -610,7 +607,7 @@ namespace VulkanHelper
 			info.debugName = "HDR To Presentable Pipeline";
 
 			// Create the graphics pipeline
-			s_HDRToPresentablePipeline.Init(info);
+			m_HDRToPresentablePipeline.Init(info);
 		}
 
 		// Env to cubemap
@@ -630,7 +627,7 @@ namespace VulkanHelper
 			info.debugName = "Env To Cubemap Pipeline";
 
 			// Create the graphics pipeline
-			s_EnvToCubemapPipeline.Init(info);
+			m_EnvToCubemapPipeline.Init(info);
 		}
 	}
 
@@ -652,56 +649,62 @@ namespace VulkanHelper
 	{
 #ifdef VL_IMGUI
 
-		float resWidth, resHeight;
-		glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &resWidth, &resHeight);
+		static bool imGuiInitialized = false;
+		if (!imGuiInitialized)
+		{
+			float resWidth, resHeight;
+			glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &resWidth, &resHeight);
 
-		float scale = glm::min(resWidth, resHeight);
+			float scale = glm::min(resWidth, resHeight);
 
-		// ImGui Creation
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+			// ImGui Creation
+			ImGui::CreateContext();
+			ImGuiIO& io = ImGui::GetIO();
+			io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-		io.Fonts->Clear();
+			io.Fonts->Clear();
 
-		ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 16.0f * scale);
-		if (font == NULL)
-			font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttf", 16.0f * scale); // Windows 7
+			ImFont* font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 16.0f * scale);
+			if (font == NULL)
+				font = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttf", 16.0f * scale); // Windows 7
 
-		VK_CORE_ASSERT(font != nullptr, "Couldn't load font C:\\Windows\\Fonts\\msyh.ttc/ttf!");
+			VK_CORE_ASSERT(font != nullptr, "Couldn't load font C:\\Windows\\Fonts\\msyh.ttc/ttf!");
 
-		ImGui_ImplGlfw_InitForVulkan(s_Window->GetGLFWwindow(), true);
-		ImGui_ImplVulkan_InitInfo info{};
-		info.Instance = Device::GetInstance();
-		info.PhysicalDevice = Device::GetPhysicalDevice();
-		info.Device = Device::GetDevice();
-		info.Queue = Device::GetGraphicsQueue();
-		info.DescriptorPool = s_Pool->GetDescriptorPoolHandle();
-		info.Subpass = 0;
-		info.MinImageCount = 2;
-		info.ImageCount = s_Swapchain->GetImageCount();
-		info.CheckVkResultFn = CheckVkResult;
-		ImGui_ImplVulkan_Init(&info, s_Swapchain->GetSwapchainRenderPass());
+			ImGui_ImplGlfw_InitForVulkan(m_Context.Window->GetGLFWwindow(), true);
+			ImGui_ImplVulkan_InitInfo info{};
+			info.Instance = Instance::Get()->GetHandle();
+			info.PhysicalDevice = Device::GetPhysicalDevice();
+			info.Device = Device::GetDevice();
+			info.Queue = Device::GetGraphicsQueue();
+			info.DescriptorPool = m_Pool->GetDescriptorPoolHandle();
+			info.Subpass = 0;
+			info.MinImageCount = 2;
+			info.ImageCount = m_Swapchain->GetImageCount();
+			info.CheckVkResultFn = CheckVkResult;
+			ImGui_ImplVulkan_Init(&info, m_Swapchain->GetSwapchainRenderPass());
 
-		VkCommandBuffer cmdBuffer;
-		Device::BeginSingleTimeCommands(cmdBuffer, Device::GetGraphicsCommandPool());
-		ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
-		Device::EndSingleTimeCommands(cmdBuffer, Device::GetGraphicsQueue(), Device::GetGraphicsCommandPool());
+			VkCommandBuffer cmdBuffer;
+			Device::BeginSingleTimeCommands(cmdBuffer, Device::GetGraphicsCommandPool());
+			ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
+			Device::EndSingleTimeCommands(cmdBuffer, Device::GetGraphicsQueue(), Device::GetGraphicsCommandPool());
 
-		vkDeviceWaitIdle(Device::GetDevice());
-		ImGui_ImplVulkan_DestroyFontUploadObjects();
+			vkDeviceWaitIdle(Device::GetDevice());
+			ImGui_ImplVulkan_DestroyFontUploadObjects();
 
-		SetStyle();
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.ScaleAllSizes(scale);
+			SetStyle();
+			ImGuiStyle& style = ImGui::GetStyle();
+			style.ScaleAllSizes(scale);
+			imGuiInitialized = true;
+		}
 #endif
 	}
 
 	void Renderer::DestroyImGui()
 	{
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
+		//ImGui_ImplVulkan_DestroyDeviceObjects();
+		//ImGui_ImplVulkan_Shutdown();
+		//ImGui_ImplGlfw_Shutdown();
+		//ImGui::DestroyContext();
 	}
 
 	void Renderer::SetStyle()
@@ -796,8 +799,8 @@ namespace VulkanHelper
 	 */
 	VkCommandBuffer Renderer::GetCurrentCommandBuffer()
 	{
-		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot get command buffer when frame is not in progress");
-		return s_CommandBuffers[s_CurrentImageIndex];
+		VK_CORE_ASSERT(m_IsFrameStarted, "Cannot get command buffer when frame is not in progress");
+		return m_CommandBuffers[m_CurrentImageIndex];
 	}
 
 	/**
@@ -807,7 +810,7 @@ namespace VulkanHelper
 	 */
 	int Renderer::GetFrameIndex()
 	{
-		VK_CORE_ASSERT(s_IsFrameStarted, "Cannot get frame index when frame is not in progress");
-		return s_CurrentFrameIndex;
+		VK_CORE_ASSERT(m_IsFrameStarted, "Cannot get frame index when frame is not in progress");
+		return m_CurrentFrameIndex;
 	}
 }

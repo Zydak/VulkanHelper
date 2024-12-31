@@ -7,6 +7,8 @@
 
 #include "Renderer/Renderer.h"
 
+#include "Core/Window.h"
+
 namespace VulkanHelper
 {
 
@@ -191,7 +193,7 @@ namespace VulkanHelper
 
 	}
 
-	void ModelAsset::CreateEntities(VulkanHelper::Scene* outScene, bool addMaterials)
+	void ModelAsset::CreateEntities(VulkanHelper::Scene* outScene, VulkanHelperContext context, VkSampler texturesSamplerHandle, bool addMaterials)
 	{
 		for (int i = 0; i < Meshes.size(); i++)
 		{
@@ -229,7 +231,7 @@ namespace VulkanHelper
 			transformComp.Transform = std::move(transform);
 
 			// This automatically waits for textures
-			Materials[i].GetMaterial()->Textures.CreateSet();
+			Materials[i].GetMaterial()->Textures.CreateSet(context, texturesSamplerHandle);
 
 			meshComp->AssetHandle.WaitToLoad();
 		}
@@ -240,7 +242,7 @@ namespace VulkanHelper
 
 	};
 
-	void MaterialTextures::CreateSet()
+	void MaterialTextures::CreateSet(VulkanHelperContext context, VkSampler samplerHandle)
 	{
 		if (TexturesSet.IsInitialized())
 			return;
@@ -250,33 +252,33 @@ namespace VulkanHelper
 		VulkanHelper::DescriptorSetLayout::Binding bin3{ 2, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT };
 		VulkanHelper::DescriptorSetLayout::Binding bin4{ 3, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT };
 
-		TexturesSet.Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin1, bin2, bin3, bin4 });
+		TexturesSet.Init(&context.Window->GetRenderer()->GetDescriptorPool(), { bin1, bin2, bin3, bin4 });
 
 		AlbedoTexture.WaitToLoad();
 		TexturesSet.AddImageSampler(
 			0,
-			{ VulkanHelper::Renderer::GetLinearRepeatSampler().GetSamplerHandle(),
+			{ samplerHandle,
 			AlbedoTexture.GetImage()->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
 		);
 		NormalTexture.WaitToLoad();
 		TexturesSet.AddImageSampler(
 			1,
-			{ VulkanHelper::Renderer::GetLinearRepeatSampler().GetSamplerHandle(),
+			{ samplerHandle,
 			NormalTexture.GetImage()->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
 		);
 		RoughnessTexture.WaitToLoad();
 		TexturesSet.AddImageSampler(
 			2,
-			{ VulkanHelper::Renderer::GetLinearRepeatSampler().GetSamplerHandle(),
+			{ samplerHandle,
 			RoughnessTexture.GetImage()->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
 		);
 		MetallnessTexture.WaitToLoad();
 		TexturesSet.AddImageSampler(
 			3,
-			{ VulkanHelper::Renderer::GetLinearRepeatSampler().GetSamplerHandle(),
+			{ samplerHandle,
 			MetallnessTexture.GetImage()->GetImageView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
 		);

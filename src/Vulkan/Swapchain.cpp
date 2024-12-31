@@ -14,6 +14,10 @@ namespace VulkanHelper
 		if (m_Initialized)
 			Destroy();
 
+		VK_ASSERT(createInfo.Surface != VK_NULL_HANDLE, "You must specify surface!");
+
+		m_Surface = createInfo.Surface;
+
 		m_MaxFramesInFlight = createInfo.MaxFramesInFlight;
 
 		m_OldSwapchain = createInfo.PreviousSwapchain;
@@ -229,7 +233,7 @@ namespace VulkanHelper
 	 */
 	void Swapchain::CreateSwapchain(const PresentModes& presentMode)
 	{
-		SwapchainSupportDetails swapChainSupport = Device::GetSwapchainSupport();
+		SwapchainSupportDetails swapChainSupport = Device::GetSwapchainSupport(m_Surface);
 
 		FindPresentModes(swapChainSupport.PresentModes);
 
@@ -245,7 +249,7 @@ namespace VulkanHelper
 
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = Device::GetSurface();
+		createInfo.surface = m_Surface;
 
 		createInfo.minImageCount = imageCount;
 		createInfo.imageFormat = surfaceFormat.format;
@@ -538,7 +542,7 @@ namespace VulkanHelper
 	*/
 	VkResult Swapchain::AcquireNextImage(uint32_t& imageIndex)
 	{
-		vkWaitForFences(Device::GetDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+		vkWaitForFences(Device::GetDevice(), 1, &m_InFlightFences[(m_CurrentFrame + 1) % m_MaxFramesInFlight], VK_TRUE, UINT64_MAX);
 
 		VkResult result = vkAcquireNextImageKHR(Device::GetDevice(), m_Swapchain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
 

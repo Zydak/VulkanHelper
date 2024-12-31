@@ -5,6 +5,8 @@
 #include "Renderer/Renderer.h"
 #include "Vulkan/DeleteQueue.h"
 
+#include "Core/Window.h"
+
 namespace VulkanHelper
 {
 
@@ -14,6 +16,7 @@ namespace VulkanHelper
 			Destroy();
 
 		m_ImageSize = info.OutputImage->GetImageSize();
+		m_Context = info.Context;
 
 		m_InputImage = info.InputImage;
 		m_OutputImage = info.OutputImage;
@@ -22,16 +25,16 @@ namespace VulkanHelper
 			VulkanHelper::DescriptorSetLayout::Binding bin{ 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT };
 			VulkanHelper::DescriptorSetLayout::Binding bin1{ 1, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT };
 
-			m_Descriptor.Init(&VulkanHelper::Renderer::GetDescriptorPool(), { bin, bin1 });
+			m_Descriptor.Init(&m_Context.Window->GetRenderer()->GetDescriptorPool(), {bin, bin1});
 			m_Descriptor.AddImageSampler(
 				0,
-				{ VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(),
+				{ m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(),
 				info.InputImage->GetImageView(),
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
 			);
 			m_Descriptor.AddImageSampler(
 				1,
-				{ VulkanHelper::Renderer::GetLinearSampler().GetSamplerHandle(),
+				{ m_Context.Window->GetRenderer()->GetLinearSampler().GetSamplerHandle(),
 				info.OutputImage->GetImageView(),
 				VK_IMAGE_LAYOUT_GENERAL }
 			);
@@ -164,10 +167,10 @@ namespace VulkanHelper
 
 		m_OutputImage->TransitionImageLayout(
 			VK_IMAGE_LAYOUT_GENERAL,
-			VulkanHelper::Renderer::GetCurrentCommandBuffer()
+			m_Context.Window->GetRenderer()->GetCurrentCommandBuffer()
 		);
 
-		m_InputImage->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VulkanHelper::Renderer::GetCurrentCommandBuffer());
+		m_InputImage->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_Context.Window->GetRenderer()->GetCurrentCommandBuffer());
 
 		m_Pipeline.Bind(cmd);
 

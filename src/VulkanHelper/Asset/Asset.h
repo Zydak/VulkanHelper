@@ -5,6 +5,8 @@
 #include "Scene/Scene.h"
 #include "Renderer/Mesh.h"
 
+#include "Core/Context.h"
+
 namespace VulkanHelper
 {
 	class AssetManager;
@@ -133,7 +135,7 @@ namespace VulkanHelper
 
 		VulkanHelper::DescriptorSet TexturesSet;
 
-		void CreateSet();
+		void CreateSet(VulkanHelperContext context, VkSampler samplerHandle);
 
 		void SetAlbedo(AssetHandle handle);
 		void SetNormal(AssetHandle handle);
@@ -239,7 +241,7 @@ namespace VulkanHelper
 		std::vector<glm::mat4> MeshTransfrorms;
 		std::vector<AssetHandle> Materials;
 
-		void CreateEntities(VulkanHelper::Scene* outScene, bool addMaterials = true);
+		void CreateEntities(VulkanHelper::Scene* outScene, VulkanHelperContext context, VkSampler texturesSamplerHandle, bool addMaterials = true);
 	};
 
 	class SceneAsset : public Asset

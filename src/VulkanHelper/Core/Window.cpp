@@ -3,6 +3,7 @@
 
 #include "Window.h"
 #include "stbimage/stb_image.h"
+#include "Vulkan/Instance.h"
 
 namespace VulkanHelper
 {
@@ -22,9 +23,8 @@ namespace VulkanHelper
 		m_Height = createInfo.Height;
 		m_Name = createInfo.Name;
 
-		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+		glfwWindowHint(GLFW_RESIZABLE, createInfo.Resizable);
 
 		m_Window = glfwCreateWindow(m_Width, m_Height, m_Name.c_str(), nullptr, nullptr);
 
@@ -68,12 +68,17 @@ namespace VulkanHelper
 
 		m_Input.Init(m_Window);
 
-		m_UserPointer.Input = &m_Input;
-		m_UserPointer.Window = this;
+		m_FramesInFlight = createInfo.FramesInFlight;
 
-		glfwSetWindowUserPointer(m_Window, &m_UserPointer);
+		CreateWindowSurface();
 
 		m_Initialized = true;
+	}
+
+	// Only call this funtion after vulkan device has been initialized
+	void Window::InitRenderer()
+	{
+		m_Renderer.Init({ this }, m_FramesInFlight);
 	}
 
 	void Window::Destroy()
@@ -81,8 +86,13 @@ namespace VulkanHelper
 		if (!m_Initialized)
 			return;
 
+		m_Renderer.Destroy();
+
+		// Destroy rendering surface
+		vkDestroySurfaceKHR(Instance::Get()->GetHandle(), m_Surface, nullptr);
+
 		glfwDestroyWindow(m_Window);
-		glfwTerminate();
+		//glfwTerminate();
 
 		Reset();
 	}
@@ -97,50 +107,14 @@ namespace VulkanHelper
 		Init(createInfo);
 	}
 
-	Window::Window(Window&& other) noexcept
-	{
-		if (m_Initialized)
-			Destroy();
-
-		m_Width			= std::move(other.m_Width);
-		m_Height		= std::move(other.m_Height);
-		m_Name			= std::move(other.m_Name);
-		m_Resized		= std::move(other.m_Resized);
-		m_Window		= std::move(other.m_Window);
-		m_Monitors		= std::move(other.m_Monitors);
-		m_MonitorsCount = std::move(other.m_MonitorsCount);
-		m_Initialized	= std::move(other.m_Initialized);
-
-		other.Reset();
-	}
-
-	Window& Window::operator=(Window&& other) noexcept
-	{
-		if (m_Initialized)
-			Destroy();
-
-		m_Width = std::move(other.m_Width);
-		m_Height = std::move(other.m_Height);
-		m_Name = std::move(other.m_Name);
-		m_Resized = std::move(other.m_Resized);
-		m_Window = std::move(other.m_Window);
-		m_Monitors = std::move(other.m_Monitors);
-		m_MonitorsCount = std::move(other.m_MonitorsCount);
-		m_Initialized = std::move(other.m_Initialized);
-
-		other.Reset();
-
-		return *this;
-	}
-
 	Window::~Window()
 	{
 		Destroy();
 	}
 
-	void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
+	void Window::CreateWindowSurface()
 	{
-		VK_CORE_RETURN_ASSERT(glfwCreateWindowSurface(instance, m_Window, nullptr, surface),
+		VK_CORE_RETURN_ASSERT(glfwCreateWindowSurface(Instance::Get()->GetHandle(), m_Window, nullptr, &m_Surface),
 			VK_SUCCESS, 
 			"failed to create window surface"
 		);
@@ -148,6 +122,11 @@ namespace VulkanHelper
 
 	void Window::PollEvents()
 	{
+		// Reasing pointers in case the object was moved
+		m_UserPointer.Input = &m_Input;
+		m_UserPointer.Window = this;
+		glfwSetWindowUserPointer(m_Window, &m_UserPointer);
+
 		glfwPollEvents();
 	}
 
@@ -192,6 +171,7 @@ namespace VulkanHelper
 		m_Monitors.clear();
 		m_MonitorsCount = 0;
 		m_Initialized = false;
+		m_FramesInFlight = 0;
 	}
 
 }

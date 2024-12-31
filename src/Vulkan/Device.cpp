@@ -1,8 +1,12 @@
 #include "pch.h"
 #include "Utility/Utility.h"
+#include "Core/Window.h"
 
 #define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
 #include "Device.h"
+#include "Instance.h"
 
 #include "GLFW/glfw3.h"
 
@@ -12,9 +16,12 @@
 
 #include "vulkan.hpp"
 
+#include "Asset/AssetManager.h"
+#include "DeleteQueue.h"
+
 namespace VulkanHelper
 {
-	std::vector<const char*> Device::s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
+	static std::vector<const char*> s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 	std::vector<const char*> Device::s_DeviceExtensions;
 	std::vector<Extension> Device::s_OptionalExtensions = {
 		{VK_EXT_PAGEABLE_DEVICE_LOCAL_MEMORY_EXTENSION_NAME, false},
@@ -24,68 +31,10 @@ namespace VulkanHelper
 	static inline std::vector<int32_t> s_IgnoredMessageIDs;
 
 	/*
-	   *  @brief Callback function for Vulkan to be called by validation layers when needed
-	*/
-	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
-	{
-		for (int i = 0; i < s_IgnoredMessageIDs.size(); i++)
-		{
-			if (pCallbackData->messageIdNumber == s_IgnoredMessageIDs[i])
-				return VK_FALSE;
-		}
-
-		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-		{
-			VK_CORE_INFO("Info: {0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
-		}
-		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-		{
-			//VL_CORE_ERROR("");
-
-			VK_CORE_ERROR("Error\n\t{0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
-		}
-		if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-		{
-			//VL_CORE_WARN("");
-
-			VK_CORE_WARN("Warning\n\t{0} - {1} : {2}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
-		}
-		return VK_FALSE;
-	}
-
-	/*
-	 * @brief Loads vkCreateDebugUtilsMessengerEXT from memory and then calls it.
-	 * This is necessary because this function is an extension function, it is not automatically loaded to memory
-	 */
-	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
-	{
-		static auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-		if (func != nullptr) { return func(instance, pCreateInfo, pAllocator, pDebugMessenger); }
-		else { return VK_ERROR_EXTENSION_NOT_PRESENT; }
-	}
-
-	/*
-	 * @brief Loads vkDestroyDebugUtilsMessengerEXT from memory and then calls it.
-	 * This is necessary because this function is an extension function, it is not automatically loaded to memory
-	 */
-	void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
-	{
-		static auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-		if (func != nullptr) { func(instance, debugMessenger, pAllocator); }
-	}
-
-	/*
 	 * @brief Initializes vulkan instance and returns list of physical devices available on your PC.
 	 */
-	std::vector<Device::PhysicalDevice> Device::Init(CreateInfo& createInfo)
+	std::vector<Device::PhysicalDevice> Device::QueryPhysicalDevices(const PhysicalDevice::CreateInfo& createInfo)
 	{
-		VK_CORE_ASSERT(!s_Initialized, "Device is already initialized!");
-
-		s_IgnoredMessageIDs = std::move(createInfo.IgnoredMessageIDs);
-
-		// Associate the provided window with the device
-		Device::s_Window = createInfo.Window;
 		s_UseMemoryAddressFeature = createInfo.UseMemoryAddress;
 
 		s_DeviceExtensions = createInfo.DeviceExtensions;
@@ -94,21 +43,16 @@ namespace VulkanHelper
 			s_OptionalExtensions.emplace_back(Extension{ createInfo.OptionalExtensions[i], false });
 		}
 
+		// Push VK_KHR_SWAPCHAIN_EXTENSION_NAME if it's absent
+		if (std::find(s_DeviceExtensions.begin(), s_DeviceExtensions.end(), VK_KHR_SWAPCHAIN_EXTENSION_NAME) == s_DeviceExtensions.end())
+			s_DeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
 		// Perform initialization steps
 		s_Features = createInfo.Features;
 		s_UseRayTracing = createInfo.UseRayTracing;
 
-		// Create Vulkan instance
-		CreateInstance();
-
-		// Set up debug messenger for debugging purposes
-		SetupDebugMessenger();
-
-		// Create rendering surface
-		CreateSurface();
-
 		//enumerate devices
-		return EnumeratePhysicalDevices();
+		return EnumeratePhysicalDevices(createInfo.window->GetSurface());	
 	}
 
 	/*
@@ -165,6 +109,13 @@ namespace VulkanHelper
 
 		// Mark the object as initialized
 		s_Initialized = true;
+
+		// Asset Manager needs device to be initialized to I do that in here
+		const uint32_t coresCount = std::thread::hardware_concurrency();
+		AssetManager::Init({ coresCount / 2 });
+
+		// All objects in delete queue have to be destroyed before the device so it is managed in here
+		DeleteQueue::Init({ 3 }); // I doubt there will ever be more than 3 frames in flight so that should suffice
 	}
 
 	/**
@@ -172,6 +123,11 @@ namespace VulkanHelper
 	 */
 	void Device::Destroy()
 	{
+		vkDeviceWaitIdle(Device::GetDevice());
+
+		DeleteQueue::Destroy();
+		AssetManager::Destroy();
+
 		// Log message indicating deletion of Vulkan Device
 		VK_CORE_INFO("Deleting Vulkan Device");
 
@@ -194,17 +150,9 @@ namespace VulkanHelper
 			// Destroy compute command pool
 			vkDestroyCommandPool(s_Device, pool.second.ComputeCommandPool, nullptr);
 		}
+
 		// Destroy Vulkan device
 		vkDestroyDevice(s_Device, nullptr);
-
-		// Destroy debug messenger if validation layers are enabled
-		if (s_EnableValidationLayers) { DestroyDebugUtilsMessengerEXT(s_Instance, s_DebugMessenger, nullptr); }
-
-		// Destroy rendering surface
-		vkDestroySurfaceKHR(s_Instance, s_Surface, nullptr);
-		// Destroy Vulkan instance
-		vkDestroyInstance(s_Instance, nullptr);
-		s_Instance = VK_NULL_HANDLE;
 
 		// Mark device as uninitialized
 		s_Initialized = false;
@@ -254,166 +202,13 @@ namespace VulkanHelper
 	}
 
 	/*
-	 * @brief Retrieves the required Vulkan instance extensions for GLFW integration.
-	 *
-	 * @return A vector of const char* containing the required Vulkan extensions.
-	 */
-	std::vector<const char*> Device::GetRequiredGlfwExtensions()
-	{
-		// Get the count and list of required GLFW extensions
-		uint32_t glfwExtensionCount = 0;
-		const char** glfwExtensions;
-		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-		// Convert the array of extension names to a vector
-		std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-		// If validation layers are enabled, add the debug utils extension to the list
-		if (s_EnableValidationLayers) 
-		{
-			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		}
-
-		// Return the vector containing the required GLFW extensions
-		return extensions;
-	}
-
-	/*
-	 * @brief Queries the available Vulkan instance extension properties and verifies that
-	 * all the required extensions for GLFW integration are present.
-	 */
-	void Device::CheckRequiredGlfwExtensions()
-	{
-		// Query the number of available instance extension properties
-		uint32_t extensionCount = 0;
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-		// Retrieve the available instance extension properties
-		std::vector<VkExtensionProperties> extensions(extensionCount);
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-		// Create an unordered set to store available extension names for fast lookup
-		std::unordered_set<std::string> available;
-		for (const auto& extension : extensions) 
-		{
-			available.insert(extension.extensionName);
-		}
-
-		// Get the list of required GLFW extensions
-		auto requiredExtensions = GetRequiredGlfwExtensions();
-
-		// Iterate over each required extension and check if it is supported
-		for (const auto& required : requiredExtensions) 
-		{
-			// If the required extension is not found in the available set, raise an assertion
-			if (available.find(required) == available.end())
-			{
-				VK_CORE_ASSERT(false, "Missing glfw extension: {0}", required);
-			}
-		}
-	}
-
-	/*
-	 * @brief Sets up the Vulkan Debug Utils Messenger for validation layers.
-	 *
-	 * @note If validation layers are not enabled, the function returns without setting up the debug messenger.
-	 */
-	void Device::SetupDebugMessenger()
-	{
-		// If validation layers are not enabled, return without setting up the debug messenger
-		if (!s_EnableValidationLayers) return;
-
-		// Create the debug messenger creation info struct and populate it
-		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-		PopulateDebugMessenger(createInfo);
-
-		// Attempt to create the debug messenger
-		VK_CORE_RETURN_ASSERT(CreateDebugUtilsMessengerEXT(s_Instance, &createInfo, nullptr, &s_DebugMessenger),
-			VK_SUCCESS,
-			"Failed to setup debug messenger!"
-		);
-	}
-
-	/*
-	 * @brief Sets which messages to show by validation layers
-	 *
-	 * @param createInfo struct to be filled.
-	*/
-	void Device::PopulateDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-	{
-		// Initialize the createInfo struct
-		createInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
-		
-		// Specify the severity levels of messages to be handled by the callback
-		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-		
-		// Specify the types of messages to be handled by the callback
-		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-		
-		// Specify the callback function to be called when a debug message is generated
-		createInfo.pfnUserCallback = DebugCallback;
-	}
-
-	/*
-	 * @brief Creates the Vulkan instance for the application.
-	 *
-	 * This function creates the Vulkan instance for the application, configuring application and engine information,
-	 * enabling validation layers if requested, and checking for required GLFW extensions. It uses Vulkan API calls
-	 * to create the instance and performs necessary checks for successful creation.
-	 */
-	void Device::CreateInstance()
-	{
-		// Set up application information
-		vk::ApplicationInfo appInfo;
-		appInfo.pApplicationName = "VulkanHelper";
-		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "No Engine";
-		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_2;
-
-		// Set up instance creation information
-		vk::InstanceCreateInfo createInfo;
-		createInfo.pApplicationInfo = &appInfo;
-
-		// Debug messenger creation info (if validation layers enabled)
-		vk::DebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-		if (s_EnableValidationLayers)
-		{
-			// Enable validation layers
-			createInfo.enabledLayerCount = (uint32_t)s_ValidationLayers.size();
-			createInfo.ppEnabledLayerNames = s_ValidationLayers.data();
-
-			// Populate debug messenger creation info
-			PopulateDebugMessenger(debugCreateInfo);
-			createInfo.pNext = &debugCreateInfo;
-		}
-		else
-		{
-			// Disable validation layers
-			createInfo.enabledLayerCount = 0;
-			createInfo.pNext = nullptr;
-		}
-
-		// Get required GLFW extensions
-		std::vector<const char*> glfwExtensions = GetRequiredGlfwExtensions();
-		// Set enabled extension count and extension names
-		createInfo.enabledExtensionCount = (uint32_t)glfwExtensions.size();
-		createInfo.ppEnabledExtensionNames = glfwExtensions.data();
-
-		// Create Vulkan instance
-		s_Instance = vk::createInstance(createInfo);
-
-		// Check if required GLFW extensions are supported
-		CheckRequiredGlfwExtensions();
-	}
-
-	/*
 	 * @brief Finds the Vulkan queue families supported by the physical device.
 	 *
 	 * @param device - Vulkan physical device for which queue families are being queried.
 	 *
 	 * @return QueueFamilyIndices structure containing the indices of the graphics and present queue families.
 	 */
-	QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice device)
+	QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
 	{
 		// Initialize the QueueFamilyIndices structure
 		QueueFamilyIndices indices;
@@ -445,7 +240,7 @@ namespace VulkanHelper
 
 			// Check if the queue family supports presentation to the associated surface
 			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, s_Surface, &presentSupport);
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 			if (presentSupport)
 			{
 				indices.PresentFamily = i;
@@ -473,7 +268,7 @@ namespace VulkanHelper
 	{
 		// Initialize allocator creation info
 		VmaAllocatorCreateInfo allocatorInfo{};
-		allocatorInfo.instance = s_Instance;
+		allocatorInfo.instance = Instance::Get()->GetHandle();
 		allocatorInfo.physicalDevice = s_PhysicalDevice.Handle;
 		allocatorInfo.device = s_Device;
 		allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
@@ -870,32 +665,32 @@ namespace VulkanHelper
 		CreateCommandPools();
 	}
 
-	Device::PhysicalDeviceRequirements Device::IsDeviceSuitable(VkPhysicalDevice device)
+	Device::PhysicalDeviceRequirements Device::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 	{
 		Device::PhysicalDeviceRequirements requirements;
 
 		// Find queue families supported by the device
-		requirements.QueueIndices = FindQueueFamilies(device);
+		requirements.QueueIndices = FindQueueFamilies(device, surface);
 
 		// Check if required device extensions are supported by the device
 		requirements.UnsupportedButRequiredExtensions = CheckDeviceExtensionSupport(device);
 
 		// Check if the swap chain is adequate (availability of formats and present modes)
-		requirements.SwapchainSupport = QuerySwapchainSupport(device);
+		requirements.SwapchainSupport = QuerySwapchainSupport(device, surface);
 		//swapChainAdequate = !swapChainSupport.Formats.empty() && !swapChainSupport.PresentModes.empty();
 
 		return requirements;
 	}
 
-	std::vector<Device::PhysicalDevice> Device::EnumeratePhysicalDevices()
+	std::vector<Device::PhysicalDevice> Device::EnumeratePhysicalDevices(VkSurfaceKHR surface)
 	{
 		// Enumerate all physical devices available in the Vulkan instance
 		uint32_t deviceCount = 0;
-		vkEnumeratePhysicalDevices(s_Instance, &deviceCount, nullptr);
+		vkEnumeratePhysicalDevices(Instance::Get()->GetHandle(), &deviceCount, nullptr);
 		VK_CORE_ASSERT(deviceCount != 0, "failed to find GPUs with Vulkan support!");
 		VK_CORE_INFO("Number of devices: {0}", deviceCount);
 		std::vector<VkPhysicalDevice> devices(deviceCount);
-		vkEnumeratePhysicalDevices(s_Instance, &deviceCount, devices.data());
+		vkEnumeratePhysicalDevices(Instance::Get()->GetHandle(), &deviceCount, devices.data());
 
 		std::vector<Device::PhysicalDevice> outDevices(deviceCount);
 
@@ -903,7 +698,7 @@ namespace VulkanHelper
 		for (uint32_t i = 0; i < deviceCount; i++) 
 		{
 			outDevices[i].Handle = devices[i];
-			outDevices[i].Requirements = IsDeviceSuitable(devices[i]);
+			outDevices[i].Requirements = IsDeviceSuitable(devices[i], surface);
 			{
 				// Retrieve and store properties of the selected physical device for later use
 				VkPhysicalDeviceProperties2 properties2{};
@@ -962,7 +757,7 @@ namespace VulkanHelper
 	void Device::CreateLogicalDevice()
 	{
 		// Find queue families supported by the physical device
-		QueueFamilyIndices indices = FindQueueFamilies(s_PhysicalDevice.Handle);
+		QueueFamilyIndices indices = s_PhysicalDevice.Requirements.QueueIndices;
 
 		// Prepare queue creation information
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -1022,14 +817,6 @@ namespace VulkanHelper
 		vkGetDeviceQueue(s_Device, indices.ComputeFamily, 0, &s_ComputeQueue);
 	}
 
-	/*
-	 * @brief Creates the Vulkan surface for rendering.
-	 */
-	void Device::CreateSurface() 
-	{
-		s_Window->CreateWindowSurface(s_Instance, &s_Surface); 
-	}
-
 	std::set<std::string> Device::CheckDeviceExtensionSupport(VkPhysicalDevice device)
 	{
 		// Get the count of available device extensions
@@ -1074,30 +861,30 @@ namespace VulkanHelper
 	 * @param device - Vulkan physical device to query swapchain support for.
 	 * @return A structure containing swapchain support details.
 	 */
-	SwapchainSupportDetails Device::QuerySwapchainSupport(VkPhysicalDevice device)
+	SwapchainSupportDetails Device::QuerySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
 	{
 		// Initialize the details structure
 		SwapchainSupportDetails details;
 
 		// Retrieve surface capabilities
-		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, s_Surface, &details.Capabilities);
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.Capabilities);
 
 		// Retrieve supported surface formats
 		uint32_t formatCount;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, s_Surface, &formatCount, nullptr);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 		if (formatCount != 0)
 		{
 			details.Formats.resize(formatCount);
-			vkGetPhysicalDeviceSurfaceFormatsKHR(device, s_Surface, &formatCount, details.Formats.data());
+			vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.Formats.data());
 		}
 
 		// Retrieve supported presentation modes
 		uint32_t presentModeCount;
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, s_Surface, &presentModeCount, nullptr);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 		if (presentModeCount != 0)
 		{
 			details.PresentModes.resize(presentModeCount);
-			vkGetPhysicalDeviceSurfacePresentModesKHR(device, s_Surface, &presentModeCount, details.PresentModes.data());
+			vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.PresentModes.data());
 		}
 
 		// Return the swapchain support details
@@ -1162,7 +949,7 @@ namespace VulkanHelper
 	void Device::CreateCommandPools()
 	{
 		// Find queue family indices for graphics and compute queues
-		QueueFamilyIndices queueFamilyIndices = FindPhysicalQueueFamilies();
+		QueueFamilyIndices queueFamilyIndices = s_PhysicalDevice.Requirements.QueueIndices;
 
 		s_CommandPools[std::this_thread::get_id()] = CommandPool{};
 
@@ -1324,11 +1111,8 @@ namespace VulkanHelper
 	VkPhysicalDeviceProperties2 Device::s_Properties = {};
 	VkSampleCountFlagBits Device::s_MaxSampleCount;
 	VkPhysicalDeviceFeatures2 Device::s_Features;
-	VkInstance Device::s_Instance = {};
 	VkDebugUtilsMessengerEXT Device::s_DebugMessenger = {};
 	VkDevice Device::s_Device = {};
-	VkSurfaceKHR Device::s_Surface = {};
-	Window* Device::s_Window = {};
 	bool Device::s_UseMemoryAddressFeature;
 	VkQueue Device::s_GraphicsQueue = {};
 	std::mutex Device::s_GraphicsQueueMutex;
@@ -1351,7 +1135,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCreateAccelerationStructureKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCreateAccelerationStructureKHR");
+		static auto func = (PFN_vkCreateAccelerationStructureKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCreateAccelerationStructureKHR");
 		if (func != nullptr) { return func(device, createInfo, nullptr, structure); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
@@ -1360,7 +1144,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkDestroyAccelerationStructureKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkDestroyAccelerationStructureKHR");
+		static auto func = (PFN_vkDestroyAccelerationStructureKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkDestroyAccelerationStructureKHR");
 		if (func != nullptr) { return func(device, structure, nullptr); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1369,7 +1153,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdBuildAccelerationStructuresKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdBuildAccelerationStructuresKHR");
+		static auto func = (PFN_vkCmdBuildAccelerationStructuresKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdBuildAccelerationStructuresKHR");
 		if (func != nullptr) { return func(commandBuffer, infoCount, pInfos, ppBuildRangeInfos); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1378,7 +1162,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdWriteAccelerationStructuresPropertiesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdWriteAccelerationStructuresPropertiesKHR");
+		static auto func = (PFN_vkCmdWriteAccelerationStructuresPropertiesKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdWriteAccelerationStructuresPropertiesKHR");
 		if (func != nullptr) { return func(commandBuffer, accelerationStructureCount, pAccelerationStructures, queryType, queryPool, firstQuery); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1387,7 +1171,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdCopyAccelerationStructureKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdCopyAccelerationStructureKHR");
+		static auto func = (PFN_vkCmdCopyAccelerationStructureKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdCopyAccelerationStructureKHR");
 		if (func != nullptr) { return func(commandBuffer, pInfo); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1396,7 +1180,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkGetAccelerationStructureBuildSizesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetAccelerationStructureBuildSizesKHR");
+		static auto func = (PFN_vkGetAccelerationStructureBuildSizesKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkGetAccelerationStructureBuildSizesKHR");
 		if (func != nullptr) { return func(device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1405,7 +1189,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCreateRayTracingPipelinesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCreateRayTracingPipelinesKHR");
+		static auto func = (PFN_vkCreateRayTracingPipelinesKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCreateRayTracingPipelinesKHR");
 		if (func != nullptr) { return func(device, deferredOperation, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
@@ -1414,7 +1198,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkGetAccelerationStructureDeviceAddressKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetAccelerationStructureDeviceAddressKHR");
+		static auto func = (PFN_vkGetAccelerationStructureDeviceAddressKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkGetAccelerationStructureDeviceAddressKHR");
 		if (func != nullptr) { return func(device, pInfo); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
@@ -1423,7 +1207,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkGetRayTracingShaderGroupHandlesKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetRayTracingShaderGroupHandlesKHR");
+		static auto func = (PFN_vkGetRayTracingShaderGroupHandlesKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkGetRayTracingShaderGroupHandlesKHR");
 		if (func != nullptr) { return func(device, pipeline, firstGroup, groupCount, dataSize, pData); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
@@ -1432,7 +1216,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdTraceRaysKHR");
+		static auto func = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdTraceRaysKHR");
 		if (func != nullptr) { return func(commandBuffer, pRaygenShaderBindingTable, pMissShaderBindingTable, pHitShaderBindingTable, pCallableShaderBindingTable, width, height, depth); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1441,7 +1225,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdPushDescriptorSetKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdPushDescriptorSetKHR");
+		static auto func = (PFN_vkCmdPushDescriptorSetKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdPushDescriptorSetKHR");
 		if (func != nullptr) { return func(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1450,7 +1234,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetMemoryWin32HandleKHR");
+		static auto func = (PFN_vkGetMemoryWin32HandleKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkGetMemoryWin32HandleKHR");
 		if (func != nullptr) { return func(device, pGetWin32HandleInfo, pHandle); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
@@ -1459,7 +1243,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkGetSemaphoreWin32HandleKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkGetSemaphoreWin32HandleKHR");
+		static auto func = (PFN_vkGetSemaphoreWin32HandleKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkGetSemaphoreWin32HandleKHR");
 		if (func != nullptr) { return func(device, pGetWin32HandleInfo, pHandle); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
@@ -1468,7 +1252,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkSetDebugUtilsObjectNameEXT");
+		static auto func = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkSetDebugUtilsObjectNameEXT");
 		if (func != nullptr) { return func(device, pNameInfo); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); return VK_RESULT_MAX_ENUM; }
 	}
@@ -1477,7 +1261,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdInsertDebugUtilsLabelEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdInsertDebugUtilsLabelEXT");
+		static auto func = (PFN_vkCmdInsertDebugUtilsLabelEXT)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdInsertDebugUtilsLabelEXT");
 		if (func != nullptr) { return func(commandBuffer, pLabelInfo); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1486,7 +1270,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdEndDebugUtilsLabelEXT");
+		static auto func = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdEndDebugUtilsLabelEXT");
 		if (func != nullptr) { return func(commandBuffer); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1495,7 +1279,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdBeginDebugUtilsLabelEXT");
+		static auto func = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdBeginDebugUtilsLabelEXT");
 		if (func != nullptr) { return func(commandBuffer, pLabelInfo); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1504,7 +1288,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdBeginRenderingKHR");
+		static auto func = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdBeginRenderingKHR");
 		if (func != nullptr) { return func(commandBuffer, pRenderingInfo); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}
@@ -1513,7 +1297,7 @@ namespace VulkanHelper
 	{
 		VK_CORE_ASSERT(s_Initialized, "Device not Initialized!");
 
-		static auto func = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(Device::GetInstance(), "vkCmdEndRenderingKHR");
+		static auto func = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(Instance::Get()->GetHandle(), "vkCmdEndRenderingKHR");
 		if (func != nullptr) { return func(commandBuffer); }
 		else { VK_CORE_ASSERT(false, "VK_ERROR_EXTENSION_NOT_PRESENT"); }
 	}

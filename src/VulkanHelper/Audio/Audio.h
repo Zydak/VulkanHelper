@@ -87,7 +87,7 @@ namespace VulkanHelper
 		Audio() = delete;
 		~Audio() = delete;
 
-		static inline std::atomic<float> m_MasterVolume = 1.0f;
+		static inline std::atomic<float> m_MasterVolume = 0.5f;
 		static inline bool m_Initialized = false;
 	};
 }

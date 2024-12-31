@@ -7,6 +7,8 @@
 #include "Vulkan/Pipeline.h"
 #include "Vulkan/PushConstant.h"
 
+#include "Core/Context.h"
+
 namespace VulkanHelper
 {
 
@@ -15,6 +17,8 @@ namespace VulkanHelper
 	public:
 		struct CreateInfo
 		{
+			VulkanHelperContext Context;
+
 			Image* InputImage = nullptr;
 			Image* OutputImage = nullptr;
 		};
@@ -47,6 +51,8 @@ namespace VulkanHelper
 		void RecreateDescriptors(uint32_t mipsCount);
 		void CreateBloomMips();
 		PushConstant<BloomInfo> m_Push;
+
+		VulkanHelperContext m_Context;
 
 		VkExtent2D m_ImageSize = { 0, 0 };
 

@@ -9,6 +9,8 @@
 #include "Vulkan/SBT.h"
 #include "Mesh.h"
 
+#include "Core/Context.h"
+
 #include <vulkan/vulkan.h>
 
 #ifndef VL_IMGUI
@@ -17,90 +19,90 @@
 
 namespace VulkanHelper
 {
-	class Scene;
-
 	class Renderer
 	{
 	public:
-		~Renderer() = delete;
-		Renderer() = delete;
+		~Renderer() = default;
+		Renderer() = default;
 
-		static void Init(Window& window, uint32_t maxFramesInFlight);
-		static void Destroy();
+		Renderer(const Renderer&) = delete;
+		Renderer& operator=(const Renderer&) = delete;
+		Renderer(Renderer&& other) noexcept;
+		Renderer& operator=(Renderer&& other) noexcept;
+
+		void Init(const VulkanHelperContext& context, uint32_t maxFramesInFlight);
+		void Destroy();
 		
-		static inline Swapchain& GetSwapchain() { return *s_Swapchain; }
-		static inline DescriptorPool& GetDescriptorPool() { return *s_Pool; }
-		static inline Sampler& GetLinearSampler() { return s_RendererLinearSampler; }
-		static inline Sampler& GetLinearRepeatSampler() { return s_RendererLinearSamplerRepeat; }
-		static inline Sampler& GetNearestSampler() { return s_RendererNearestSampler; }
-		static inline uint32_t& GetCurrentFrameIndex() { return s_CurrentFrameIndex; }
-		static inline Mesh& GetQuadMesh() { return s_QuadMesh; }
-		static inline float GetAspectRatio() { return s_Swapchain->GetExtentAspectRatio(); }
-		static inline VkExtent2D GetExtent() { return s_Swapchain->GetSwapchainExtent(); }
+		inline Swapchain& GetSwapchain() { return *m_Swapchain; }
+		inline DescriptorPool& GetDescriptorPool() { return *m_Pool; }
+		inline Sampler& GetLinearSampler() { return m_RendererLinearSampler; }
+		inline Sampler& GetLinearRepeatSampler() { return m_RendererLinearSamplerRepeat; }
+		inline Sampler& GetNearestSampler() { return m_RendererNearestSampler; }
+		inline uint32_t& GetCurrentFrameIndex() { return m_CurrentFrameIndex; }
+		inline Mesh& GetQuadMesh() { return m_QuadMesh; }
+		inline float GetAspectRatio() { return m_Swapchain->GetExtentAspectRatio(); }
+		inline VkExtent2D GetExtent() { return m_Swapchain->GetSwapchainExtent(); }
 
-		static bool BeginFrame();
-		static bool EndFrame();
+		bool BeginFrame();
+		void EndFrame();
 
-		static void SetImGuiFunction(std::function<void()> fn);
-		static void SetStyle();
-		static void RayTrace(VkCommandBuffer cmdBuf, SBT* sbt, VkExtent2D imageSize, uint32_t depth = 1);
+		void SetImGuiFunction(std::function<void()> fn);
+		void SetStyle();
+		void RayTrace(VkCommandBuffer cmdBuf, SBT* sbt, VkExtent2D imageSize, uint32_t depth = 1);
 
-		static VkCommandBuffer GetCurrentCommandBuffer();
-		static int GetFrameIndex();
-		inline static int GetImageIndex() { return s_CurrentImageIndex; };
+		VkCommandBuffer GetCurrentCommandBuffer();
+		int GetFrameIndex();
+		int GetImageIndex() const { return m_CurrentImageIndex; };
 
-		static void SaveImageToFile(const std::string& filepath, Image* image);
-		static void ImGuiPass();
-		static void FramebufferCopyPassImGui(DescriptorSet* descriptorWithImageSampler);
-		static void FramebufferCopyPassBlit(Ref<Image> image);
-		static void EnvMapToCubemapPass(Ref<Image> envMap, Ref<Image> cubemap);
+		void SaveImageToFile(const std::string& filepath, Image* image);
+		void ImGuiPass();
+		void FramebufferCopyPassImGui(DescriptorSet* descriptorWithImageSampler);
+		void FramebufferCopyPassBlit(Ref<Image> image);
+		void EnvMapToCubemapPass(Ref<Image> envMap, Ref<Image> cubemap);
 
-		static void BeginRenderPass(const std::vector<VkClearValue>& clearColors, VkFramebuffer framebuffer, VkRenderPass renderPass, VkExtent2D extent);
-		static void EndRenderPass();
+		void BeginRenderPass(const std::vector<VkClearValue>& clearColors, VkFramebuffer framebuffer, VkRenderPass renderPass, VkExtent2D extent);
+		void EndRenderPass();
 
-		static inline uint32_t GetMaxFramesInFlight() { return m_MaxFramesInFlight; }
+		inline uint32_t GetMaxFramesInFlight() const { return m_MaxFramesInFlight; }
 
-		static inline bool IsInitialized() { return s_Initialized; }
+		inline bool IsInitialized() const { return m_Initialized; }
 
 	private:
-		static bool BeginFrameInternal();
-		static bool EndFrameInternal();
+		void RecreateSwapchain();
+		void CreateCommandBuffers();
+		void CreatePool();
+		void CreatePipeline();
+		void CreateDescriptorSets();
+		void WriteToFile(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height);
 
-		static void RecreateSwapchain();
-		static void CreateCommandBuffers();
-		static void CreatePool();
-		static void CreatePipeline();
-		static void CreateDescriptorSets();
-		static void WriteToFile(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height);
+		void InitImGui();
+		void DestroyImGui();
 
-		static void InitImGui();
-		static void DestroyImGui();
+		uint32_t m_MaxFramesInFlight = 0;
 
-		inline static uint32_t m_MaxFramesInFlight = 0;
+		Scope<DescriptorPool> m_Pool = nullptr;
+		VulkanHelperContext m_Context;
+		std::vector<VkCommandBuffer> m_CommandBuffers;
+		Scope<Swapchain> m_Swapchain = nullptr;
 
-		inline static Scope<DescriptorPool> s_Pool = nullptr;
-		inline static Window* s_Window = nullptr;
-		inline static std::vector<VkCommandBuffer> s_CommandBuffers;
-		inline static Scope<Swapchain> s_Swapchain = nullptr;
+		bool m_IsFrameStarted = false;
+		uint32_t m_CurrentImageIndex = 0;
+		uint32_t m_CurrentFrameIndex = 0;
 
-		inline static bool s_IsFrameStarted = false;
-		inline static uint32_t s_CurrentImageIndex = 0;
-		inline static uint32_t s_CurrentFrameIndex = 0;
+		Mesh m_QuadMesh;
+		Sampler m_RendererLinearSampler;
+		Sampler m_RendererLinearSamplerRepeat;
+		Sampler m_RendererNearestSampler;
 
-		inline static Scene* s_CurrentSceneRendered = nullptr;
+		Ref<DescriptorSet> m_EnvToCubemapDescriptorSet = nullptr;
 
-		inline static Mesh s_QuadMesh;
-		inline static Sampler s_RendererLinearSampler;
-		inline static Sampler s_RendererLinearSamplerRepeat;
-		inline static Sampler s_RendererNearestSampler;
+		Pipeline m_HDRToPresentablePipeline;
+		Pipeline m_EnvToCubemapPipeline;
 
-		inline static Ref<DescriptorSet> s_EnvToCubemapDescriptorSet = nullptr;
+		std::function<void()> m_ImGuiFunction;
 
-		inline static Pipeline s_HDRToPresentablePipeline;
-		inline static Pipeline s_EnvToCubemapPipeline;
+		bool m_Initialized = false;
 
-		inline static std::function<void()> s_ImGuiFunction;
-
-		inline static bool s_Initialized = false;
+		friend class Window;
 	};
 }
