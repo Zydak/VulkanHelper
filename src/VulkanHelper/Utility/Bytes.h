@@ -21,5 +21,12 @@ namespace VulkanHelper
 
 			return object;
 		}
+
+		static std::string NumberToHex(uint32_t number, uint8_t numberOfDigits)
+		{
+			std::stringstream ss;
+			ss << std::hex << std::uppercase << std::setw(numberOfDigits) << std::setfill('0') << number;
+			return ss.str();
+		}
 	}
 }
