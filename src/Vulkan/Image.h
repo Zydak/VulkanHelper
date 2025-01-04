@@ -65,11 +65,11 @@ namespace VulkanHelper
 
 		void TransitionImageLayout(VkImageLayout newLayout, VkCommandBuffer cmdBuffer = 0, uint32_t baseLayer = 0);
 		static void TransitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkCommandBuffer cmdBuffer = 0, const VkImageSubresourceRange& subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
-		void CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height, uint32_t baseLayer = 0, VkCommandBuffer cmd = 0, VkOffset3D offset = {0, 0, 0});
+		void CopyBufferToImage(VkBuffer buffer, uint32_t baseLayer = 0, VkCommandBuffer cmd = 0, VkOffset3D offset = {0, 0, 0});
 		void CopyImageToImage(VkImage image, uint32_t width, uint32_t height, VkImageLayout layout, VkCommandBuffer cmd, VkOffset3D srcOffset = { 0, 0, 0 }, VkOffset3D dstOffset = {0, 0, 0});
 		void BlitImageToImage(Image* srcImage, VkCommandBuffer cmd);
 
-		void WritePixels(void* data, VkCommandBuffer cmd = 0, uint32_t baseLayer = 0);
+		void WritePixels(void* data, uint64_t dataSize, uint64_t offset = 0, VkCommandBuffer cmd = 0, uint32_t baseLayer = 0);
 		void GenerateMipmaps();
 	public:
 

@@ -359,9 +359,10 @@ namespace VulkanHelper
 		VmaAllocationCreateInfo allocInfo{};
 		allocInfo.priority = 0.5f;
 		allocInfo.requiredFlags = flags;
+		allocInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
 
 		// Find the memory type index matching the specified flags
-		VK_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndex(s_Allocator, flags, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index!");
+		VK_CORE_RETURN_ASSERT(vmaFindMemoryTypeIndex(s_Allocator, UINT32_MAX, &allocInfo, &memoryIndex), VK_SUCCESS, "Failed to find memory type index!");
 	}
 
 	/**
@@ -424,7 +425,7 @@ namespace VulkanHelper
 				createInfo.pNext = &s_ExternalMemoryBufferInfo;
 		}
 
-		FindMemoryTypeIndexForBuffer(createInfo, memoryIndex, customFlags);
+		FindMemoryTypeIndex(customFlags, memoryIndex);
 
 		// Create buffer without using memory pool
 		if (noPool)
@@ -501,7 +502,7 @@ namespace VulkanHelper
 
 		// Find the memory type index suitable for the image
 		uint32_t memoryIndex = 0;
-		FindMemoryTypeIndexForImage(createInfo, memoryIndex, customFlags);
+		FindMemoryTypeIndex(customFlags, memoryIndex);
 
 		auto it = s_ImagePools.find(memoryIndex);
 		if (it != s_ImagePools.end())

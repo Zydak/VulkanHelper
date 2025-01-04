@@ -46,7 +46,7 @@ namespace VulkanHelper
 		pixelBuffer.Flush();
 		pixelBuffer.Unmap();
 		tex->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		tex->CopyBufferToImage(pixelBuffer.GetBuffer(), bitmap.width, bitmap.height);
+		tex->CopyBufferToImage(pixelBuffer.GetBuffer());
 		tex->TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		return tex;
 	}

@@ -55,7 +55,7 @@ namespace VulkanHelper
 		{
 			if (createInfo.HDR)
 				CreateHDRSamplingBuffer(createInfo.Data);
-			WritePixels(createInfo.Data);
+			WritePixels(createInfo.Data, m_Size.width * m_Size.height);
 
 			GenerateMipmaps();
 		}
@@ -166,7 +166,7 @@ namespace VulkanHelper
 		Init(imageInfo);
 	}
 
-	void Image::WritePixels(void* data, VkCommandBuffer cmd, uint32_t baseLayer)
+	void Image::WritePixels(void* data, uint64_t dataSize, uint64_t offset, VkCommandBuffer cmd, uint32_t baseLayer)
 	{
 		bool cmdProvided = cmd != 0;
 
@@ -186,12 +186,14 @@ namespace VulkanHelper
 		buffer.Init(BufferInfo);
 
 		auto res = buffer.Map(imageSize);
-		buffer.WriteToBuffer((void*)data, (uint32_t)imageSize);
+		buffer.WriteToBuffer((void*)data, dataSize, offset * pixelSize);
 		buffer.Flush();
 		buffer.Unmap();
 
+		//VkOffset3D offset3D = { int32_t(offset % m_Size.width), (int32_t)glm::floor(offset / m_Size.width), 0};
+
 		TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd, baseLayer);
-		CopyBufferToImage(buffer.GetBuffer(), (uint32_t)m_Size.width, (uint32_t)m_Size.height, baseLayer, cmd);
+		CopyBufferToImage(buffer.GetBuffer(), baseLayer, cmd);
 		if (m_Initialized)
 			TransitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd, baseLayer); // If it's not initialized then keep the image layout for mip mapping later on
 
@@ -284,6 +286,8 @@ namespace VulkanHelper
 	 */
 	void Image::GenerateMipmaps()
 	{
+		VK_CORE_ASSERT(m_Initialized, "Can't Transition Uninitialized Image!");
+
 		if (m_MipLevels <= 1)
 		{
 			if (m_Layout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -392,6 +396,8 @@ namespace VulkanHelper
 	 */
 	void Image::TransitionImageLayout(VkImageLayout newLayout, VkCommandBuffer cmdBuffer, uint32_t baseLayer)
 	{
+		VK_CORE_ASSERT(m_Initialized, "Can't Transition Uninitialized Image!");
+
 		if (newLayout == VK_IMAGE_LAYOUT_UNDEFINED)
 			return;
 
@@ -524,7 +530,7 @@ namespace VulkanHelper
 	 * @param cmd - Optional command buffer.
 	 * @param offset - The offset in the image to copy the data to.
 	 */
-	void Image::CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height, uint32_t baseLayer, VkCommandBuffer cmd, VkOffset3D offset)
+	void Image::CopyBufferToImage(VkBuffer buffer, uint32_t baseLayer, VkCommandBuffer cmd, VkOffset3D offset)
 	{
 		bool cmdProvided = cmd != 0;
 
@@ -544,7 +550,7 @@ namespace VulkanHelper
 		region.imageSubresource.layerCount = 1;
 
 		region.imageOffset = offset;
-		region.imageExtent = { width, height, 1 };
+		region.imageExtent = { m_Size.width - offset.x, m_Size.height - offset.y, 1 };
 
 		vkCmdCopyBufferToImage(cmd, buffer, m_ImageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 

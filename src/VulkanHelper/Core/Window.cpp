@@ -31,10 +31,10 @@ namespace VulkanHelper
 		int left, top, right, bottom;
 		glfwGetWindowFrameSize(m_Window, &left, &top, &right, &bottom);
 
-		m_Height -= top + bottom;
-		m_Width -= left + right;
-
-		glfwSetWindowSize(m_Window, m_Width, m_Height);
+		//m_Height -= top + bottom;
+		//m_Width -= left + right;
+		//
+		//glfwSetWindowSize(m_Window, m_Width, m_Height);
 
 		glfwSetFramebufferSizeCallback(m_Window, ResizeCallback);
 		glfwSetKeyCallback(m_Window, Input::KeyCallback);

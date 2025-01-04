@@ -57,7 +57,7 @@ namespace VulkanHelper
 		void SaveImageToFile(const std::string& filepath, Image* image);
 		void ImGuiPass();
 		void FramebufferCopyPassImGui(DescriptorSet* descriptorWithImageSampler);
-		void FramebufferCopyPassBlit(Ref<Image> image);
+		void FramebufferCopyPassBlit(Image* image);
 		void EnvMapToCubemapPass(Ref<Image> envMap, Ref<Image> cubemap);
 
 		void BeginRenderPass(const std::vector<VkClearValue>& clearColors, VkFramebuffer framebuffer, VkRenderPass renderPass, VkExtent2D extent);

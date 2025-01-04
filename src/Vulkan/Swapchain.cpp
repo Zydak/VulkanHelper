@@ -509,7 +509,7 @@ namespace VulkanHelper
 
 		std::unique_lock<std::mutex> lock(Device::GetGraphicsQueueMutex());
 		vkResetFences(Device::GetDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
-		VK_CORE_RETURN_ASSERT(vkQueueSubmit(Device::GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]),
+     		VK_CORE_RETURN_ASSERT(vkQueueSubmit(Device::GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]),
 			VK_SUCCESS,
 			"failed to submit draw command buffer!"
 		);

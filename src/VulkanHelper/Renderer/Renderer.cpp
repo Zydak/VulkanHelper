@@ -423,7 +423,7 @@ namespace VulkanHelper
 	}
 
 	// TODO description, note that image has to be in transfer src optimal layout
-	void Renderer::FramebufferCopyPassBlit(Ref<Image> image)
+	void Renderer::FramebufferCopyPassBlit(Image* image)
 	{
 		image->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, GetCurrentCommandBuffer());
 
