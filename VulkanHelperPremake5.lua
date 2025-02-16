@@ -3,9 +3,19 @@ globalIncludes =
     "%{wks.location}/Src/",
 
     "%{wks.location}/Lib/Glfw/include/",
+
     "%{wks.location}/Lib/VulkanHpp/vulkan/",
     "%{wks.location}/Lib/VulkanHpp/VulkanHeaders/include/",
+
+    "%{wks.location}/Lib/Spdlog/include/",
 }
+
+globalDefines = 
+{
+    "FMT_UNICODE=0"
+}
+
+include "lib/Spdlog"
 
 project "VulkanHelper"
 	architecture "x64"
@@ -25,6 +35,11 @@ project "VulkanHelper"
         "Lib/",
     }
 
+    defines
+    {
+        globalDefines,
+    }
+
     files 
     {
         "Src/**.cpp",
@@ -39,6 +54,7 @@ project "VulkanHelper"
     links
     {
         "Glfw/glfw3_mt",
+        "Spdlog"
     }
     
     buildoptions { "/MP" }

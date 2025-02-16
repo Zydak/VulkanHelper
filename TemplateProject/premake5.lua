@@ -23,6 +23,11 @@ project "TemplateProject"
 	{
 		"VulkanHelper",
 	}
+	
+    defines
+    {
+        globalDefines,
+    }
 
 	buildoptions { "/MP" }
 
