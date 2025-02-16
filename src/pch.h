@@ -1,28 +1,28 @@
-#pragma once
-
-#ifdef WIN
-	#define NOMINMAX
-	#include <Windows.h>
-#endif
-
 #include <iostream>
-#include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 #include <array>
-#include <limits>
-#include <tuple>
+#include <map>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
-#include <cstring>
-#include <fstream>
-#include <set>
-#include <stdexcept>
-#include <sstream>
-#include <filesystem>
+#include <optional>
 #include <algorithm>
 #include <functional>
-#include <cassert>
-#include <numeric>
-#include <xhash>
+#include <memory>
+#include <chrono>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <filesystem>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+#include <future>
+#include <type_traits>
+#include <typeinfo>
+#include <typeindex>
+#include <variant>
+#include <any>
+#include <limits>
