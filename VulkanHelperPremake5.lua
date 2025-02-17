@@ -53,6 +53,8 @@ project "VulkanHelper"
 
     links
     {
+        "Lib/VulkanHpp/vulkan-1",
+        
         "Glfw/glfw3_mt",
         "Spdlog"
     }

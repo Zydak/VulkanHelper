@@ -11,7 +11,7 @@ namespace VulkanHelper
 		static void Init();
 		static void Destroy();
 
-		inline static Logger* GetInstance() { return m_Instance; };
+		inline static Logger* GetInstance() { return s_Instance; };
 		inline std::shared_ptr<spdlog::logger>& GetLogger() { return m_Logger; };
 
 		inline void SetLevel(spdlog::level::level_enum level) { m_Logger->set_level(level); }
@@ -27,7 +27,7 @@ namespace VulkanHelper
 
 		std::shared_ptr<spdlog::logger> m_Logger;
 
-		inline static Logger* m_Instance;
+		inline static Logger* s_Instance;
 	};
 
 } // namespace VulkanHelper
@@ -36,3 +36,19 @@ namespace VulkanHelper
 #define VH_WARN(...)	::VulkanHelper::Logger::GetInstance()->GetLogger()->warn(__VA_ARGS__)
 #define VH_INFO(...)	::VulkanHelper::Logger::GetInstance()->GetLogger()->info(__VA_ARGS__)
 #define VH_TRACE(...)	::VulkanHelper::Logger::GetInstance()->GetLogger()->trace(__VA_ARGS__)
+
+#ifndef DISTRIBUTION
+#define VH_ASSERT(condition, ...)\
+		if(!(condition)) {\
+			VH_ERROR(__VA_ARGS__);\
+			__debugbreak();\
+		}
+#else
+#define VH_ASSERT(condition, ...)
+#endif
+
+#define VH_CHECK(condition, ...)\
+		if(!(condition)) {\
+			VH_ERROR(__VA_ARGS__);\
+			__debugbreak();\
+		}

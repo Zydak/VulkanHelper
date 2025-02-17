@@ -2,6 +2,9 @@
 #include "Window.h"
 
 #include "vulkan/vulkan.h"
+#include "Logger/Logger.h"
+
+#include "Vulkan/Instance.h"
 
 void VulkanHelper::Window::Init(CreateInfo& createInfo)
 {
@@ -12,13 +15,14 @@ void VulkanHelper::Window::Init(CreateInfo& createInfo)
 	m_Height = createInfo.Height;
 	m_Name = createInfo.Name;
 
-	glfwInit();
-
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, createInfo.Resizable);
 
 	m_Window = glfwCreateWindow(m_Width, m_Height, m_Name.c_str(), nullptr, nullptr);
 
+	CreateWindowSurface(Instance::Get()->GetHandle());
+
+	VH_INFO("Window created");
 	m_Initialized = true;
 }
 

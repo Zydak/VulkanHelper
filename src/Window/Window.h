@@ -32,7 +32,14 @@ namespace VulkanHelper
 		Window& operator=(Window&& other) noexcept;
 
 		void PollEvents();
+		void Close(bool value) { glfwSetWindowShouldClose(m_Window, value); }
+
 		[[nodiscard]] bool WantsToClose() const { return glfwWindowShouldClose(m_Window); }
+		[[nodiscard]] VkSurfaceKHR GetSurface() const { return m_Surface; }
+		[[nodiscard]] uint32_t GetWidth() const { return m_Width; }
+		[[nodiscard]] uint32_t GetHeight() const { return m_Height; }
+		[[nodiscard]] std::string GetName() const { return m_Name; }
+		[[nodiscard]] GLFWwindow* GetWindow() const { return m_Window; }
 	private:
 
 		void CreateWindowSurface(VkInstance instance);

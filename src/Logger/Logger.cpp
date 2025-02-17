@@ -6,14 +6,19 @@
 
 void VulkanHelper::Logger::Init()
 {
-	m_Instance = new Logger();
+	if (s_Instance != nullptr)
+		Destroy();
+
+	s_Instance = new Logger();
 
 	VH_INFO("Logger initialized!");
 }
 
 void VulkanHelper::Logger::Destroy()
 {
-	delete m_Instance;
+	VH_ASSERT(s_Instance != nullptr, "Logger is not initialized!");
+
+	delete s_Instance;
 	VH_INFO("Logger destroyed!");
 }
 
@@ -30,7 +35,7 @@ VulkanHelper::Logger::Logger()
 	fileSink->set_pattern("%^[%T] %v%$");
 
 #ifdef DISTRIBUTION
-	m_Logger = std::make_shared<spdlog::logger>("Logger", spdlog::sinks_init_list{ fileSink }); // Only use file sink in distribution
+	m_Logger = std::make_shared<spdlog::logger>("Logger", spdlog::sinks_init_list{ fileSink }); // Use only file sink in distribution
 #else
 	m_Logger = std::make_shared<spdlog::logger>("Logger", spdlog::sinks_init_list{ consoleSink, fileSink });
 #endif
