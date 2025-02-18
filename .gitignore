@@ -8,3 +8,4 @@ BinInt/
 **/Vulture.log
 **/*.cmd
 **/*.rsp
+**/VulkanHelper.log

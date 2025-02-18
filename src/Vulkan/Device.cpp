@@ -2,6 +2,11 @@
 #include "Device.h"
 #include "Logger/Logger.h"
 
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
+#include "LoadedFunctions.h"
+
 static std::vector<const char*> s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 void VulkanHelper::Device::Init(const CreateInfo& createInfo)
@@ -21,6 +26,8 @@ void VulkanHelper::Device::Init(const CreateInfo& createInfo)
 
 	CreateCommandPoolsForThread();
 
+	CreateMemoryAllocator();
+
 	m_Initialized = true;
 }
 
@@ -28,6 +35,10 @@ void VulkanHelper::Device::Destroy()
 {
 	if (!m_Initialized)
 		return;
+
+	m_CommandPools.clear();
+
+	vkDestroyDevice(m_Handle, nullptr);
 
 	Reset();
 }
@@ -40,7 +51,7 @@ VulkanHelper::Device::Device(const CreateInfo& createInfo)
 void VulkanHelper::Device::CreateCommandPoolsForThread()
 {
 	std::thread::id id = std::this_thread::get_id();
-	if (m_CommandPools.find(id) == m_CommandPools.end())
+	if (!m_CommandPools.contains(id))
 	{
 		CommandPools pools;
 
@@ -56,6 +67,62 @@ void VulkanHelper::Device::CreateCommandPoolsForThread()
 
 		m_CommandPools[id] = std::move(pools);
 	}
+}
+
+void VulkanHelper::Device::SetObjectName(VkObjectType type, uint64_t handle, const char* name) const
+{
+#ifndef DISTRIBUTION
+	// Initialize object name info structure
+	VkDebugUtilsObjectNameInfoEXT name_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+	name_info.objectType = type;
+	name_info.objectHandle = handle;
+	name_info.pObjectName = name;
+
+	// Set the debug name for the Vulkan object
+	VulkanHelper::vkSetDebugUtilsObjectNameEXT(m_Handle, &name_info);
+#endif
+}
+
+void VulkanHelper::Device::BeginSingleTimeCommands(VkCommandBuffer* buffer, VkCommandPool pool)
+{
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = pool;
+	allocInfo.commandBufferCount = 1;
+	vkAllocateCommandBuffers(m_Handle, &allocInfo, buffer);
+
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(*buffer, &beginInfo);
+}
+
+void VulkanHelper::Device::EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool)
+{
+	std::mutex* queueMutex = nullptr;
+	if (queue == m_GraphicsQueue)
+		queueMutex = &m_GraphicsQueueMutex;
+	else if (queue == m_ComputeQueue)
+		queueMutex = &m_ComputeQueueMutex;
+
+	VH_ASSERT(queueMutex != nullptr, "Queue not recognized! Upload to either Graphics or Compute queue.");
+
+	std::unique_lock<std::mutex> queueLock(*queueMutex);
+
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+
+	vkQueueWaitIdle(queue);
+
+	vkFreeCommandBuffers(m_Handle, pool, 1, &commandBuffer);
 }
 
 VulkanHelper::Device::~Device()
@@ -123,22 +190,19 @@ void VulkanHelper::Device::CreateLogicalDevice()
 		vkGetDeviceQueue(m_Handle, indices.PresentFamily, 0, &m_PresentQueue);
 }
 
-void VulkanHelper::Device::Move(Device&& other) noexcept
+void VulkanHelper::Device::CreateMemoryAllocator()
 {
+	VmaAllocatorCreateInfo allocatorInfo{};
+	allocatorInfo.instance = Instance::Get()->GetHandle();
+	allocatorInfo.physicalDevice = m_PhysicalDevice.Handle;
+	allocatorInfo.device = m_Handle;
+	allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_2;
+	allocatorInfo.flags = VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
 
+	VH_CHECK(vmaCreateAllocator(&allocatorInfo, &m_Allocator) == VK_SUCCESS, "Failed to create vma allocator!");
 }
 
 void VulkanHelper::Device::Reset()
 {
-
-}
-
-VulkanHelper::Device& VulkanHelper::Device::operator=(Device&& other) noexcept
-{
-	return *this;
-}
-
-VulkanHelper::Device::Device(Device&& other) noexcept
-{
-
+	m_Initialized = false;
 }

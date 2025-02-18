@@ -49,6 +49,9 @@ VulkanHelper::CommandPool::~CommandPool()
 
 VulkanHelper::CommandPool& VulkanHelper::CommandPool::operator=(CommandPool&& other) noexcept
 {
+	if (m_Initialized)
+		Destroy();
+
 	Move(std::move(other));
 
 	return *this;
@@ -56,6 +59,9 @@ VulkanHelper::CommandPool& VulkanHelper::CommandPool::operator=(CommandPool&& ot
 
 VulkanHelper::CommandPool::CommandPool(CommandPool&& other) noexcept
 {
+	if (m_Initialized)
+		Destroy();
+
 	Move(std::move(other));
 }
 

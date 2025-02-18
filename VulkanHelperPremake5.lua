@@ -8,6 +8,8 @@ globalIncludes =
     "%{wks.location}/Lib/VulkanHpp/VulkanHeaders/include/",
 
     "%{wks.location}/Lib/Spdlog/include/",
+
+    "%{wks.location}/Lib/Vma/",
 }
 
 globalDefines = 

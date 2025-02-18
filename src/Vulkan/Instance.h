@@ -54,6 +54,8 @@ namespace VulkanHelper
 			Vendor Vendor = Vendor::Unknown;
 			bool Discrete = false;
 			VkPhysicalDevice Handle = VK_NULL_HANDLE;
+
+			[[nodiscard]] VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 		};
 
 		[[nodiscard]] std::vector<PhysicalDevice> QuerySuitablePhysicalDevices(VkSurfaceKHR surface, const std::vector<const char*> extensions);

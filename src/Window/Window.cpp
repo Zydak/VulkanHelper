@@ -19,6 +19,7 @@ void VulkanHelper::Window::Init(CreateInfo& createInfo)
 	glfwWindowHint(GLFW_RESIZABLE, createInfo.Resizable);
 
 	m_Window = glfwCreateWindow(m_Width, m_Height, m_Name.c_str(), nullptr, nullptr);
+	glfwSetFramebufferSizeCallback(m_Window, ResizeCallback);
 
 	CreateWindowSurface(Instance::Get()->GetHandle());
 
@@ -31,9 +32,24 @@ void VulkanHelper::Window::Destroy()
 	if (!m_Initialized)
 		return;
 
+	vkDestroySurfaceKHR(Instance::Get()->GetHandle(), m_Surface, nullptr);
+
 	glfwDestroyWindow(m_Window);
 
 	Reset();
+}
+
+void VulkanHelper::Window::InitRenderer(Device* device, uint32_t maxFramesInFlight /*= 2*/)
+{
+	m_Device = device;
+
+	Renderer::CreateInfo createInfo{};
+	createInfo.Device = device;
+	createInfo.Window = this;
+	createInfo.MaxFramesInFlight = maxFramesInFlight;
+	createInfo.PresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+	m_Renderer.Init(createInfo);
 }
 
 VulkanHelper::Window::Window(CreateInfo& createInfo)
@@ -43,15 +59,22 @@ VulkanHelper::Window::Window(CreateInfo& createInfo)
 
 void VulkanHelper::Window::PollEvents()
 {
+	m_UserPointer.Window = this;
+	glfwSetWindowUserPointer(m_Window, &m_UserPointer);
+
 	glfwPollEvents();
+}
+
+void VulkanHelper::Window::ResizeCallback(GLFWwindow* window, int width, int height)
+{
+	UserPointer* userPointer = (UserPointer*)(glfwGetWindowUserPointer(window));
+	userPointer->Window->m_Width = width;
+	userPointer->Window->m_Height = height;
 }
 
 void VulkanHelper::Window::CreateWindowSurface(VkInstance instance)
 {
-	if (glfwCreateWindowSurface(instance, m_Window, nullptr, &m_Surface) != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to create window surface!");
-	}
+	VH_CHECK(glfwCreateWindowSurface(instance, m_Window, nullptr, &m_Surface) == VK_SUCCESS, "Failed to create surface!");
 }
 
 VulkanHelper::Window& VulkanHelper::Window::operator=(Window&& other) noexcept
@@ -78,6 +101,8 @@ void VulkanHelper::Window::Move(Window&& other) noexcept
 	m_Width = other.m_Width;
 	m_Height = other.m_Height;
 	m_Surface = other.m_Surface;
+	m_Device = other.m_Device;
+	m_Renderer = std::move(other.m_Renderer);
 
 	m_Initialized = other.m_Initialized;
 
@@ -91,6 +116,8 @@ void VulkanHelper::Window::Reset()
 	m_Width = 0;
 	m_Height = 0;
 	m_Surface = VK_NULL_HANDLE;
+	m_Device = nullptr;
+	m_Renderer.Destroy();
 
 	m_Initialized = false;
 }

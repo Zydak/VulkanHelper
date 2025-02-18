@@ -9,6 +9,7 @@ int main()
 	createInfo.Width = 800;
 	createInfo.Height = 600;
 	createInfo.Name = "Vulkan Window";
+	createInfo.Resizable = true;
 
 	VulkanHelper::Window window(createInfo);
 
@@ -21,8 +22,19 @@ int main()
 
 	VulkanHelper::Device device(deviceCreateInfo);
 
+	window.InitRenderer(&device);
+
 	while (!window.WantsToClose())
 	{
 		window.PollEvents();
+
+		if (window.GetRenderer()->BeginFrame())
+		{
+			window.GetRenderer()->EndFrame();
+		}
 	}
+
+	window.Destroy();
+	device.Destroy();
+	VulkanHelper::Instance::Destroy();
 }

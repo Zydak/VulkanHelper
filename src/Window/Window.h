@@ -4,6 +4,8 @@
 #include "vulkan.hpp"
 #include "GLFW/glfw3.h"
 
+#include "Renderer/Renderer.h"
+
 namespace VulkanHelper
 {
 	class Window
@@ -21,6 +23,8 @@ namespace VulkanHelper
 
 		void Init(CreateInfo& createInfo);
 		void Destroy();
+
+		void InitRenderer(Device* device, uint32_t maxFramesInFlight = 2);
 
 		Window() = default;
 		Window(CreateInfo& createInfo);
@@ -40,11 +44,24 @@ namespace VulkanHelper
 		[[nodiscard]] uint32_t GetHeight() const { return m_Height; }
 		[[nodiscard]] std::string GetName() const { return m_Name; }
 		[[nodiscard]] GLFWwindow* GetWindow() const { return m_Window; }
+		[[nodiscard]] inline VkExtent2D GetExtent() const { return { m_Width, m_Height }; }
+		[[nodiscard]] Renderer* GetRenderer() { return &m_Renderer; }
+
+		[[nodiscard]] bool IsInitialized() const { return m_Initialized; }
 	private:
+		struct UserPointer
+		{
+			Window* Window;
+		};
+		static void ResizeCallback(GLFWwindow* window, int width, int height);
+		UserPointer m_UserPointer;
 
 		void CreateWindowSurface(VkInstance instance);
 		GLFWwindow* m_Window = nullptr;
 		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
+
+		Device* m_Device;
+		Renderer m_Renderer;
 
 		std::string m_Name = "";
 		uint32_t m_Width = 0;

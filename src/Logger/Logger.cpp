@@ -18,8 +18,8 @@ void VulkanHelper::Logger::Destroy()
 {
 	VH_ASSERT(s_Instance != nullptr, "Logger is not initialized!");
 
-	delete s_Instance;
 	VH_INFO("Logger destroyed!");
+	delete s_Instance;
 }
 
 VulkanHelper::Logger::Logger()
@@ -35,7 +35,7 @@ VulkanHelper::Logger::Logger()
 	fileSink->set_pattern("%^[%T] %v%$");
 
 #ifdef DISTRIBUTION
-	m_Logger = std::make_shared<spdlog::logger>("Logger", spdlog::sinks_init_list{ fileSink }); // Use only file sink in distribution
+	m_Logger = std::make_shared<spdlog::logger>("Logger", spdlog::sinks_init_list{ fileSink }); // Use only file sink in distribution since writing to console is quite slow
 #else
 	m_Logger = std::make_shared<spdlog::logger>("Logger", spdlog::sinks_init_list{ consoleSink, fileSink });
 #endif

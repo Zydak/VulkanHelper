@@ -376,3 +376,18 @@ void VulkanHelper::Instance::CreateDebugUtilsMessengerEXT(const VkDebugUtilsMess
 }
 
 // ------------------------------------------------------------------------------------------------
+
+VkFormat VulkanHelper::Instance::PhysicalDevice::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
+{
+	for (VkFormat format : candidates)
+	{
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(Handle, format, &props);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) { return format; }
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) { return format; }
+	}
+
+	// Return VK_FORMAT_UNDEFINED if no supported format is found among the candidates
+	return VK_FORMAT_UNDEFINED;
+}

@@ -3,6 +3,7 @@
 #include "Instance.h"
 
 #include "CommandPool.h"
+#include "vk_mem_alloc.h"
 
 namespace VulkanHelper
 {
@@ -33,8 +34,8 @@ namespace VulkanHelper
 
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;
-		Device(Device&& other) noexcept;
-		Device& operator=(Device&& other) noexcept;
+		Device(Device&&) noexcept = delete;
+		Device& operator=(Device&&) noexcept = delete;
 
 		[[nodiscard]] VkDevice GetHandle() const { return m_Handle; }
 		[[nodiscard]] VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
@@ -42,10 +43,26 @@ namespace VulkanHelper
 		[[nodiscard]] VkQueue GetComputeQueue() const { return m_ComputeQueue; }
 		[[nodiscard]] bool IsInitialized() const { return m_Initialized; }
 
+		[[nodiscard]] std::mutex* GetGraphicsQueueMutex() { return &m_GraphicsQueueMutex; }
+		[[nodiscard]] std::mutex* GetComputeQueueMutex() { return &m_ComputeQueueMutex; }
+
+		[[nodiscard]] CommandPool* GetGraphicsCommandPool() { return &m_CommandPools[std::this_thread::get_id()].Graphics; }
+		[[nodiscard]] CommandPool* GetComputeCommandPool() { return &m_CommandPools[std::this_thread::get_id()].Compute; }
+
+		[[nodiscard]] Instance::PhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
+
+		inline void WaitUntilIdle() const { vkDeviceWaitIdle(m_Handle); }
+
 		void CreateCommandPoolsForThread();
+
+		void SetObjectName(VkObjectType type, uint64_t handle, const char* name) const;
+
+		void BeginSingleTimeCommands(VkCommandBuffer* buffer, VkCommandPool pool);
+		void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool);
 	private:
 
 		void CreateLogicalDevice();
+		void CreateMemoryAllocator();
 
 		VkDevice m_Handle = VK_NULL_HANDLE;
 
@@ -57,11 +74,15 @@ namespace VulkanHelper
 		std::unordered_map<std::thread::id, CommandPools> m_CommandPools;
 
 		VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
-		VkQueue m_PresentQueue = VK_NULL_HANDLE;
+		std::mutex m_GraphicsQueueMutex;
 		VkQueue m_ComputeQueue = VK_NULL_HANDLE;
+		std::mutex m_ComputeQueueMutex;
+
+		VkQueue m_PresentQueue = VK_NULL_HANDLE;
+
+		VmaAllocator m_Allocator = VK_NULL_HANDLE;
 
 		bool m_Initialized = false;
-		void Move(Device&& other) noexcept;
 		void Reset();
 	};
 
