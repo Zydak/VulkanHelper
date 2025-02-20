@@ -14,7 +14,7 @@ namespace VulkanHelper
 			VkCommandPoolCreateFlags Flags;
 		};
 
-		void Init(const CreateInfo& createInfo);
+		[[nodiscard]] VkResult Init(const CreateInfo& createInfo);
 		void Destroy();
 
 		CommandPool() = default;
@@ -30,7 +30,7 @@ namespace VulkanHelper
 		[[nodiscard]] VkCommandPoolCreateFlags GetFlags() const { return m_Flags; }
 		[[nodiscard]] bool IsInitialized() const { return m_Initialized; }
 
-		void ResetCommandPool();
+		void ResetCommandPool() const;
 	private:
 
 		VkCommandPool m_Handle = VK_NULL_HANDLE;

@@ -51,11 +51,17 @@ namespace VulkanHelper
 
 		[[nodiscard]] Instance::PhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
 
+		[[nodiscard]] VmaAllocator GetAllocator() { return m_Allocator; }
+
 		inline void WaitUntilIdle() const { vkDeviceWaitIdle(m_Handle); }
 
 		void CreateCommandPoolsForThread();
 
 		void SetObjectName(VkObjectType type, uint64_t handle, const char* name) const;
+
+		[[nodiscard]] VkResult FindMemoryTypeIndex(uint32_t* outMemoryIndex, VkMemoryPropertyFlags flags) const;
+
+		[[nodiscard]] VkResult CreateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = false);
 
 		void BeginSingleTimeCommands(VkCommandBuffer* buffer, VkCommandPool pool);
 		void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool);

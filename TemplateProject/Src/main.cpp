@@ -24,6 +24,26 @@ int main()
 
 	window.InitRenderer(&device);
 
+	{
+		VulkanHelper::Buffer::CreateInfo bufferCreateInfo{};
+		bufferCreateInfo.Device = &device;
+		bufferCreateInfo.BufferSize = 33;
+		bufferCreateInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		bufferCreateInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		bufferCreateInfo.DedicatedAllocation = true;
+
+		VulkanHelper::Buffer buffer(bufferCreateInfo);
+
+		uint32_t testData = 25;
+		buffer.WriteToBuffer(&testData, 4, 4);
+
+		testData = 0;
+
+		buffer.ReadFromBuffer(&testData, 4, 4);
+
+		VH_INFO("Data read from buffer: {0}", testData);
+	}
+
 	while (!window.WantsToClose())
 	{
 		window.PollEvents();

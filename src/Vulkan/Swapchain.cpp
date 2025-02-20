@@ -62,6 +62,9 @@ namespace VulkanHelper
 
 	Swapchain::Swapchain(Swapchain&& other) noexcept
 	{
+		if (this == &other)
+			return;
+
 		if (m_Initialized)
 			Destroy();
 
@@ -70,6 +73,9 @@ namespace VulkanHelper
 
 	Swapchain& Swapchain::operator=(Swapchain&& other) noexcept
 	{
+		if (this == &other)
+			return *this;
+
 		if (m_Initialized)
 			Destroy();
 

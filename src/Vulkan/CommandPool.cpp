@@ -3,7 +3,7 @@
 
 #include "Logger/Logger.h"
 
-void VulkanHelper::CommandPool::Init(const CreateInfo& createInfo)
+VkResult VulkanHelper::CommandPool::Init(const CreateInfo& createInfo)
 {
 	if (m_Initialized)
 		Destroy();
@@ -17,9 +17,9 @@ void VulkanHelper::CommandPool::Init(const CreateInfo& createInfo)
 	poolInfo.queueFamilyIndex = m_QueueFamilyIndex;
 	poolInfo.flags = m_Flags;
 
-	VH_CHECK(vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_Handle) == VK_SUCCESS, "Failed to create command pool!");
-
 	m_Initialized = true;
+
+	return vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_Handle);
 }
 
 void VulkanHelper::CommandPool::Destroy()
@@ -37,11 +37,6 @@ VulkanHelper::CommandPool::CommandPool(const CreateInfo& createInfo)
 	Init(createInfo);
 }
 
-void VulkanHelper::CommandPool::ResetCommandPool()
-{
-	vkResetCommandPool(m_Device, m_Handle, 0);
-}
-
 VulkanHelper::CommandPool::~CommandPool()
 {
 	Destroy();
@@ -49,6 +44,9 @@ VulkanHelper::CommandPool::~CommandPool()
 
 VulkanHelper::CommandPool& VulkanHelper::CommandPool::operator=(CommandPool&& other) noexcept
 {
+	if (this == &other)
+		return *this;
+
 	if (m_Initialized)
 		Destroy();
 
@@ -59,10 +57,20 @@ VulkanHelper::CommandPool& VulkanHelper::CommandPool::operator=(CommandPool&& ot
 
 VulkanHelper::CommandPool::CommandPool(CommandPool&& other) noexcept
 {
+	if (this == &other)
+		return;
+
 	if (m_Initialized)
 		Destroy();
 
 	Move(std::move(other));
+}
+
+void VulkanHelper::CommandPool::ResetCommandPool() const
+{
+	VH_ASSERT(m_Initialized, "CommandPool Not Initialized!");
+
+	vkResetCommandPool(m_Device, m_Handle, 0);
 }
 
 void VulkanHelper::CommandPool::Move(CommandPool&& other) noexcept

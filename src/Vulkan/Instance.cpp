@@ -98,7 +98,9 @@ void VulkanHelper::Instance::Destroy()
 {
 	VH_ASSERT(s_Instance != nullptr, "Instance is not initialized!");
 
+#ifndef DISTRIBUTION
 	s_Instance->DestroyDebugUtilsMessengerEXT();
+#endif
 
 	vkDestroyInstance(s_Instance->m_Handle, nullptr);
 

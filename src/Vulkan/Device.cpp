@@ -83,6 +83,39 @@ void VulkanHelper::Device::SetObjectName(VkObjectType type, uint64_t handle, con
 #endif
 }
 
+VkResult VulkanHelper::Device::FindMemoryTypeIndex(uint32_t* outMemoryIndex, VkMemoryPropertyFlags flags) const
+{
+	// Initialize allocation creation info
+	VmaAllocationCreateInfo allocInfo{};
+	allocInfo.priority = 0.5f;
+	allocInfo.requiredFlags = flags;
+	allocInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
+
+	// Find the memory type index matching the specified flags
+	return vmaFindMemoryTypeIndex(m_Allocator, UINT32_MAX, &allocInfo, outMemoryIndex);
+}
+
+VkResult VulkanHelper::Device::CreateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
+{
+	VH_ASSERT(m_Initialized, "Device not Initialized!");
+
+	uint32_t memoryIndex = 0;
+
+	VH_CHECK(FindMemoryTypeIndex(&memoryIndex, memoryPropertyFlags) == VK_SUCCESS, "Failed to find memory type index!");
+
+	if (dedicatedAllocation)
+	{
+		VmaAllocationCreateInfo allocCreateInfo = {};
+		allocCreateInfo.priority = 0.5f;
+		allocCreateInfo.requiredFlags = memoryPropertyFlags;
+		allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+
+		return vmaCreateBufferWithAlignment(m_Allocator, &createInfo, &allocCreateInfo, 1, outBuffer, outAllocation, nullptr);
+	}
+
+	VH_ASSERT(false, "Not implemented!");
+}
+
 void VulkanHelper::Device::BeginSingleTimeCommands(VkCommandBuffer* buffer, VkCommandPool pool)
 {
 	VkCommandBufferAllocateInfo allocInfo{};
