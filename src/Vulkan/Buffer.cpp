@@ -5,28 +5,8 @@
 
 namespace VulkanHelper
 {
-	void Buffer::Reset()
+	Buffer::Buffer(const Buffer::CreateInfo& createInfo)
 	{
-		m_Device = nullptr;
-		m_Mapped = nullptr;
-		m_Handle = VK_NULL_HANDLE;
-		m_Allocation = nullptr;
-
-		m_BufferSize = 0;
-		m_UsageFlags = 0;
-		m_MemoryPropertyFlags = 0;
-		m_IsDedicatedAllocation = false;
-
-		m_Initialized = false;
-	}
-
-	VkResult Buffer::Init(const Buffer::CreateInfo& createInfo)
-	{
-		if (m_Initialized)
-			Destroy();
-		
-		m_Initialized = true;
-
 		m_Allocation = new VmaAllocation();
 
 		m_Device = createInfo.Device;
@@ -42,12 +22,12 @@ namespace VulkanHelper
 		bufferInfo.usage = m_UsageFlags;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		return m_Device->CreateBuffer(&m_Handle, m_Allocation, bufferInfo, m_MemoryPropertyFlags, createInfo.DedicatedAllocation);
+		(void)m_Device->CreateBuffer(&m_Handle, m_Allocation, bufferInfo, m_MemoryPropertyFlags, createInfo.DedicatedAllocation);
 	}
 
 	void Buffer::Destroy()
 	{
-		if (!m_Initialized)
+		if (m_Handle == VK_NULL_HANDLE)
 			return;
 
 		Unmap();
@@ -56,13 +36,7 @@ namespace VulkanHelper
 
 		delete m_Allocation;
 		vkDestroyBuffer(m_Device->GetHandle(), m_Handle, nullptr);
-
-		Reset();
-	}
-
-	Buffer::Buffer(const Buffer::CreateInfo& createInfo)
-	{
-		Init(createInfo);
+		m_Handle = VK_NULL_HANDLE;
 	}
 
 	Buffer::Buffer(Buffer&& other) noexcept
@@ -70,8 +44,7 @@ namespace VulkanHelper
 		if (this == &other)
 			return;
 
-		if (m_Initialized)
-			Destroy();
+		Destroy();
 
 		Move(std::move(other));
 	}
@@ -81,8 +54,7 @@ namespace VulkanHelper
 		if (this == &other)
 			return *this;
 
-		if (m_Initialized)
-			Destroy();
+		Destroy();
 
 		Move(std::move(other));
 
@@ -96,8 +68,6 @@ namespace VulkanHelper
 
 	VmaAllocationInfo Buffer::GetMemoryInfo() const
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
-
 		VmaAllocationInfo info{};
 		vmaGetAllocationInfo(m_Device->GetAllocator(), *m_Allocation, &info);
 
@@ -106,8 +76,6 @@ namespace VulkanHelper
 
 	VkDeviceAddress Buffer::GetDeviceAddress() const
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
-
 		VkBufferDeviceAddressInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
 		info.buffer = m_Handle;
@@ -117,7 +85,6 @@ namespace VulkanHelper
 
 	VkResult Buffer::Map(VkDeviceSize size, VkDeviceSize offset)
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
 		VH_ASSERT(!(m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), "Can't map device local buffer!");
 
 		VkResult result = vmaMapMemory(m_Device->GetAllocator(), *m_Allocation, &m_Mapped);
@@ -127,8 +94,6 @@ namespace VulkanHelper
 
 	void Buffer::Unmap()
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
-
 		if (m_Mapped)
 		{
 			vmaUnmapMemory(m_Device->GetAllocator(), *m_Allocation);
@@ -138,8 +103,6 @@ namespace VulkanHelper
 
 	void Buffer::Barrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkCommandBuffer cmd)
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
-
 		bool cmdProvided = cmd != VK_NULL_HANDLE;
 
 		if (!cmdProvided)
@@ -167,7 +130,6 @@ namespace VulkanHelper
 
 	void Buffer::WriteToBuffer(void* data, VkDeviceSize size, VkDeviceSize offset, VkCommandBuffer cmdBuffer)
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
 		VH_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size, either resize the buffer or create a larger one");
 		VH_ASSERT(data != nullptr, "Invalid data pointer");
 
@@ -190,10 +152,10 @@ namespace VulkanHelper
 			info.Device = m_Device;
 			Buffer stagingBuffer(info);
 
-			stagingBuffer.Map();
+			(void)stagingBuffer.Map();
 
 			stagingBuffer.WriteToBuffer(data, size, 0, cmd);
-			stagingBuffer.Flush();
+			(void)stagingBuffer.Flush();
 
 			stagingBuffer.Unmap();
 
@@ -219,7 +181,6 @@ namespace VulkanHelper
 
 	void Buffer::ReadFromBuffer(void* outData, VkDeviceSize size /*= VK_WHOLE_SIZE*/, VkDeviceSize offset /*= 0*/)
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
 		VH_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size on reading!");
 		VH_ASSERT(outData != nullptr, "Invalid outData pointer");
 
@@ -249,8 +210,8 @@ namespace VulkanHelper
 
 			m_Device->EndSingleTimeCommands(cmd, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle()); // End the command to synch with CPU
 
-			stagingBuffer.Map();
-			stagingBuffer.Flush();
+			(void)stagingBuffer.Map();
+			(void)stagingBuffer.Flush();
 
 			stagingBuffer.ReadFromBuffer(outData, size, 0);
 
@@ -268,15 +229,11 @@ namespace VulkanHelper
 
 	VkResult Buffer::Flush(VkDeviceSize size, VkDeviceSize offset)
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
-
 		return vmaFlushAllocation(m_Device->GetAllocator(), *m_Allocation, offset, size);;
 	}
 
 	VkDescriptorBufferInfo Buffer::DescriptorInfo()
 	{
-		VH_ASSERT(m_Initialized, "Buffer Not Initialized!");
-
 		return VkDescriptorBufferInfo
 		{
 			m_Handle,
@@ -287,18 +244,28 @@ namespace VulkanHelper
 
 	void Buffer::Move(Buffer&& other)
 	{
-		m_Device = std::move(other.m_Device);
-		m_Mapped = std::move(other.m_Mapped);
-		m_Handle = std::move(other.m_Handle);
-		m_Allocation = std::move(other.m_Allocation);
+		m_Device = other.m_Device;
+		other.m_Device = nullptr;
 
-		m_BufferSize = std::move(other.m_BufferSize);
-		m_UsageFlags = std::move(other.m_UsageFlags);
-		m_MemoryPropertyFlags = std::move(other.m_MemoryPropertyFlags);
-		m_IsDedicatedAllocation = std::move(other.m_IsDedicatedAllocation);
+		m_Mapped = other.m_Mapped;
+		other.m_Mapped = nullptr;
 
-		m_Initialized = other.m_Initialized;
+		m_Handle = other.m_Handle;
+		other.m_Handle = VK_NULL_HANDLE;
 
-		other.Reset();
+		m_Allocation = other.m_Allocation;
+		other.m_Allocation = nullptr;
+
+		m_BufferSize = other.m_BufferSize;
+		other.m_BufferSize = 0;
+
+		m_UsageFlags = other.m_UsageFlags;
+		other.m_UsageFlags = 0;
+
+		m_MemoryPropertyFlags = other.m_MemoryPropertyFlags;
+		other.m_MemoryPropertyFlags = 0;
+
+		m_IsDedicatedAllocation = other.m_IsDedicatedAllocation;
+		other.m_IsDedicatedAllocation = false;
 	}
 }

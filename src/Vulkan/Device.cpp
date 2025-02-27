@@ -9,11 +9,19 @@
 
 static std::vector<const char*> s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
-void VulkanHelper::Device::Init(const CreateInfo& createInfo)
+void VulkanHelper::Device::Destroy()
 {
-	if (m_Initialized)
-		Destroy();
+	if (m_Handle == VK_NULL_HANDLE)
+		return;
 
+	m_CommandPools.clear();
+
+	vkDestroyDevice(m_Handle, nullptr);
+	m_Handle = VK_NULL_HANDLE;
+}
+
+VulkanHelper::Device::Device(const CreateInfo& createInfo)
+{
 	m_PhysicalDevice = createInfo.PhysicalDevice;
 	VH_INFO("Selected Physical device: {0}", m_PhysicalDevice.Name);
 
@@ -27,25 +35,6 @@ void VulkanHelper::Device::Init(const CreateInfo& createInfo)
 	CreateCommandPoolsForThread();
 
 	CreateMemoryAllocator();
-
-	m_Initialized = true;
-}
-
-void VulkanHelper::Device::Destroy()
-{
-	if (!m_Initialized)
-		return;
-
-	m_CommandPools.clear();
-
-	vkDestroyDevice(m_Handle, nullptr);
-
-	Reset();
-}
-
-VulkanHelper::Device::Device(const CreateInfo& createInfo)
-{
-	Init(createInfo);
 }
 
 void VulkanHelper::Device::CreateCommandPoolsForThread()
@@ -53,19 +42,17 @@ void VulkanHelper::Device::CreateCommandPoolsForThread()
 	std::thread::id id = std::this_thread::get_id();
 	if (!m_CommandPools.contains(id))
 	{
-		CommandPools pools;
-
 		CommandPool::CreateInfo createInfo{};
 		createInfo.Device = m_Handle;
 		createInfo.Flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		createInfo.QueueFamilyIndex = Instance::Get()->FindQueueFamilies(m_PhysicalDevice.Handle, m_Surface).GraphicsFamily;
-		pools.Graphics.Init(createInfo);
+		CommandPool graphicsPool(createInfo);
 
 		createInfo.QueueFamilyIndex = Instance::Get()->FindQueueFamilies(m_PhysicalDevice.Handle, m_Surface).ComputeFamily;
-		pools.Compute.Init(createInfo);
+		CommandPool computePool(createInfo);
 
-		m_CommandPools[id] = std::move(pools);
+		m_CommandPools.insert({ id, std::make_unique<CommandPools>(std::move(graphicsPool), std::move(computePool)) });
 	}
 }
 
@@ -97,8 +84,6 @@ VkResult VulkanHelper::Device::FindMemoryTypeIndex(uint32_t* outMemoryIndex, VkM
 
 VkResult VulkanHelper::Device::CreateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
 {
-	VH_ASSERT(m_Initialized, "Device not Initialized!");
-
 	uint32_t memoryIndex = 0;
 
 	VH_CHECK(FindMemoryTypeIndex(&memoryIndex, memoryPropertyFlags) == VK_SUCCESS, "Failed to find memory type index!");
@@ -233,9 +218,4 @@ void VulkanHelper::Device::CreateMemoryAllocator()
 	allocatorInfo.flags = VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
 
 	VH_CHECK(vmaCreateAllocator(&allocatorInfo, &m_Allocator) == VK_SUCCESS, "Failed to create vma allocator!");
-}
-
-void VulkanHelper::Device::Reset()
-{
-	m_Initialized = false;
 }

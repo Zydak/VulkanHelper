@@ -18,9 +18,7 @@ namespace VulkanHelper
 			bool DedicatedAllocation = true;
 		};
 
-		[[nodiscard]] VkResult Init(const Buffer::CreateInfo& createInfo);
 		void Destroy();
-		Buffer() = default;
 		Buffer(const Buffer::CreateInfo& createInfo);
 		~Buffer();
 
@@ -55,8 +53,6 @@ namespace VulkanHelper
 		inline bool IsDedicatedAllocation() const { return m_IsDedicatedAllocation; }
 		inline VmaAllocation* GetAllocation() { return m_Allocation; }
 
-		inline bool IsInitialized() const { return m_Initialized; }
-
 	private:
 
 		Device* m_Device = nullptr;
@@ -70,9 +66,6 @@ namespace VulkanHelper
 		VkMemoryPropertyFlags m_MemoryPropertyFlags = 0;
 		bool m_IsDedicatedAllocation = false;
 
-		bool m_Initialized = false;
-
-		void Reset();
 		void Move(Buffer&& other);
 	};
 }

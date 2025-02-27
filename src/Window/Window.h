@@ -21,7 +21,6 @@ namespace VulkanHelper
 			bool Resizable = false;
 		};
 
-		void Init(CreateInfo& createInfo);
 		void Destroy();
 
 		void InitRenderer(Device* device, uint32_t maxFramesInFlight = 2);
@@ -47,7 +46,6 @@ namespace VulkanHelper
 		[[nodiscard]] inline VkExtent2D GetExtent() const { return { m_Width, m_Height }; }
 		[[nodiscard]] Renderer* GetRenderer() { return &m_Renderer; }
 
-		[[nodiscard]] bool IsInitialized() const { return m_Initialized; }
 	private:
 		struct UserPointer
 		{
@@ -67,10 +65,7 @@ namespace VulkanHelper
 		uint32_t m_Width = 0;
 		uint32_t m_Height = 0;
 
-		bool m_Initialized = false;
-
 		void Move(Window&& other) noexcept;
-		void Reset();
 	};
 
 } // namespace VulkanHelper

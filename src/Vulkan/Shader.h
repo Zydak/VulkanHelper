@@ -1,0 +1,67 @@
+#pragma once
+
+#include "pch.h"
+#include "Device.h"
+
+#include <slang.h>
+
+#include "wrl/client.h"
+#include "dxcapi.h"
+
+namespace VulkanHelper
+{
+	class Shader
+	{
+	public:
+		struct Define
+		{
+			std::string Name = "";
+			std::string Value = "";
+		};
+
+		struct CreateInfo
+		{
+			Device* Device = nullptr;
+			std::string Filepath = "";
+			VkShaderStageFlagBits Type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+
+			std::vector<Define> Defines;
+
+			bool CacheToFile = false;
+		};
+
+		[[nodiscard]] ResultCode Compile();
+		void Destroy();
+
+		Shader() = default;
+		Shader(const CreateInfo& info);
+		~Shader();
+
+		Shader(const Shader& other) = delete;
+		Shader& operator=(const Shader& other) = delete;
+		Shader(Shader&& other) noexcept;
+		Shader& operator=(Shader&& other) noexcept;
+
+		[[nodiscard]] VkPipelineShaderStageCreateInfo GetStageCreateInfo();
+
+		[[nodiscard]] inline VkShaderModule GetModuleHandle() { return m_ModuleHandle; }
+		[[nodiscard]] inline VkShaderStageFlagBits GetType() const { return m_Type; }
+	private:
+		[[nodiscard]] std::vector<uint32_t> CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile);
+		
+		[[nodiscard]] std::vector<uint32_t> CompileSlang(const std::string& filepath, const std::vector<Define>& defines);
+		[[nodiscard]] std::vector<uint32_t> CompileHlsl(const std::string& filepath, const std::vector<Define>& defines);
+
+		Device* m_Device = nullptr;
+		VkShaderModule m_ModuleHandle = VK_NULL_HANDLE;
+		VkShaderStageFlagBits m_Type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+		std::vector<Define> m_Defines;
+		std::string m_Filepath = "";
+
+		inline static Microsoft::WRL::ComPtr<slang::IGlobalSession> s_GlobalSession = nullptr;
+		inline static Microsoft::WRL::ComPtr<IDxcUtils> m_DXCUtils = nullptr;
+		inline static Microsoft::WRL::ComPtr<IDxcCompiler3> m_DXCCompiler = nullptr;
+
+		void Move(Shader&& other) noexcept;
+	};
+}

@@ -8,11 +8,31 @@
 namespace VulkanHelper
 {
 
-	void Swapchain::Init(const CreateInfo& createInfo)
+	void Swapchain::Destroy()
 	{
-		if (m_Initialized)
-			Destroy();
+		if (m_Handle == VK_NULL_HANDLE)
+			return;
 
+		for (auto imageView : m_PresentableImageViews) 
+		{
+			vkDestroyImageView(m_Device->GetHandle(), imageView, nullptr);
+		}
+
+		m_PresentableImageViews.clear();
+
+		vkDestroySwapchainKHR(m_Device->GetHandle(), m_Handle, nullptr);
+		m_Handle = VK_NULL_HANDLE;
+
+		for (uint32_t i = 0; i < m_MaxFramesInFlight; i++)
+		{
+			vkDestroySemaphore(m_Device->GetHandle(), m_RenderFinishedSemaphores[i], nullptr);
+			vkDestroySemaphore(m_Device->GetHandle(), m_ImageAvailableSemaphores[i], nullptr);
+			vkDestroyFence(m_Device->GetHandle(), m_InFlightFences[i], nullptr);
+		}
+	}
+
+	Swapchain::Swapchain(const CreateInfo& createInfo)
+	{
 		m_Device = createInfo.Device;
 		m_Surface = createInfo.Surface;
 		m_MaxFramesInFlight = createInfo.MaxFramesInFlight;
@@ -23,41 +43,6 @@ namespace VulkanHelper
 		CreateSwapchain(createInfo.PreviousSwapchain);
 		CreateImageViews();
 		CreateSyncObjects();
-
-		m_Initialized = true;
-	}
-
-	void Swapchain::Destroy()
-	{
-		if (!m_Initialized)
-			return;
-
-		for (auto imageView : m_PresentableImageViews) 
-		{
-			vkDestroyImageView(m_Device->GetHandle(), imageView, nullptr);
-		}
-
-		m_PresentableImageViews.clear();
-
-		if (m_Handle != 0)
-		{
-			vkDestroySwapchainKHR(m_Device->GetHandle(), m_Handle, nullptr);
-			m_Handle = 0;
-		}
-
-		for (uint32_t i = 0; i < m_MaxFramesInFlight; i++)
-		{
-			vkDestroySemaphore(m_Device->GetHandle(), m_RenderFinishedSemaphores[i], nullptr);
-			vkDestroySemaphore(m_Device->GetHandle(), m_ImageAvailableSemaphores[i], nullptr);
-			vkDestroyFence(m_Device->GetHandle(), m_InFlightFences[i], nullptr);
-		}
-
-		Reset();
-	}
-
-	Swapchain::Swapchain(const CreateInfo& createInfo)
-	{
-		Init(createInfo);
 	}
 
 	Swapchain::Swapchain(Swapchain&& other) noexcept
@@ -65,8 +50,7 @@ namespace VulkanHelper
 		if (this == &other)
 			return;
 
-		if (m_Initialized)
-			Destroy();
+		Destroy();
 
 		Move(std::move(other));
 	}
@@ -76,8 +60,7 @@ namespace VulkanHelper
 		if (this == &other)
 			return *this;
 
-		if (m_Initialized)
-			Destroy();
+		Destroy();
 
 		Move(std::move(other));
 		
@@ -275,46 +258,52 @@ namespace VulkanHelper
 		}
 	}
 
-	void Swapchain::Reset()
-	{
-		m_Device = nullptr;
-		m_Surface = VK_NULL_HANDLE;
-		m_CurrentPresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
-		m_MaxFramesInFlight = 0;
-		m_Handle = VK_NULL_HANDLE;
-		m_Extent = { 0, 0 };
-		m_CurrentFrame = 0;
-		m_PresentableImages.clear();
-		m_PresentableImageViews.clear();
-		m_ImageAvailableSemaphores.clear();
-		m_RenderFinishedSemaphores.clear();
-		m_InFlightFences.clear();
-		m_ImagesInFlight.clear();
-		m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
-		m_SwapchainDepthFormat = VK_FORMAT_UNDEFINED;
-		m_Initialized = false;
-	}
-
 	void Swapchain::Move(Swapchain&& other) noexcept
 	{
-		m_Device = std::move(other.m_Device);
-		m_Surface = std::move(other.m_Surface);
-		m_CurrentPresentMode = std::move(other.m_CurrentPresentMode);
-		m_MaxFramesInFlight = std::move(other.m_MaxFramesInFlight);
-		m_Handle = std::move(other.m_Handle);
-		m_Extent = std::move(other.m_Extent);
-		m_CurrentFrame = std::move(other.m_CurrentFrame);
-		m_PresentableImages = std::move(other.m_PresentableImages);
-		m_PresentableImageViews = std::move(other.m_PresentableImageViews);
-		m_ImageAvailableSemaphores = std::move(other.m_ImageAvailableSemaphores);
-		m_RenderFinishedSemaphores = std::move(other.m_RenderFinishedSemaphores);
-		m_InFlightFences = std::move(other.m_InFlightFences);
-		m_ImagesInFlight = std::move(other.m_ImagesInFlight);
-		m_SwapchainImageFormat = std::move(other.m_SwapchainImageFormat);
-		m_SwapchainDepthFormat = std::move(other.m_SwapchainDepthFormat);
-		m_Initialized = std::move(other.m_Initialized);
+		m_Device = other.m_Device;
+		other.m_Device = nullptr;
 
-		other.Reset();
+		m_Surface = other.m_Surface;
+		other.m_Surface = VK_NULL_HANDLE;
+
+		m_CurrentPresentMode = other.m_CurrentPresentMode;
+		other.m_CurrentPresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+
+		m_MaxFramesInFlight = other.m_MaxFramesInFlight;
+		other.m_MaxFramesInFlight = 0;
+
+		m_Handle = other.m_Handle;
+		other.m_Handle = VK_NULL_HANDLE;
+
+		m_Extent = other.m_Extent;
+		other.m_Extent = { 0, 0 };
+
+		m_CurrentFrame = other.m_CurrentFrame;
+		other.m_CurrentFrame = 0;
+
+		m_PresentableImages = other.m_PresentableImages;
+		other.m_PresentableImages.clear();
+
+		m_PresentableImageViews = other.m_PresentableImageViews;
+		other.m_PresentableImageViews.clear();
+
+		m_ImageAvailableSemaphores = other.m_ImageAvailableSemaphores;
+		other.m_ImageAvailableSemaphores.clear();
+
+		m_RenderFinishedSemaphores = other.m_RenderFinishedSemaphores;
+		other.m_RenderFinishedSemaphores.clear();
+
+		m_InFlightFences = other.m_InFlightFences;
+		other.m_InFlightFences.clear();
+
+		m_ImagesInFlight = other.m_ImagesInFlight;
+		other.m_ImagesInFlight.clear();
+
+		m_SwapchainImageFormat = other.m_SwapchainImageFormat;
+		other.m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
+
+		m_SwapchainDepthFormat = other.m_SwapchainDepthFormat;
+		other.m_SwapchainDepthFormat = VK_FORMAT_UNDEFINED;
 	}
 
 } // namespace VulkanHelper

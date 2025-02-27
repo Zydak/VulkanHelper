@@ -10,6 +10,9 @@ globalIncludes =
     "%{wks.location}/Lib/Spdlog/include/",
 
     "%{wks.location}/Lib/Vma/",
+
+    "%{wks.location}/Lib/Slang/include/",
+    "%{wks.location}/Lib/Dxc/inc/",
 }
 
 globalDefines = 
@@ -20,7 +23,7 @@ globalDefines =
 include "lib/Spdlog"
 
 project "VulkanHelper"
-	architecture "x64"
+	architecture "x86_64"
     kind "StaticLib"
     language "C++"
 	cppdialect "C++20"
@@ -56,7 +59,9 @@ project "VulkanHelper"
     links
     {
         "Lib/VulkanHpp/vulkan-1",
-        
+        "Lib/Slang/lib/slang",
+        "Lib/Dxc/lib/x64/dxcompiler",
+
         "Glfw/glfw3_mt",
         "Spdlog"
     }

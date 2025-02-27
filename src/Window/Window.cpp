@@ -6,37 +6,17 @@
 
 #include "Vulkan/Instance.h"
 
-void VulkanHelper::Window::Init(CreateInfo& createInfo)
-{
-	if (m_Initialized)
-		Destroy();
-
-	m_Width = createInfo.Width;
-	m_Height = createInfo.Height;
-	m_Name = createInfo.Name;
-
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, createInfo.Resizable);
-
-	m_Window = glfwCreateWindow(m_Width, m_Height, m_Name.c_str(), nullptr, nullptr);
-	glfwSetFramebufferSizeCallback(m_Window, ResizeCallback);
-
-	CreateWindowSurface(Instance::Get()->GetHandle());
-
-	VH_INFO("Window created");
-	m_Initialized = true;
-}
-
 void VulkanHelper::Window::Destroy()
 {
-	if (!m_Initialized)
+	if (m_Window == nullptr)
 		return;
+
+	m_Renderer.Destroy();
 
 	vkDestroySurfaceKHR(Instance::Get()->GetHandle(), m_Surface, nullptr);
 
 	glfwDestroyWindow(m_Window);
-
-	Reset();
+	m_Window = nullptr;
 }
 
 void VulkanHelper::Window::InitRenderer(Device* device, uint32_t maxFramesInFlight /*= 2*/)
@@ -54,7 +34,19 @@ void VulkanHelper::Window::InitRenderer(Device* device, uint32_t maxFramesInFlig
 
 VulkanHelper::Window::Window(CreateInfo& createInfo)
 {
-	Init(createInfo);
+	m_Width = createInfo.Width;
+	m_Height = createInfo.Height;
+	m_Name = createInfo.Name;
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, createInfo.Resizable);
+
+	m_Window = glfwCreateWindow(m_Width, m_Height, m_Name.c_str(), nullptr, nullptr);
+	glfwSetFramebufferSizeCallback(m_Window, ResizeCallback);
+
+	CreateWindowSurface(Instance::Get()->GetHandle());
+
+	VH_INFO("Window created");
 }
 
 void VulkanHelper::Window::PollEvents()
@@ -79,6 +71,11 @@ void VulkanHelper::Window::CreateWindowSurface(VkInstance instance)
 
 VulkanHelper::Window& VulkanHelper::Window::operator=(Window&& other) noexcept
 {
+	if (this == &other)
+		return *this;
+
+	Destroy();
+
 	Move(std::move(other));
 
 	return *this;
@@ -86,6 +83,11 @@ VulkanHelper::Window& VulkanHelper::Window::operator=(Window&& other) noexcept
 
 VulkanHelper::Window::Window(Window&& other) noexcept
 {
+	if (this == &other)
+		return;
+
+	Destroy();
+
 	Move(std::move(other));
 }
 
@@ -103,21 +105,4 @@ void VulkanHelper::Window::Move(Window&& other) noexcept
 	m_Surface = other.m_Surface;
 	m_Device = other.m_Device;
 	m_Renderer = std::move(other.m_Renderer);
-
-	m_Initialized = other.m_Initialized;
-
-	other.Reset();
-}
-
-void VulkanHelper::Window::Reset()
-{
-	m_Window = nullptr;
-	m_Name = "";
-	m_Width = 0;
-	m_Height = 0;
-	m_Surface = VK_NULL_HANDLE;
-	m_Device = nullptr;
-	m_Renderer.Destroy();
-
-	m_Initialized = false;
 }

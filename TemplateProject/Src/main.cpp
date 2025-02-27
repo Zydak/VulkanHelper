@@ -42,6 +42,8 @@ int main()
 		buffer.ReadFromBuffer(&testData, 4, 4);
 
 		VH_INFO("Data read from buffer: {0}", testData);
+
+		VulkanHelper::Buffer buf1 = std::move(buffer);
 	}
 
 	while (!window.WantsToClose())

@@ -15,7 +15,7 @@ void VulkanHelper::Renderer::Init(const CreateInfo& createInfo)
 	m_PreviousExtent = createInfo.Window->GetExtent();
 	m_MaxFramesInFlight = createInfo.MaxFramesInFlight;
 
-	m_Swapchain.Init({ createInfo.Device, createInfo.Window->GetExtent(), createInfo.PresentMode, createInfo.MaxFramesInFlight, createInfo.Window->GetSurface() });
+	m_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ createInfo.Device, createInfo.Window->GetExtent(), createInfo.PresentMode, createInfo.MaxFramesInFlight, createInfo.Window->GetSurface() });
 
 	CreateCommandBuffers();
 
@@ -61,7 +61,7 @@ bool VulkanHelper::Renderer::BeginFrame()
 		//return false;
 	}
 
-	auto result = m_Swapchain.AcquireNextImage(m_CurrentImageIndex);
+	auto result = m_Swapchain->AcquireNextImage(m_CurrentImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) 
 	{
 		RecreateSwapchain();
@@ -92,7 +92,7 @@ void VulkanHelper::Renderer::EndFrame()
 	auto success = vkEndCommandBuffer(commandBuffer);
 	VH_ASSERT(success == VK_SUCCESS, "Failed to record command buffer!");
 
-	if (m_Swapchain.SubmitCommandBuffer(commandBuffer, m_CurrentImageIndex) == VK_ERROR_OUT_OF_DATE_KHR)
+	if (m_Swapchain->SubmitCommandBuffer(commandBuffer, m_CurrentImageIndex) == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		RecreateSwapchain();
 		return;
@@ -132,14 +132,14 @@ void VulkanHelper::Renderer::RecreateSwapchain()
 
 	m_Device->WaitUntilIdle();
 
-	Swapchain oldSwapchain = std::move(m_Swapchain);
+	std::unique_ptr<Swapchain> oldSwapchain = std::move(m_Swapchain);
 
-	m_Swapchain.Init({ m_Device, m_Window->GetExtent(), oldSwapchain.GetCurrentPresentMode(), m_MaxFramesInFlight, m_Window->GetSurface(), &oldSwapchain });
+	m_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ m_Device, m_Window->GetExtent(), oldSwapchain->GetCurrentPresentMode(), m_MaxFramesInFlight, m_Window->GetSurface(), oldSwapchain.get() });
 }
 
 void VulkanHelper::Renderer::CreateCommandBuffers()
 {
-	m_CommandBuffers.resize(m_Swapchain.GetImageCount());
+	m_CommandBuffers.resize(m_Swapchain->GetImageCount());
 
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -153,7 +153,7 @@ void VulkanHelper::Renderer::CreateCommandBuffers()
 		"Failed to allocate command buffers!"
 	);
 
-	for (uint32_t i = 0; i < m_Swapchain.GetImageCount(); i++)
+	for (uint32_t i = 0; i < m_Swapchain->GetImageCount(); i++)
 	{
 		m_Device->SetObjectName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)m_CommandBuffers[i], "Main Frame Command Buffer");
 	}
@@ -161,7 +161,7 @@ void VulkanHelper::Renderer::CreateCommandBuffers()
 
 void VulkanHelper::Renderer::Reset()
 {
-	m_Swapchain.Destroy();
+	m_Swapchain->Destroy();
 	m_Device = nullptr;
 	m_Window = nullptr;
 	m_CurrentFrameIndex = 0;

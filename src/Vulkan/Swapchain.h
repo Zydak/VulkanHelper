@@ -21,7 +21,6 @@ namespace VulkanHelper
 			Swapchain* PreviousSwapchain = nullptr;
 		};
 
-		void Init(const CreateInfo& createInfo);
 		void Destroy();
 
 		Swapchain() = default;
@@ -39,8 +38,6 @@ namespace VulkanHelper
 		[[nodiscard]] inline VkFormat GetSwapchainImageFormat() const { return m_SwapchainImageFormat; }
 		[[nodiscard]] inline uint32_t GetImageCount() const { return (uint32_t)m_PresentableImageViews.size(); }
 		[[nodiscard]] inline VkExtent2D GetSwapchainExtent() const { return m_Extent; }
-
-		[[nodiscard]] inline bool IsInitialized() const { return m_Initialized; }
 
 		[[nodiscard]] inline VkPresentModeKHR GetCurrentPresentMode() const { return m_CurrentPresentMode; }
 
@@ -79,9 +76,6 @@ namespace VulkanHelper
 		VkFormat m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
 		VkFormat m_SwapchainDepthFormat = VK_FORMAT_UNDEFINED;
 
-		bool m_Initialized = false;
-
-		void Reset();
 		void Move(Swapchain&& other) noexcept;
 	};
 

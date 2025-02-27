@@ -41,7 +41,7 @@ namespace VulkanHelper
 		void RecreateSwapchain();
 		void CreateCommandBuffers();
 
-		Swapchain m_Swapchain;
+		std::unique_ptr<Swapchain> m_Swapchain;
 		Device* m_Device = nullptr;
 		Window* m_Window = nullptr;
 

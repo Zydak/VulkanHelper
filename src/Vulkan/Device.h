@@ -4,6 +4,7 @@
 
 #include "CommandPool.h"
 #include "vk_mem_alloc.h"
+#include "ErrorCodes.h"
 
 namespace VulkanHelper
 {
@@ -25,10 +26,8 @@ namespace VulkanHelper
 			CommandPool Compute;
 		};
 
-		void Init(const CreateInfo& createInfo);
 		void Destroy();
 
-		Device() = default;
 		Device(const CreateInfo& createInfo);
 		~Device();
 
@@ -41,17 +40,16 @@ namespace VulkanHelper
 		[[nodiscard]] VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
 		[[nodiscard]] VkQueue GetPresentQueue() const { return m_PresentQueue; }
 		[[nodiscard]] VkQueue GetComputeQueue() const { return m_ComputeQueue; }
-		[[nodiscard]] bool IsInitialized() const { return m_Initialized; }
 
 		[[nodiscard]] std::mutex* GetGraphicsQueueMutex() { return &m_GraphicsQueueMutex; }
 		[[nodiscard]] std::mutex* GetComputeQueueMutex() { return &m_ComputeQueueMutex; }
 
-		[[nodiscard]] CommandPool* GetGraphicsCommandPool() { return &m_CommandPools[std::this_thread::get_id()].Graphics; }
-		[[nodiscard]] CommandPool* GetComputeCommandPool() { return &m_CommandPools[std::this_thread::get_id()].Compute; }
+		[[nodiscard]] CommandPool* GetGraphicsCommandPool() { return &m_CommandPools[std::this_thread::get_id()]->Graphics; }
+		[[nodiscard]] CommandPool* GetComputeCommandPool() { return &m_CommandPools[std::this_thread::get_id()]->Compute; }
 
 		[[nodiscard]] Instance::PhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
 
-		[[nodiscard]] VmaAllocator GetAllocator() { return m_Allocator; }
+		[[nodiscard]] VmaAllocator GetAllocator() const { return m_Allocator; }
 
 		inline void WaitUntilIdle() const { vkDeviceWaitIdle(m_Handle); }
 
@@ -77,7 +75,7 @@ namespace VulkanHelper
 		std::vector<const char*> m_Extensions;
 		VkPhysicalDeviceFeatures2 m_Features;
 
-		std::unordered_map<std::thread::id, CommandPools> m_CommandPools;
+		std::unordered_map<std::thread::id, std::unique_ptr<CommandPools>> m_CommandPools;
 
 		VkQueue m_GraphicsQueue = VK_NULL_HANDLE;
 		std::mutex m_GraphicsQueueMutex;
@@ -87,9 +85,6 @@ namespace VulkanHelper
 		VkQueue m_PresentQueue = VK_NULL_HANDLE;
 
 		VmaAllocator m_Allocator = VK_NULL_HANDLE;
-
-		bool m_Initialized = false;
-		void Reset();
 	};
 
 }

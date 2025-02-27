@@ -5,7 +5,7 @@
 
 void VulkanHelper::Image::TransitionImageLayout(Device* device, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkCommandBuffer cmdBuffer /*= 0*/, const VkImageSubresourceRange& subresourceRange /*= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } */)
 {
-	VkCommandBuffer commandBuffer;
+	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
 	if (!cmdBuffer)
 		device->BeginSingleTimeCommands(&commandBuffer, device->GetGraphicsCommandPool()->GetHandle());
