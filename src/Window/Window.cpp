@@ -11,7 +11,7 @@ void VulkanHelper::Window::Destroy()
 	if (m_Window == nullptr)
 		return;
 
-	m_Renderer.Destroy();
+	m_Renderer = nullptr;
 
 	vkDestroySurfaceKHR(Instance::Get()->GetHandle(), m_Surface, nullptr);
 
@@ -29,7 +29,7 @@ void VulkanHelper::Window::InitRenderer(Device* device, uint32_t maxFramesInFlig
 	createInfo.MaxFramesInFlight = maxFramesInFlight;
 	createInfo.PresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-	m_Renderer.Init(createInfo);
+	m_Renderer = std::make_unique<Renderer>(createInfo);
 }
 
 VulkanHelper::Window::Window(CreateInfo& createInfo)
@@ -99,10 +99,23 @@ VulkanHelper::Window::~Window()
 void VulkanHelper::Window::Move(Window&& other) noexcept
 {
 	m_Window = other.m_Window;
+	other.m_Window = nullptr;
+
 	m_Name = std::move(other.m_Name);
+	other.m_Name = "";
+
 	m_Width = other.m_Width;
+	other.m_Width = 0;
+
 	m_Height = other.m_Height;
+	other.m_Height = 0;
+
 	m_Surface = other.m_Surface;
+	other.m_Surface = VK_NULL_HANDLE;
+
 	m_Device = other.m_Device;
+	other.m_Device = nullptr;
+
 	m_Renderer = std::move(other.m_Renderer);
+	other.m_Renderer = nullptr;
 }

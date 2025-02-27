@@ -4,3 +4,7 @@
 #include "Vulkan/Instance.h"
 #include "Vulkan/Device.h"
 #include "Vulkan/Buffer.h"
+#include "Vulkan/Shader.h"
+#include "Vulkan/Pipeline.h"
+#include "Vulkan/Swapchain.h"
+#include "Vulkan/LoadedFunctions.h"

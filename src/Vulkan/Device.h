@@ -26,8 +26,6 @@ namespace VulkanHelper
 			CommandPool Compute;
 		};
 
-		void Destroy();
-
 		Device(const CreateInfo& createInfo);
 		~Device();
 
@@ -36,20 +34,7 @@ namespace VulkanHelper
 		Device(Device&&) noexcept = delete;
 		Device& operator=(Device&&) noexcept = delete;
 
-		[[nodiscard]] VkDevice GetHandle() const { return m_Handle; }
-		[[nodiscard]] VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
-		[[nodiscard]] VkQueue GetPresentQueue() const { return m_PresentQueue; }
-		[[nodiscard]] VkQueue GetComputeQueue() const { return m_ComputeQueue; }
-
-		[[nodiscard]] std::mutex* GetGraphicsQueueMutex() { return &m_GraphicsQueueMutex; }
-		[[nodiscard]] std::mutex* GetComputeQueueMutex() { return &m_ComputeQueueMutex; }
-
-		[[nodiscard]] CommandPool* GetGraphicsCommandPool() { return &m_CommandPools[std::this_thread::get_id()]->Graphics; }
-		[[nodiscard]] CommandPool* GetComputeCommandPool() { return &m_CommandPools[std::this_thread::get_id()]->Compute; }
-
-		[[nodiscard]] Instance::PhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
-
-		[[nodiscard]] VmaAllocator GetAllocator() const { return m_Allocator; }
+	public:
 
 		inline void WaitUntilIdle() const { vkDeviceWaitIdle(m_Handle); }
 
@@ -63,6 +48,20 @@ namespace VulkanHelper
 
 		void BeginSingleTimeCommands(VkCommandBuffer* buffer, VkCommandPool pool);
 		void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool);
+
+	public:
+
+		[[nodiscard]] VkDevice GetHandle() const { return m_Handle; }
+		[[nodiscard]] VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
+		[[nodiscard]] VkQueue GetPresentQueue() const { return m_PresentQueue; }
+		[[nodiscard]] VkQueue GetComputeQueue() const { return m_ComputeQueue; }
+		[[nodiscard]] std::mutex* GetGraphicsQueueMutex() { return &m_GraphicsQueueMutex; }
+		[[nodiscard]] std::mutex* GetComputeQueueMutex() { return &m_ComputeQueueMutex; }
+		[[nodiscard]] CommandPool* GetGraphicsCommandPool() { return &m_CommandPools[std::this_thread::get_id()]->Graphics; }
+		[[nodiscard]] CommandPool* GetComputeCommandPool() { return &m_CommandPools[std::this_thread::get_id()]->Compute; }
+		[[nodiscard]] Instance::PhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
+		[[nodiscard]] VmaAllocator GetAllocator() const { return m_Allocator; }
+
 	private:
 
 		void CreateLogicalDevice();
@@ -85,6 +84,8 @@ namespace VulkanHelper
 		VkQueue m_PresentQueue = VK_NULL_HANDLE;
 
 		VmaAllocator m_Allocator = VK_NULL_HANDLE;
+
+		void Destroy();
 	};
 
 }

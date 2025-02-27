@@ -3,8 +3,6 @@
 #include "pch.h"
 #include "Device.h"
 
-#include <slang.h>
-
 #include "wrl/client.h"
 #include "dxcapi.h"
 
@@ -30,10 +28,6 @@ namespace VulkanHelper
 			bool CacheToFile = false;
 		};
 
-		[[nodiscard]] ResultCode Compile();
-		void Destroy();
-
-		Shader() = default;
 		Shader(const CreateInfo& info);
 		~Shader();
 
@@ -42,11 +36,19 @@ namespace VulkanHelper
 		Shader(Shader&& other) noexcept;
 		Shader& operator=(Shader&& other) noexcept;
 
+	public:
+
+		[[nodiscard]] ResultCode Compile();
+
+	public:
+
 		[[nodiscard]] VkPipelineShaderStageCreateInfo GetStageCreateInfo();
 
 		[[nodiscard]] inline VkShaderModule GetModuleHandle() { return m_ModuleHandle; }
 		[[nodiscard]] inline VkShaderStageFlagBits GetType() const { return m_Type; }
+
 	private:
+
 		[[nodiscard]] std::vector<uint32_t> CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile);
 		
 		[[nodiscard]] std::vector<uint32_t> CompileSlang(const std::string& filepath, const std::vector<Define>& defines);
@@ -58,10 +60,10 @@ namespace VulkanHelper
 		std::vector<Define> m_Defines;
 		std::string m_Filepath = "";
 
-		inline static Microsoft::WRL::ComPtr<slang::IGlobalSession> s_GlobalSession = nullptr;
 		inline static Microsoft::WRL::ComPtr<IDxcUtils> m_DXCUtils = nullptr;
 		inline static Microsoft::WRL::ComPtr<IDxcCompiler3> m_DXCCompiler = nullptr;
 
+		void Destroy();
 		void Move(Shader&& other) noexcept;
 	};
 }

@@ -19,10 +19,6 @@ namespace VulkanHelper
 			uint32_t MaxFramesInFlight = 0;
 		};
 
-		void Init(const CreateInfo& createInfo);
-		void Destroy();
-
-		Renderer() = default;
 		Renderer(const CreateInfo& createInfo);
 		~Renderer();
 
@@ -31,11 +27,14 @@ namespace VulkanHelper
 		Renderer(Renderer&& other) noexcept;
 		Renderer& operator=(Renderer&& other) noexcept;
 
-		[[nodiscard]] inline bool IsInitialized() const { return m_Initialized; }
-		[[nodiscard]] inline VkCommandBuffer GetCurrentCommandBuffer();
+	public:
 
 		[[nodiscard]] bool BeginFrame();
 		void EndFrame();
+
+	public:
+
+		[[nodiscard]] inline VkCommandBuffer GetCurrentCommandBuffer();
 
 	private:
 		void RecreateSwapchain();
@@ -55,9 +54,8 @@ namespace VulkanHelper
 
 		bool m_IsFrameStarted = false;
 
-		bool m_Initialized = false;
+		void Destroy();
 		void Move(Renderer&& other) noexcept;
-		void Reset();
 	};
 
 } // namespace VulkanHelper

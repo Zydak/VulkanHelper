@@ -21,9 +21,6 @@ namespace VulkanHelper
 			Swapchain* PreviousSwapchain = nullptr;
 		};
 
-		void Destroy();
-
-		Swapchain() = default;
 		Swapchain(const CreateInfo& createInfo);
 		~Swapchain();
 
@@ -31,6 +28,15 @@ namespace VulkanHelper
 		Swapchain& operator=(const Swapchain&) = delete;
 		Swapchain(Swapchain&& other) noexcept;
 		Swapchain& operator=(Swapchain&& other) noexcept;
+
+	public:
+
+		[[nodiscard]] VkResult SubmitCommandBuffer(VkCommandBuffer buffer, uint32_t& imageIndex);
+		[[nodiscard]] VkResult AcquireNextImage(uint32_t& imageIndex);
+
+		[[nodiscard]] VkFormat FindDepthFormat();
+
+	public:
 
 		[[nodiscard]] inline VkImageView GetPresentableImageView(int imageIndex) const { return m_PresentableImageViews[imageIndex]; }
 		[[nodiscard]] inline VkImage GetPresentableImage(int imageIndex) const { return m_PresentableImages[imageIndex]; }
@@ -41,11 +47,8 @@ namespace VulkanHelper
 
 		[[nodiscard]] inline VkPresentModeKHR GetCurrentPresentMode() const { return m_CurrentPresentMode; }
 
-		[[nodiscard]] VkResult SubmitCommandBuffer(VkCommandBuffer buffer, uint32_t& imageIndex);
-		[[nodiscard]] VkResult AcquireNextImage(uint32_t& imageIndex);
-
-		[[nodiscard]] VkFormat FindDepthFormat();
 	private:
+
 		void CreateSwapchain(Swapchain* oldSwapchain);
 		void CreateImageViews();
 		void CreateSyncObjects();
@@ -53,6 +56,7 @@ namespace VulkanHelper
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
 	private:
+
 		Device* m_Device;
 
 		VkPresentModeKHR m_CurrentPresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
@@ -76,6 +80,7 @@ namespace VulkanHelper
 		VkFormat m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
 		VkFormat m_SwapchainDepthFormat = VK_FORMAT_UNDEFINED;
 
+		void Destroy();
 		void Move(Swapchain&& other) noexcept;
 	};
 

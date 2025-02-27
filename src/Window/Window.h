@@ -21,11 +21,6 @@ namespace VulkanHelper
 			bool Resizable = false;
 		};
 
-		void Destroy();
-
-		void InitRenderer(Device* device, uint32_t maxFramesInFlight = 2);
-
-		Window() = default;
 		Window(CreateInfo& createInfo);
 		~Window();
 
@@ -34,8 +29,14 @@ namespace VulkanHelper
 		Window(Window&& other) noexcept;
 		Window& operator=(Window&& other) noexcept;
 
+	public:
+
+		void InitRenderer(Device* device, uint32_t maxFramesInFlight = 2);
+
 		void PollEvents();
 		void Close(bool value) { glfwSetWindowShouldClose(m_Window, value); }
+
+	public:
 
 		[[nodiscard]] bool WantsToClose() const { return glfwWindowShouldClose(m_Window); }
 		[[nodiscard]] VkSurfaceKHR GetSurface() const { return m_Surface; }
@@ -44,9 +45,10 @@ namespace VulkanHelper
 		[[nodiscard]] std::string GetName() const { return m_Name; }
 		[[nodiscard]] GLFWwindow* GetWindow() const { return m_Window; }
 		[[nodiscard]] inline VkExtent2D GetExtent() const { return { m_Width, m_Height }; }
-		[[nodiscard]] Renderer* GetRenderer() { return &m_Renderer; }
+		[[nodiscard]] Renderer* GetRenderer() { return m_Renderer.get(); }
 
 	private:
+
 		struct UserPointer
 		{
 			Window* Window;
@@ -59,12 +61,13 @@ namespace VulkanHelper
 		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 
 		Device* m_Device;
-		Renderer m_Renderer;
+		std::unique_ptr<Renderer> m_Renderer;
 
 		std::string m_Name = "";
 		uint32_t m_Width = 0;
 		uint32_t m_Height = 0;
 
+		void Destroy();
 		void Move(Window&& other) noexcept;
 	};
 

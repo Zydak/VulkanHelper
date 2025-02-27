@@ -58,17 +58,20 @@ namespace VulkanHelper
 			[[nodiscard]] VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 		};
 
-		[[nodiscard]] std::vector<PhysicalDevice> QuerySuitablePhysicalDevices(VkSurfaceKHR surface, const std::vector<const char*> extensions);
-
 		static void Init(const CreateInfo& createInfo);
 		static void Destroy();
+
+	public:
+		[[nodiscard]] std::vector<PhysicalDevice> QuerySuitablePhysicalDevices(VkSurfaceKHR surface, const std::vector<const char*> extensions);
+		[[nodiscard]] PhysicalDevice::QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) const;
+		[[nodiscard]] PhysicalDevice::SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) const;
+
+	public:
 
 		[[nodiscard]] inline static Instance* Get() { return s_Instance; }
 
 		[[nodiscard]] inline VkInstance GetHandle() const { return m_Handle; }
 
-		[[nodiscard]] PhysicalDevice::QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) const;
-		[[nodiscard]] PhysicalDevice::SwapchainSupportDetails QuerySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) const;
 	private:
 		Instance() = default;
 		~Instance() = default;

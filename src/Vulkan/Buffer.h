@@ -18,7 +18,6 @@ namespace VulkanHelper
 			bool DedicatedAllocation = true;
 		};
 
-		void Destroy();
 		Buffer(const Buffer::CreateInfo& createInfo);
 		~Buffer();
 
@@ -26,6 +25,8 @@ namespace VulkanHelper
 		Buffer& operator=(const Buffer& other) = delete;
 		Buffer(Buffer&& other) noexcept;
 		Buffer& operator=(Buffer&& other) noexcept;
+		
+	public:
 
 		[[nodiscard]] VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 		void Unmap();
@@ -33,25 +34,23 @@ namespace VulkanHelper
 		void Barrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkCommandBuffer cmd = VK_NULL_HANDLE);
 
 		void WriteToBuffer(void* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0, VkCommandBuffer cmdBuffer = 0);
-		void ReadFromBuffer(void* outData, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		void ReadFromBuffer(void* outData, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0, VkCommandBuffer cmdBuffer = 0);
 
 		[[nodiscard]] VkResult Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 		[[nodiscard]] VkDescriptorBufferInfo DescriptorInfo();
-		
-	public:
 
-		inline VkBuffer GetHandle() const { return m_Handle; }
+		[[nodiscard]] inline VkBuffer GetHandle() const { return m_Handle; }
 
-		inline void* GetMappedMemory() const { return m_Mapped; }
-		VmaAllocationInfo GetMemoryInfo() const;
-		VkDeviceAddress GetDeviceAddress() const;
-		inline bool IsMapped() const { return m_Mapped; }
+		[[nodiscard]] inline void* GetMappedMemory() const { return m_Mapped; }
+		[[nodiscard]] VmaAllocationInfo GetMemoryInfo() const;
+		[[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
+		[[nodiscard]] inline bool IsMapped() const { return m_Mapped; }
 
-		inline VkBufferUsageFlags GetUsageFlags() const { return m_UsageFlags; }
-		inline VkMemoryPropertyFlags GetMemoryPropertyFlags() const { return m_MemoryPropertyFlags; }
-		inline VkDeviceSize GetBufferSize() const { return m_BufferSize; }
-		inline bool IsDedicatedAllocation() const { return m_IsDedicatedAllocation; }
-		inline VmaAllocation* GetAllocation() { return m_Allocation; }
+		[[nodiscard]] inline VkBufferUsageFlags GetUsageFlags() const { return m_UsageFlags; }
+		[[nodiscard]] inline VkMemoryPropertyFlags GetMemoryPropertyFlags() const { return m_MemoryPropertyFlags; }
+		[[nodiscard]] inline VkDeviceSize GetBufferSize() const { return m_BufferSize; }
+		[[nodiscard]] inline bool IsDedicatedAllocation() const { return m_IsDedicatedAllocation; }
+		[[nodiscard]] inline VmaAllocation* GetAllocation() { return m_Allocation; }
 
 	private:
 
@@ -66,6 +65,7 @@ namespace VulkanHelper
 		VkMemoryPropertyFlags m_MemoryPropertyFlags = 0;
 		bool m_IsDedicatedAllocation = false;
 
+		void Destroy();
 		void Move(Buffer&& other);
 	};
 }

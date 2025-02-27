@@ -13,6 +13,8 @@ namespace VulkanHelper
 		if (m_Handle == VK_NULL_HANDLE)
 			return;
 
+		m_Device->WaitUntilIdle();
+
 		for (auto imageView : m_PresentableImageViews) 
 		{
 			vkDestroyImageView(m_Device->GetHandle(), imageView, nullptr);
@@ -36,6 +38,7 @@ namespace VulkanHelper
 		m_Device = createInfo.Device;
 		m_Surface = createInfo.Surface;
 		m_MaxFramesInFlight = createInfo.MaxFramesInFlight;
+		m_CurrentPresentMode = createInfo.PresentMode;
 
 		m_Extent = createInfo.Extent;
 		m_SwapchainDepthFormat = FindDepthFormat();

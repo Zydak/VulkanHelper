@@ -372,7 +372,7 @@ void VulkanHelper::Instance::DestroyDebugUtilsMessengerEXT() const
 
 void VulkanHelper::Instance::CreateDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo)
 {
-	static auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Handle, "vkDestroyDebugUtilsMessengerEXT");
+	static auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Handle, "vkCreateDebugUtilsMessengerEXT");
 	VH_ASSERT(func != nullptr, "Can't load vkCreateDebugUtilsMessengerEXT!");
 	func(m_Handle, pCreateInfo, nullptr, &m_DebugMessenger);
 }

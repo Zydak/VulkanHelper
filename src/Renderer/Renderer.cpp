@@ -4,11 +4,14 @@
 #include "Logger/Logger.h"
 #include "Window/Window.h"
 
-void VulkanHelper::Renderer::Init(const CreateInfo& createInfo)
+void VulkanHelper::Renderer::Destroy()
 {
-	if (m_Initialized)
-		Destroy();
+	m_Swapchain = nullptr;
+	m_CommandBuffers.clear();
+}
 
+VulkanHelper::Renderer::Renderer(const CreateInfo& createInfo)
+{
 	m_Device = createInfo.Device;
 	m_Window = createInfo.Window;
 
@@ -18,21 +21,6 @@ void VulkanHelper::Renderer::Init(const CreateInfo& createInfo)
 	m_Swapchain = std::make_unique<Swapchain>(Swapchain::CreateInfo{ createInfo.Device, createInfo.Window->GetExtent(), createInfo.PresentMode, createInfo.MaxFramesInFlight, createInfo.Window->GetSurface() });
 
 	CreateCommandBuffers();
-
-	m_Initialized = true;
-}
-
-void VulkanHelper::Renderer::Destroy()
-{
-	if (!m_Initialized)
-		return;
-
-	Reset();
-}
-
-VulkanHelper::Renderer::Renderer(const CreateInfo& createInfo)
-{
-	Init(createInfo);
 }
 
 VkCommandBuffer VulkanHelper::Renderer::GetCurrentCommandBuffer()
@@ -110,8 +98,10 @@ VulkanHelper::Renderer::~Renderer()
 
 VulkanHelper::Renderer& VulkanHelper::Renderer::operator=(Renderer&& other) noexcept
 {
-	if (m_Initialized)
-		Destroy();
+	if (this == &other)
+		return *this;
+
+	Destroy();
 
 	Move(std::move(other));
 
@@ -120,8 +110,10 @@ VulkanHelper::Renderer& VulkanHelper::Renderer::operator=(Renderer&& other) noex
 
 VulkanHelper::Renderer::Renderer(Renderer&& other) noexcept
 {
-	if (m_Initialized)
-		Destroy();
+	if (this == &other)
+		return;
+
+	Destroy();
 
 	Move(std::move(other));
 }
@@ -159,32 +151,29 @@ void VulkanHelper::Renderer::CreateCommandBuffers()
 	}
 }
 
-void VulkanHelper::Renderer::Reset()
-{
-	m_Swapchain->Destroy();
-	m_Device = nullptr;
-	m_Window = nullptr;
-	m_CurrentFrameIndex = 0;
-	m_CurrentImageIndex = 0;
-	m_MaxFramesInFlight = 0;
-	m_CommandBuffers.clear();
-	m_IsFrameStarted = false;
-
-	m_Initialized = false;
-}
-
 void VulkanHelper::Renderer::Move(Renderer&& other) noexcept
 {
 	m_Swapchain = std::move(other.m_Swapchain);
+	other.m_Swapchain = nullptr;
+
 	m_Device = other.m_Device;
+	other.m_Device = nullptr;
+
 	m_Window = other.m_Window;
+	other.m_Window = nullptr;
+
 	m_CurrentFrameIndex = other.m_CurrentFrameIndex;
+	other.m_CurrentFrameIndex = 0;
+
 	m_CurrentImageIndex = other.m_CurrentImageIndex;
+	other.m_CurrentImageIndex = 0;
+
 	m_MaxFramesInFlight = other.m_MaxFramesInFlight;
+	other.m_MaxFramesInFlight = 0;
+
 	m_CommandBuffers = std::move(other.m_CommandBuffers);
+	other.m_CommandBuffers.clear();
+
 	m_IsFrameStarted = other.m_IsFrameStarted;
-
-	m_Initialized = other.m_Initialized;
-
-	other.Reset();
+	other.m_IsFrameStarted = false;
 }

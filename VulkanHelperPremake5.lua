@@ -11,7 +11,6 @@ globalIncludes =
 
     "%{wks.location}/Lib/Vma/",
 
-    "%{wks.location}/Lib/Slang/include/",
     "%{wks.location}/Lib/Dxc/inc/",
 }
 
@@ -59,7 +58,6 @@ project "VulkanHelper"
     links
     {
         "Lib/VulkanHpp/vulkan-1",
-        "Lib/Slang/lib/slang",
         "Lib/Dxc/lib/x64/dxcompiler",
 
         "Glfw/glfw3_mt",

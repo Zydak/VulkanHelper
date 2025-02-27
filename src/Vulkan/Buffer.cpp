@@ -34,8 +34,8 @@ namespace VulkanHelper
 
 		//DeleteQueue::TrashBuffer(*this);
 
+		vmaDestroyBuffer(m_Device->GetAllocator(), m_Handle, *m_Allocation);
 		delete m_Allocation;
-		vkDestroyBuffer(m_Device->GetHandle(), m_Handle, nullptr);
 		m_Handle = VK_NULL_HANDLE;
 	}
 
@@ -136,15 +136,15 @@ namespace VulkanHelper
 		if (size == VK_WHOLE_SIZE)
 			size = m_BufferSize - offset;
 
-		VkCommandBuffer cmd;
-		if (cmdBuffer == VK_NULL_HANDLE)
-			m_Device->BeginSingleTimeCommands(&cmd, m_Device->GetGraphicsCommandPool()->GetHandle());
-		else
-			cmd = cmdBuffer;
-
 		// If the buffer is device local, use a staging buffer to transfer the data.
 		if (m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		{
+			VkCommandBuffer cmd;
+			if (cmdBuffer == VK_NULL_HANDLE)
+				m_Device->BeginSingleTimeCommands(&cmd, m_Device->GetGraphicsCommandPool()->GetHandle());
+			else
+				cmd = cmdBuffer;
+
 			Buffer::CreateInfo info{};
 			info.BufferSize = size;
 			info.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
@@ -165,6 +165,9 @@ namespace VulkanHelper
 			copyRegion.size = size;
 
 			vkCmdCopyBuffer(cmd, stagingBuffer.GetHandle(), m_Handle, 1, &copyRegion);
+
+			if (cmdBuffer == VK_NULL_HANDLE)
+				m_Device->EndSingleTimeCommands(cmd, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle());
 		}
 		else // If the buffer is not device local, write directly to the buffer.
 		{
@@ -174,12 +177,9 @@ namespace VulkanHelper
 
 			memcpy(memOffset, data, size);
 		}
-
-		if (cmdBuffer == VK_NULL_HANDLE)
-			m_Device->EndSingleTimeCommands(cmd, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle());
 	}
 
-	void Buffer::ReadFromBuffer(void* outData, VkDeviceSize size /*= VK_WHOLE_SIZE*/, VkDeviceSize offset /*= 0*/)
+	void Buffer::ReadFromBuffer(void* outData, VkDeviceSize size /*= VK_WHOLE_SIZE*/, VkDeviceSize offset /*= 0*/, VkCommandBuffer cmdBuffer /*= 0*/)
 	{
 		VH_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size on reading!");
 		VH_ASSERT(outData != nullptr, "Invalid outData pointer");
@@ -191,15 +191,18 @@ namespace VulkanHelper
 		{
 			VH_ASSERT((m_UsageFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) != 0, "Can't read from buffer that is DEVICE_LOCAL and wasn't create with USAGE_TRANSFERS_SRC_BIT!");
 
+			VkCommandBuffer cmd;
+			if (cmdBuffer == VK_NULL_HANDLE)
+				m_Device->BeginSingleTimeCommands(&cmd, m_Device->GetGraphicsCommandPool()->GetHandle());
+			else
+				cmd = cmdBuffer;
+
 			Buffer::CreateInfo info{};
 			info.BufferSize = size;
 			info.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			info.UsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			info.Device = m_Device;
 			Buffer stagingBuffer(info);
-
-			VkCommandBuffer cmd;
-			m_Device->BeginSingleTimeCommands(&cmd, m_Device->GetGraphicsCommandPool()->GetHandle());
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = offset;
@@ -208,7 +211,8 @@ namespace VulkanHelper
 
 			vkCmdCopyBuffer(cmd, m_Handle, stagingBuffer.GetHandle(), 1, &copyRegion);
 
-			m_Device->EndSingleTimeCommands(cmd, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle()); // End the command to synch with CPU
+			if (cmdBuffer == VK_NULL_HANDLE)
+				m_Device->EndSingleTimeCommands(cmd, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle());
 
 			(void)stagingBuffer.Map();
 			(void)stagingBuffer.Flush();
