@@ -33,54 +33,29 @@ int main()
 
 	window->InitRenderer(device.get());
 
-	// Test pipeline
-	{
-		VulkanHelper::Shader::CreateInfo shaderCreateInfo{};
-		shaderCreateInfo.Device = device.get();
-		shaderCreateInfo.Filepath = "Src/FragmentTest.hlsl";
-		shaderCreateInfo.Type = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
-		VulkanHelper::Shader fragmentShader(shaderCreateInfo);
-		fragmentShader.Compile();
+	VulkanHelper::Shader::CreateInfo shaderCreateInfo{};
+	shaderCreateInfo.Device = device.get();
+	shaderCreateInfo.Filepath = "Src/FragmentTest.hlsl";
+	shaderCreateInfo.Type = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
+	VulkanHelper::Shader fragmentShader(shaderCreateInfo);
+	(void)fragmentShader.Compile();
 
-		shaderCreateInfo.Filepath = "Src/VertexTest.hlsl";
-		shaderCreateInfo.Type = VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
-		VulkanHelper::Shader vertexShader(shaderCreateInfo);
-		vertexShader.Compile();
+	shaderCreateInfo.Filepath = "Src/VertexTest.hlsl";
+	shaderCreateInfo.Type = VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
+	VulkanHelper::Shader vertexShader(shaderCreateInfo);
+	(void)vertexShader.Compile();
 
-		VulkanHelper::Pipeline::GraphicsCreateInfo pipelineCreateInfo{};
-		pipelineCreateInfo.Device = device.get();
-		pipelineCreateInfo.DepthClamp = false;
-		pipelineCreateInfo.Width = window->GetWidth();
-		pipelineCreateInfo.Height = window->GetHeight();
-		pipelineCreateInfo.ColorAttachmentCount = 1;
-		pipelineCreateInfo.DepthFormat = VK_FORMAT_D16_UNORM;
-		pipelineCreateInfo.ColorFormats = { VK_FORMAT_R32G32B32A32_SFLOAT };
-		pipelineCreateInfo.Shaders = { &vertexShader, &fragmentShader };
+	VulkanHelper::Pipeline::GraphicsCreateInfo pipelineCreateInfo{};
+	pipelineCreateInfo.Device = device.get();
+	pipelineCreateInfo.DepthClamp = false;
+	pipelineCreateInfo.Width = window->GetWidth();
+	pipelineCreateInfo.Height = window->GetHeight();
+	pipelineCreateInfo.ColorAttachmentCount = 1;
+	pipelineCreateInfo.DepthFormat = VK_FORMAT_D16_UNORM;
+	pipelineCreateInfo.ColorFormats = { VK_FORMAT_R8G8B8A8_UNORM };
+	pipelineCreateInfo.Shaders = { &vertexShader, &fragmentShader };
 
-		VulkanHelper::Pipeline pipeline(pipelineCreateInfo);
-	}
-
-	{
-		VulkanHelper::Buffer::CreateInfo bufferCreateInfo{};
-		bufferCreateInfo.Device = device.get();
-		bufferCreateInfo.BufferSize = 33;
-		bufferCreateInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-		bufferCreateInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		bufferCreateInfo.DedicatedAllocation = true;
-
-		VulkanHelper::Buffer buffer(bufferCreateInfo);
-
-		uint32_t testData = 25;
-		buffer.WriteToBuffer(&testData, 4, 4);
-
-		testData = 0;
-
-		buffer.ReadFromBuffer(&testData, 4, 4);
-
-		VH_INFO("Data read from buffer: {0}", testData);
-
-		VulkanHelper::Buffer buf1 = std::move(buffer);
-	}
+	VulkanHelper::Pipeline pipeline(pipelineCreateInfo);
 
 	while (!window->WantsToClose())
 	{
@@ -88,6 +63,20 @@ int main()
 
 		if (window->GetRenderer()->BeginFrame())
 		{
+			VkRenderingAttachmentInfo colorAttachment{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			colorAttachment.clearValue = { 0.1f, 0.1f, 0.1f, 1.0f };
+			colorAttachment.imageView = window->GetRenderer()->GetSwapchain()->GetPresentableImageView(window->GetRenderer()->GetCurrentImageIndex());
+
+			window->GetRenderer()->BeginRendering({ colorAttachment }, nullptr, window->GetExtent());
+
+			pipeline.Bind(window->GetRenderer()->GetCurrentCommandBuffer());
+			vkCmdDraw(window->GetRenderer()->GetCurrentCommandBuffer(), 3, 1, 0, 0);
+
+			window->GetRenderer()->EndRendering();
+
 			window->GetRenderer()->EndFrame();
 		}
 	}

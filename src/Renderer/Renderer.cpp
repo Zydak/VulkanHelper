@@ -3,6 +3,7 @@
 
 #include "Logger/Logger.h"
 #include "Window/Window.h"
+#include "Vulkan/LoadedFunctions.h"
 
 void VulkanHelper::Renderer::Destroy()
 {
@@ -89,6 +90,49 @@ void VulkanHelper::Renderer::EndFrame()
 	// End the frame and update frame index
 	m_IsFrameStarted = false;
 	m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+}
+
+void VulkanHelper::Renderer::BeginRendering(const std::vector<VkRenderingAttachmentInfo>& colorAttachments, VkRenderingAttachmentInfo* depthAttachment, const VkExtent2D& renderSize)
+{
+	VH_ASSERT(m_IsFrameStarted, "Cannot call BeginRendering while frame is not in progress");
+
+	// Set up viewport
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (float)renderSize.width;
+	viewport.height = (float)renderSize.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	// Set up scissor
+	VkRect2D scissor{
+		{0, 0},
+		renderSize
+	};
+
+	// Set viewport and scissor for the current command buffer
+	vkCmdSetViewport(GetCurrentCommandBuffer(), 0, 1, &viewport);
+	vkCmdSetScissor(GetCurrentCommandBuffer(), 0, 1, &scissor);
+
+
+	VkRenderingInfo renderingInfo{};
+	renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+	renderingInfo.colorAttachmentCount = (uint32_t)colorAttachments.size();
+	renderingInfo.pColorAttachments = colorAttachments.data();
+	renderingInfo.pDepthAttachment = depthAttachment;
+	renderingInfo.pStencilAttachment = nullptr;
+	renderingInfo.layerCount = 1;
+	renderingInfo.renderArea = { {0, 0}, renderSize };
+
+	VulkanHelper::vkCmdBeginRendering(m_CommandBuffers[m_CurrentImageIndex], &renderingInfo);
+}
+
+void VulkanHelper::Renderer::EndRendering()
+{
+	VH_ASSERT(m_IsFrameStarted, "Cannot call EndRendering while frame is not in progress");
+
+	VulkanHelper::vkCmdEndRendering(m_CommandBuffers[m_CurrentImageIndex]);
 }
 
 VulkanHelper::Renderer::~Renderer()

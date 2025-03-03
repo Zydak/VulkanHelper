@@ -4,5 +4,5 @@ struct VSOutput {
 };
 
 float4 main(VSOutput input) : SV_Target {
-    return input.color;
+    return pow(input.color, 1.0 / 2.2);
 }

@@ -80,7 +80,7 @@ namespace VulkanHelper
 		for (const auto& availableFormat : availableFormats)
 		{
 			// https://stackoverflow.com/questions/12524623/what-are-the-practical-differences-when-working-with-colors-in-a-linear-vs-a-no
-			if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
+			if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			{
 				return availableFormat;
 			}
@@ -91,7 +91,7 @@ namespace VulkanHelper
 
 	void Swapchain::CreateSwapchain(Swapchain* oldSwapchain)
 	{
-		Instance::PhysicalDevice::SwapchainSupportDetails swapChainSupport = m_Device->GetPhysicalDevice().SwapchainSupport;
+		Instance::PhysicalDevice::SwapchainSupportDetails swapChainSupport = m_Device->GetPhysicalDevice().QuerySwapchainSupport(m_Surface);
 
 		VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.Formats);
 

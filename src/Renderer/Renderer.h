@@ -32,9 +32,16 @@ namespace VulkanHelper
 		[[nodiscard]] bool BeginFrame();
 		void EndFrame();
 
+		void BeginRendering(const std::vector<VkRenderingAttachmentInfo>& colorAttachments, VkRenderingAttachmentInfo* depthAttachment, const VkExtent2D& renderSize);
+		void EndRendering();
+
 	public:
 
+		[[nodiscard]] inline Swapchain* GetSwapchain() const { return m_Swapchain.get(); }
 		[[nodiscard]] inline VkCommandBuffer GetCurrentCommandBuffer();
+
+		[[nodiscard]] inline uint32_t GetCurrentImageIndex() const { return m_CurrentImageIndex; }
+		[[nodiscard]] inline uint32_t GetCurrentFrameIndex() const { return m_CurrentFrameIndex; }
 
 	private:
 		void RecreateSwapchain();

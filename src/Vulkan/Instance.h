@@ -56,6 +56,7 @@ namespace VulkanHelper
 			VkPhysicalDevice Handle = VK_NULL_HANDLE;
 
 			[[nodiscard]] VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+			[[nodiscard]] inline SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface) { SwapchainSupport = Instance::Get()->QuerySwapchainSupport(Handle, surface); return SwapchainSupport; }
 		};
 
 		static void Init(const CreateInfo& createInfo);

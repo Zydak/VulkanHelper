@@ -84,10 +84,6 @@ VkResult VulkanHelper::Device::FindMemoryTypeIndex(uint32_t* outMemoryIndex, VkM
 
 VkResult VulkanHelper::Device::CreateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
 {
-	uint32_t memoryIndex = 0;
-
-	VH_CHECK(FindMemoryTypeIndex(&memoryIndex, memoryPropertyFlags) == VK_SUCCESS, "Failed to find memory type index!");
-
 	if (dedicatedAllocation)
 	{
 		VmaAllocationCreateInfo allocCreateInfo = {};
@@ -96,6 +92,21 @@ VkResult VulkanHelper::Device::CreateBuffer(VkBuffer* outBuffer, VmaAllocation* 
 		allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 		return vmaCreateBufferWithAlignment(m_Allocator, &createInfo, &allocCreateInfo, 1, outBuffer, outAllocation, nullptr);
+	}
+
+	VH_ASSERT(false, "Not implemented!");
+}
+
+VkResult VulkanHelper::Device::CreateImage(VkImage* outImage, VmaAllocation* outAllocation, const VkImageCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
+{
+	if (dedicatedAllocation)
+	{
+		VmaAllocationCreateInfo allocCreateInfo = {};
+		allocCreateInfo.priority = 0.5f;
+		allocCreateInfo.requiredFlags = memoryPropertyFlags;
+		allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+
+		return vmaCreateImage(m_Allocator, &createInfo, &allocCreateInfo, outImage, outAllocation, nullptr);
 	}
 
 	VH_ASSERT(false, "Not implemented!");
