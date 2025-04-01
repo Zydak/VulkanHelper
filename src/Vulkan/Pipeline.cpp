@@ -4,6 +4,8 @@
 #include "Logger/Logger.h"
 #include "LoadedFunctions.h"
 
+#include "Device.h"
+
 namespace VulkanHelper
 {
 	enum class ShaderType
@@ -40,7 +42,7 @@ namespace VulkanHelper
 		Destroy();
 	}
 
-	Pipeline::Pipeline(const GraphicsCreateInfo& info)
+	VulkanHelper::ResultCode Pipeline::Init(const GraphicsCreateInfo& info)
 	{
 		m_Device = info.Device;
 		m_PipelineType = PipelineType::Graphics;
@@ -112,18 +114,17 @@ namespace VulkanHelper
 		graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 		graphicsPipelineInfo.basePipelineIndex = -1;
 
-		VH_CHECK(
-			vkCreateGraphicsPipelines(m_Device->GetHandle(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &m_PipelineHandle) == VK_SUCCESS,
-			"failed to create graphics pipeline!"
-		);
+		ResultCode res = (ResultCode)vkCreateGraphicsPipelines(m_Device->GetHandle(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &m_PipelineHandle);
 
-		if (std::string(info.debugName) != std::string())
+		if (res == ResultCode::Success && std::string(info.debugName) != std::string())
 		{
 			m_Device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
 		}
+
+		return res;
 	}
 
-	Pipeline::Pipeline(const ComputeCreateInfo& info)
+	VulkanHelper::ResultCode Pipeline::Init(const ComputeCreateInfo& info)
 	{
 		m_Device = info.Device;
 
@@ -137,18 +138,17 @@ namespace VulkanHelper
 		computePipelineInfo.layout = m_PipelineLayout;
 		computePipelineInfo.stage = info.Shader->GetStageCreateInfo();
 
-		VH_CHECK(
-			vkCreateComputePipelines(m_Device->GetHandle(), VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &m_PipelineHandle) == VK_SUCCESS,
-			"failed to create graphics pipeline!"
-		);
+		ResultCode res = (ResultCode)vkCreateComputePipelines(m_Device->GetHandle(), VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &m_PipelineHandle);
 
-		if (std::string(info.debugName) != std::string())
+		if (res == ResultCode::Success && std::string(info.debugName) != std::string())
 		{
 			m_Device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
 		}
+
+		return res;
 	}
 
-	Pipeline::Pipeline(const RayTracingCreateInfo& info)
+	VulkanHelper::ResultCode Pipeline::Init(const RayTracingCreateInfo& info)
 	{
 		m_Device = info.Device;
 
@@ -241,12 +241,14 @@ namespace VulkanHelper
 		rayPipelineInfo.maxPipelineRayRecursionDepth = 2;  // Ray depth
 		rayPipelineInfo.layout = m_PipelineLayout;
 
-		VulkanHelper::vkCreateRayTracingPipelinesKHR(m_Device->GetHandle(), {}, {}, 1, &rayPipelineInfo, nullptr, &m_PipelineHandle);
+		ResultCode res = (ResultCode)VulkanHelper::vkCreateRayTracingPipelinesKHR(m_Device->GetHandle(), {}, {}, 1, &rayPipelineInfo, nullptr, &m_PipelineHandle);
 
-		if (std::string(info.debugName) != std::string())
+		if (res == ResultCode::Success && std::string(info.debugName) != std::string())
 		{
 			m_Device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
 		}
+
+		return res;
 	}
 
 	Pipeline::Pipeline(Pipeline&& other) noexcept

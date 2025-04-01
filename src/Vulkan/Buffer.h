@@ -1,11 +1,14 @@
 #pragma once
 #include "Pch.h"
 
-#include "Device.h"
 #include <vk_mem_alloc.h>
+
+#include "ErrorCodes.h"
 
 namespace VulkanHelper
 {
+	class Device;
+
 	class Buffer
 	{
 	public:
@@ -18,7 +21,8 @@ namespace VulkanHelper
 			bool DedicatedAllocation = true;
 		};
 
-		Buffer(const Buffer::CreateInfo& createInfo);
+		[[nodiscard]] ResultCode Init(const Buffer::CreateInfo& createInfo);
+		Buffer() = default;
 		~Buffer();
 
 		Buffer(const Buffer& other) = delete;

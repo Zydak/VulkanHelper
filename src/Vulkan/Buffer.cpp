@@ -3,9 +3,11 @@
 #include "Buffer.h"
 #include "Logger/Logger.h"
 
+#include "Device.h"
+
 namespace VulkanHelper
 {
-	Buffer::Buffer(const Buffer::CreateInfo& createInfo)
+	ResultCode Buffer::Init(const Buffer::CreateInfo& createInfo)
 	{
 		m_Allocation = new VmaAllocation();
 
@@ -22,7 +24,7 @@ namespace VulkanHelper
 		bufferInfo.usage = m_UsageFlags;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		(void)m_Device->CreateBuffer(&m_Handle, m_Allocation, bufferInfo, m_MemoryPropertyFlags, createInfo.DedicatedAllocation);
+		return (ResultCode)m_Device->AllocateBuffer(&m_Handle, m_Allocation, bufferInfo, m_MemoryPropertyFlags, createInfo.DedicatedAllocation);
 	}
 
 	void Buffer::Destroy()
@@ -147,10 +149,11 @@ namespace VulkanHelper
 
 			Buffer::CreateInfo info{};
 			info.BufferSize = size;
+			info.Device = m_Device;
 			info.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			info.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			info.Device = m_Device;
-			Buffer stagingBuffer(info);
+			Buffer stagingBuffer;
+			VH_CHECK(stagingBuffer.Init(info) == ResultCode::Success, "Failed to create staging buffer!");
 
 			(void)stagingBuffer.Map();
 
@@ -189,7 +192,7 @@ namespace VulkanHelper
 
 		if (m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		{
-			VH_ASSERT((m_UsageFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) != 0, "Can't read from buffer that is DEVICE_LOCAL and wasn't create with USAGE_TRANSFERS_SRC_BIT!");
+			VH_ASSERT((m_UsageFlags & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) != 0, "Can't read from buffer that is DEVICE_LOCAL and wasn't created with USAGE_TRANSFERS_SRC_BIT!");
 
 			VkCommandBuffer cmd;
 			if (cmdBuffer == VK_NULL_HANDLE)
@@ -198,11 +201,12 @@ namespace VulkanHelper
 				cmd = cmdBuffer;
 
 			Buffer::CreateInfo info{};
+			info.Device = m_Device;
 			info.BufferSize = size;
 			info.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			info.UsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			info.Device = m_Device;
-			Buffer stagingBuffer(info);
+			Buffer stagingBuffer;
+			VH_CHECK(stagingBuffer.Init(info) == ResultCode::Success, "Failed to create staging buffer!");
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = offset;
@@ -221,7 +225,7 @@ namespace VulkanHelper
 
 			stagingBuffer.Unmap();
 		}
-		else // If the buffer is not device local, read directly to the buffer.
+		else // If the buffer is not device local, read directly from the buffer.
 		{
 			VH_ASSERT(m_Mapped, "Cannot read from unmapped buffer!");
 

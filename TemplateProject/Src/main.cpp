@@ -37,13 +37,13 @@ int main()
 	shaderCreateInfo.Device = device.get();
 	shaderCreateInfo.Filepath = "Src/FragmentTest.hlsl";
 	shaderCreateInfo.Type = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
-	VulkanHelper::Shader fragmentShader(shaderCreateInfo);
-	(void)fragmentShader.Compile();
+	VulkanHelper::Shader fragmentShader;
+	(void)fragmentShader.Init(shaderCreateInfo);
 
 	shaderCreateInfo.Filepath = "Src/VertexTest.hlsl";
 	shaderCreateInfo.Type = VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
-	VulkanHelper::Shader vertexShader(shaderCreateInfo);
-	(void)vertexShader.Compile();
+	VulkanHelper::Shader vertexShader;
+	(void)vertexShader.Init(shaderCreateInfo);
 
 	VulkanHelper::Pipeline::GraphicsCreateInfo pipelineCreateInfo{};
 	pipelineCreateInfo.Device = device.get();
@@ -55,7 +55,8 @@ int main()
 	pipelineCreateInfo.ColorFormats = { VK_FORMAT_R8G8B8A8_UNORM };
 	pipelineCreateInfo.Shaders = { &vertexShader, &fragmentShader };
 
-	VulkanHelper::Pipeline pipeline(pipelineCreateInfo);
+	VulkanHelper::Pipeline pipeline;
+	pipeline.Init(pipelineCreateInfo);
 
 	while (!window->WantsToClose())
 	{

@@ -1,13 +1,16 @@
 #pragma once
 
-#include "pch.h"
-#include "Device.h"
+#define NOMINMAX
 
+#include "pch.h"
+#include "vulkan/vulkan_core.h"
+#include "ErrorCodes.h"
 #include "wrl/client.h"
 #include "dxcapi.h"
 
 namespace VulkanHelper
 {
+	class Device;
 	class Shader
 	{
 	public:
@@ -28,7 +31,8 @@ namespace VulkanHelper
 			bool CacheToFile = false;
 		};
 
-		Shader(const CreateInfo& info);
+		[[nodiscard]] ResultCode Init(const CreateInfo& createInfo);
+		Shader() = default;
 		~Shader();
 
 		Shader(const Shader& other) = delete;
@@ -60,8 +64,8 @@ namespace VulkanHelper
 		std::vector<Define> m_Defines;
 		std::string m_Filepath = "";
 
-		inline static Microsoft::WRL::ComPtr<IDxcUtils> m_DXCUtils = nullptr;
-		inline static Microsoft::WRL::ComPtr<IDxcCompiler3> m_DXCCompiler = nullptr;
+		inline static Microsoft::WRL::ComPtr<IDxcUtils> s_DXCUtils = nullptr;
+		inline static Microsoft::WRL::ComPtr<IDxcCompiler3> s_DXCCompiler = nullptr;
 
 		void Destroy();
 		void Move(Shader&& other) noexcept;

@@ -4,7 +4,9 @@
 #include "Logger/Logger.h"
 #include "Buffer.h"
 
-VulkanHelper::Image::Image(const CreateInfo& createInfo)
+#include "Device.h"
+
+VulkanHelper::ResultCode VulkanHelper::Image::Init(const CreateInfo& createInfo)
 {
 	m_Device = createInfo.Device;
 	m_Usage = createInfo.Usage;
@@ -18,8 +20,13 @@ VulkanHelper::Image::Image(const CreateInfo& createInfo)
 	m_Aspect = createInfo.Aspect;
 	m_ViewType = createInfo.ViewType;
 
-	CreateImage();
-	CreateImageView();
+	ResultCode res = CreateImage();
+	if (res == ResultCode::Success)
+	{
+		CreateImageView();
+	}
+
+	return res;
 }
 
 VulkanHelper::Image::~Image()
@@ -152,7 +159,7 @@ void VulkanHelper::Image::TransitionImageLayout(VkImageLayout newLayout, VkComma
 	m_Layout = newLayout;
 }
 
-void VulkanHelper::Image::WritePixels(void* data, uint64_t dataSize, bool generateMipMaps /*= false*/, uint64_t offset /*= 0*/, VkCommandBuffer cmd /*= 0*/, uint32_t baseLayer /*= 0*/)
+VulkanHelper::ResultCode VulkanHelper::Image::WritePixels(void* data, uint64_t dataSize, bool generateMipMaps /*= false*/, uint64_t offset /*= 0*/, VkCommandBuffer cmd /*= 0*/, uint32_t baseLayer /*= 0*/)
 {
 	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
@@ -164,13 +171,19 @@ void VulkanHelper::Image::WritePixels(void* data, uint64_t dataSize, bool genera
 	uint64_t pixelSize = (uint64_t)FormatToSize(m_Format);
 	VkDeviceSize imageSize = (uint64_t)m_Size.width * (uint64_t)m_Size.height * pixelSize;
 
-	Buffer::CreateInfo BufferInfo{};
-	BufferInfo.BufferSize = imageSize;
-	BufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	BufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-	Buffer buffer(BufferInfo);
+	Buffer::CreateInfo bufferInfo{};
+	bufferInfo.Device = m_Device;
+	bufferInfo.BufferSize = imageSize;
+	bufferInfo.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	bufferInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+	Buffer buffer;
+	auto res = buffer.Init(bufferInfo);
+	if (res != ResultCode::Success)
+	{
+		return res;
+	}
 
-	auto res = buffer.Map(imageSize);
+	(void)buffer.Map(imageSize);
 	buffer.WriteToBuffer((void*)data, dataSize, offset * pixelSize);
 	(void)buffer.Flush();
 	buffer.Unmap();
@@ -183,6 +196,8 @@ void VulkanHelper::Image::WritePixels(void* data, uint64_t dataSize, bool genera
 
 	if (!cmd)
 		m_Device->EndSingleTimeCommands(commandBuffer, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle());
+
+	return ResultCode::Success;
 }
 
 void VulkanHelper::Image::GenerateMipmaps(VkCommandBuffer commandBuffer) const
@@ -301,7 +316,7 @@ void VulkanHelper::Image::CopyBufferToImage(VkBuffer buffer, uint32_t baseLayer,
 		m_Device->EndSingleTimeCommands(commandBuffer, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle());
 }
 
-void VulkanHelper::Image::CreateImage()
+VulkanHelper::ResultCode VulkanHelper::Image::CreateImage()
 {
 	VkImageCreateInfo imageCreateInfo{};
 	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -320,7 +335,7 @@ void VulkanHelper::Image::CreateImage()
 	if (m_ViewType == VK_IMAGE_VIEW_TYPE_CUBE || m_ViewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
 		imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-	(void)m_Device->CreateImage(&m_ImageHandle, m_Allocation, imageCreateInfo, m_MemoryProperties);
+	return m_Device->AllocateImage(&m_ImageHandle, m_Allocation, imageCreateInfo, m_MemoryProperties);
 }
 
 uint32_t VulkanHelper::Image::FormatToSize(VkFormat format)

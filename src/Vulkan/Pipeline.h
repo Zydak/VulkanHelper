@@ -1,12 +1,12 @@
 #pragma once
 #include "pch.h"
 
-#include "Device.h"
-
 #include "Shader.h"
 
 namespace VulkanHelper
 {
+	class Device;
+
 	class Pipeline
 	{
 	public:
@@ -14,11 +14,11 @@ namespace VulkanHelper
 		struct ComputeCreateInfo;
 		struct RayTracingCreateInfo;
 
-		void Destroy();
+		[[nodiscard]] ResultCode Init(const GraphicsCreateInfo& createInfo);
+		[[nodiscard]] ResultCode Init(const RayTracingCreateInfo& createInfo);
+		[[nodiscard]] ResultCode Init(const ComputeCreateInfo& createInfo);
 
-		Pipeline(const GraphicsCreateInfo& info);
-		Pipeline(const ComputeCreateInfo& info);
-		Pipeline(const RayTracingCreateInfo& info);
+		Pipeline() = default;
 		~Pipeline();
 
 		Pipeline(const Pipeline&) = delete;
@@ -112,6 +112,7 @@ namespace VulkanHelper
 		VkPipelineLayout m_PipelineLayout = 0;
 		PipelineType m_PipelineType = PipelineType::Undefined;
 
+		void Destroy();
 		void Move(Pipeline&& other) noexcept;
 	};
 

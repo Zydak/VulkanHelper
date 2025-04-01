@@ -2,6 +2,7 @@
 
 #include "Shader.h"
 #include "Logger/Logger.h"
+#include "Device.h"
 
 
 namespace VulkanHelper
@@ -53,23 +54,6 @@ namespace VulkanHelper
 		Move(std::move(other));
 	}
 
-	Shader::Shader(const CreateInfo& info)
-	{
-		m_Device = info.Device;
-		m_Type = info.Type;
-		m_Defines = info.Defines;
-		m_Filepath = info.Filepath;
-
-		if (m_DXCUtils == nullptr)
-		{
-			HRESULT hres = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_DXCUtils));
-			VH_CHECK(hres == 0, "Could not init DXC Utiliy");
-
-			hres = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_DXCCompiler));
-			VH_ASSERT(hres == 0, "Could not create DXC Compiler");
-		}
-	}
-
 	Shader& Shader::operator=(Shader&& other) noexcept
 	{
 		if (this == &other)
@@ -107,6 +91,25 @@ namespace VulkanHelper
 		return str; // Return the original string if no slash is found or if the last character is a slash
 	}
 
+	ResultCode Shader::Init(const CreateInfo& createInfo)
+	{
+		m_Device = createInfo.Device;
+		m_Type = createInfo.Type;
+		m_Defines = createInfo.Defines;
+		m_Filepath = createInfo.Filepath;
+
+		if (s_DXCUtils == nullptr)
+		{
+			HRESULT hres = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&s_DXCUtils));
+			VH_CHECK(hres == 0, "Could not init DXC Utiliy");
+
+			hres = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&s_DXCCompiler));
+			VH_ASSERT(hres == 0, "Could not create DXC Compiler");
+		}
+
+		return Compile();
+	}
+
 	std::vector<uint32_t> Shader::CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile)
 	{
 		size_t dotPos = filepath.find_last_of('.');
@@ -141,7 +144,7 @@ namespace VulkanHelper
 		uint32_t codePage = DXC_CP_ACP;
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> sourceBlob;
 		std::wstring wideFilepath = std::wstring(filepath.begin(), filepath.end());
-		hres = m_DXCUtils->LoadFile(wideFilepath.c_str(), &codePage, &sourceBlob);
+		hres = s_DXCUtils->LoadFile(wideFilepath.c_str(), &codePage, &sourceBlob);
 		VH_ASSERT(hres == 0, "Could not load file");
 
 		// Select target profile based on shader file extension
@@ -184,7 +187,7 @@ namespace VulkanHelper
 
 		Microsoft::WRL::ComPtr<IDxcResult> result{ nullptr };
 		
-		hres = m_DXCCompiler->Compile(
+		hres = s_DXCCompiler->Compile(
 			&buffer,
 			arguments.data(),
 			(uint32_t)arguments.size(),

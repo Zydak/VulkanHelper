@@ -59,30 +59,26 @@ void VulkanHelper::Device::CreateCommandPoolsForThread()
 void VulkanHelper::Device::SetObjectName(VkObjectType type, uint64_t handle, const char* name) const
 {
 #ifndef DISTRIBUTION
-	// Initialize object name info structure
 	VkDebugUtilsObjectNameInfoEXT name_info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
 	name_info.objectType = type;
 	name_info.objectHandle = handle;
 	name_info.pObjectName = name;
 
-	// Set the debug name for the Vulkan object
 	VulkanHelper::vkSetDebugUtilsObjectNameEXT(m_Handle, &name_info);
 #endif
 }
 
 VkResult VulkanHelper::Device::FindMemoryTypeIndex(uint32_t* outMemoryIndex, VkMemoryPropertyFlags flags) const
 {
-	// Initialize allocation creation info
 	VmaAllocationCreateInfo allocInfo{};
 	allocInfo.priority = 0.5f;
 	allocInfo.requiredFlags = flags;
 	allocInfo.usage = VMA_MEMORY_USAGE_UNKNOWN;
 
-	// Find the memory type index matching the specified flags
 	return vmaFindMemoryTypeIndex(m_Allocator, UINT32_MAX, &allocInfo, outMemoryIndex);
 }
 
-VkResult VulkanHelper::Device::CreateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
+VulkanHelper::ResultCode VulkanHelper::Device::AllocateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
 {
 	if (dedicatedAllocation)
 	{
@@ -91,13 +87,13 @@ VkResult VulkanHelper::Device::CreateBuffer(VkBuffer* outBuffer, VmaAllocation* 
 		allocCreateInfo.requiredFlags = memoryPropertyFlags;
 		allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
-		return vmaCreateBufferWithAlignment(m_Allocator, &createInfo, &allocCreateInfo, 1, outBuffer, outAllocation, nullptr);
+		return (ResultCode)vmaCreateBufferWithAlignment(m_Allocator, &createInfo, &allocCreateInfo, 1, outBuffer, outAllocation, nullptr);
 	}
 
 	VH_ASSERT(false, "Not implemented!");
 }
 
-VkResult VulkanHelper::Device::CreateImage(VkImage* outImage, VmaAllocation* outAllocation, const VkImageCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
+VulkanHelper::ResultCode VulkanHelper::Device::AllocateImage(VkImage* outImage, VmaAllocation* outAllocation, const VkImageCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags /*= 0*/, bool dedicatedAllocation /*= false*/)
 {
 	if (dedicatedAllocation)
 	{
@@ -106,7 +102,7 @@ VkResult VulkanHelper::Device::CreateImage(VkImage* outImage, VmaAllocation* out
 		allocCreateInfo.requiredFlags = memoryPropertyFlags;
 		allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
-		return vmaCreateImage(m_Allocator, &createInfo, &allocCreateInfo, outImage, outAllocation, nullptr);
+		return (ResultCode)vmaCreateImage(m_Allocator, &createInfo, &allocCreateInfo, outImage, outAllocation, nullptr);
 	}
 
 	VH_ASSERT(false, "Not implemented!");

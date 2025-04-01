@@ -5,6 +5,8 @@
 
 #include "Image.h"
 
+#include <limits>
+
 namespace VulkanHelper
 {
 

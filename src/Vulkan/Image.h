@@ -1,17 +1,20 @@
 #pragma once
 #include "Pch.h"
 
-#include "Device.h"
+#include "vulkan/vulkan_core.h"
+#include "ErrorCodes.h"
+#include <vk_mem_alloc.h>
 
 namespace VulkanHelper
 {
+	class Device;
+
 	class Image
 	{
 	public:
 		struct CreateInfo
 		{
 			Device* Device = nullptr;
-
 			VkFormat Format = VK_FORMAT_MAX_ENUM;
 			VkImageUsageFlags Usage = 0;
 			VkMemoryPropertyFlags Properties = 0;
@@ -26,12 +29,13 @@ namespace VulkanHelper
 			const char* DebugName = "";
 		};
 
-		explicit Image(const CreateInfo& createInfo);
+		[[nodiscard]] ResultCode Init(const CreateInfo& createInfo);
+		Image() = default;
 		~Image();
 
-		explicit Image(const Image& other) = delete;
+		Image(const Image& other) = delete;
 		Image& operator=(const Image& other) = delete;
-		explicit Image(Image&& other) noexcept;
+		Image(Image&& other) noexcept;
 		Image& operator=(Image&& other) noexcept;
 
 		void TransitionImageLayout(VkImageLayout newLayout, VkCommandBuffer cmdBuffer = 0, uint32_t baseLayer = 0, uint32_t layerCount = 1);
@@ -40,7 +44,7 @@ namespace VulkanHelper
 		void CopyImageToImage(VkImage image, uint32_t width, uint32_t height, VkImageLayout layout, VkCommandBuffer cmd, VkOffset3D srcOffset = { 0, 0, 0 }, VkOffset3D dstOffset = { 0, 0, 0 });
 		void BlitImageToImage(Image* srcImage, VkCommandBuffer cmd);
 
-		void WritePixels(void* data, uint64_t dataSize, bool generateMipMaps = false, uint64_t offset = 0, VkCommandBuffer cmd = 0, uint32_t baseLayer = 0);
+		[[nodiscard]] VulkanHelper::ResultCode WritePixels(void* data, uint64_t dataSize, bool generateMipMaps = false, uint64_t offset = 0, VkCommandBuffer cmd = 0, uint32_t baseLayer = 0);
 		void GenerateMipmaps(VkCommandBuffer cmd) const;
 	public:
 
@@ -55,9 +59,10 @@ namespace VulkanHelper
 		inline VmaAllocation* GetAllocation() { return m_Allocation; }
 
 	private:
+
 		uint32_t FormatToSize(VkFormat format);
 		void CreateImageView();
-		void CreateImage();
+		ResultCode CreateImage();
 
 		Device* m_Device = nullptr;
 		VkFormat m_Format = VK_FORMAT_MAX_ENUM;

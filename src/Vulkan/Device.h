@@ -8,7 +8,6 @@
 
 namespace VulkanHelper
 {
-
 	class Device
 	{
 	public:
@@ -44,8 +43,8 @@ namespace VulkanHelper
 
 		[[nodiscard]] VkResult FindMemoryTypeIndex(uint32_t* outMemoryIndex, VkMemoryPropertyFlags flags) const;
 
-		[[nodiscard]] VkResult CreateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = false);
-		[[nodiscard]] VkResult CreateImage(VkImage* outImage, VmaAllocation* outAllocation, const VkImageCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = false);
+		[[nodiscard]] ResultCode AllocateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = false);
+		[[nodiscard]] ResultCode AllocateImage(VkImage* outImage, VmaAllocation* outAllocation, const VkImageCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = false);
 
 		void BeginSingleTimeCommands(VkCommandBuffer* buffer, VkCommandPool pool);
 		void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool);
