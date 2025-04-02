@@ -93,6 +93,8 @@ namespace VulkanHelper
 
 	ResultCode Shader::Init(const CreateInfo& createInfo)
 	{
+		Destroy();
+
 		m_Device = createInfo.Device;
 		m_Type = createInfo.Type;
 		m_Defines = createInfo.Defines;

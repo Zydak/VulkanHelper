@@ -38,6 +38,7 @@ void VulkanHelper::Instance::Init(const CreateInfo& createInfo)
 	s_Instance = new Instance();
 
 	VulkanHelper::Logger::Init();
+	VulkanHelper::Logger::GetInstance()->SetLevel(spdlog::level::trace);
 
 	glfwInit();
 	VH_INFO("GLFW initialized");

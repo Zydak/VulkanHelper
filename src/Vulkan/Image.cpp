@@ -8,6 +8,11 @@
 
 VulkanHelper::ResultCode VulkanHelper::Image::Init(const CreateInfo& createInfo)
 {
+	if (m_ImageHandle != VK_NULL_HANDLE)
+	{
+		Destroy();
+	}
+
 	m_Device = createInfo.Device;
 	m_Usage = createInfo.Usage;
 	m_MemoryProperties = createInfo.Properties;
@@ -31,8 +36,32 @@ VulkanHelper::ResultCode VulkanHelper::Image::Init(const CreateInfo& createInfo)
 
 VulkanHelper::Image::~Image()
 {
-	vkDestroyImageView(m_Device->GetHandle(), m_ViewHandle, nullptr);
-	vmaDestroyImage(m_Device->GetAllocator(), m_ImageHandle, *m_Allocation);
+	if (m_ImageHandle != VK_NULL_HANDLE)
+		Destroy();
+}
+
+VulkanHelper::Image::Image(Image&& other) noexcept
+{
+	if (this == &other)
+		return;
+
+	if (m_ImageHandle != VK_NULL_HANDLE)
+		Destroy();
+
+	Move(std::move(other));
+}
+
+VulkanHelper::Image& VulkanHelper::Image::operator=(Image&& other) noexcept
+{
+	if (this == &other)
+		return *this;
+
+	if (m_ImageHandle != VK_NULL_HANDLE)
+		Destroy();
+
+	Move(std::move(other));
+
+	return *this;
 }
 
 void VulkanHelper::Image::TransitionImageLayout(Device* device, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkCommandBuffer cmdBuffer /*= 0*/, const VkImageSubresourceRange& subresourceRange /*= { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } */)
@@ -336,6 +365,33 @@ VulkanHelper::ResultCode VulkanHelper::Image::CreateImage()
 		imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
 	return m_Device->AllocateImage(&m_ImageHandle, m_Allocation, imageCreateInfo, m_MemoryProperties);
+}
+
+void VulkanHelper::Image::Destroy()
+{
+	vkDestroyImageView(m_Device->GetHandle(), m_ViewHandle, nullptr);
+	vmaDestroyImage(m_Device->GetAllocator(), m_ImageHandle, *m_Allocation);
+	m_ImageHandle = VK_NULL_HANDLE;
+}
+
+void VulkanHelper::Image::Move(Image&& other)
+{
+	m_Device = std::move(other.m_Device);
+	m_Format = std::move(other.m_Format);
+	m_Aspect = std::move(other.m_Aspect);
+	m_Tiling = std::move(other.m_Tiling);
+	m_ViewType = std::move(other.m_ViewType);
+
+	m_ImageHandle = std::move(other.m_ImageHandle);
+	m_ViewHandle = std::move(other.m_ViewHandle);
+	m_Allocation = std::move(other.m_Allocation);
+	m_Size = std::move(other.m_Size);
+	m_MipLevels = std::move(other.m_MipLevels);
+	m_LayerCount = std::move(other.m_LayerCount);
+
+	m_Usage = std::move(other.m_Usage);
+	m_MemoryProperties = std::move(other.m_MemoryProperties);
+	m_Layout = std::move(other.m_Layout);
 }
 
 uint32_t VulkanHelper::Image::FormatToSize(VkFormat format)

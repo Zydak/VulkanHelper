@@ -3,6 +3,7 @@
 
 #include "vulkan.hpp"
 #include "GLFW/glfw3.h"
+#include "Input.h"
 
 #include "Renderer/Renderer.h"
 
@@ -38,6 +39,8 @@ namespace VulkanHelper
 
 	public:
 
+		[[nodiscard]] Input* GetInput() { return &m_Input; }
+
 		[[nodiscard]] bool WantsToClose() const { return glfwWindowShouldClose(m_Window); }
 		[[nodiscard]] VkSurfaceKHR GetSurface() const { return m_Surface; }
 		[[nodiscard]] uint32_t GetWidth() const { return m_Width; }
@@ -47,12 +50,13 @@ namespace VulkanHelper
 		[[nodiscard]] inline VkExtent2D GetExtent() const { return { m_Width, m_Height }; }
 		[[nodiscard]] Renderer* GetRenderer() { return m_Renderer.get(); }
 
-	private:
-
 		struct UserPointer
 		{
 			Window* Window;
+			Input* Input;
 		};
+	private:
+
 		static void ResizeCallback(GLFWwindow* window, int width, int height);
 		UserPointer m_UserPointer;
 
@@ -66,6 +70,8 @@ namespace VulkanHelper
 		std::string m_Name = "";
 		uint32_t m_Width = 0;
 		uint32_t m_Height = 0;
+
+		Input m_Input;
 
 		void Destroy();
 		void Move(Window&& other) noexcept;

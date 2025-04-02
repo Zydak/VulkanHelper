@@ -46,12 +46,15 @@ VulkanHelper::Window::Window(CreateInfo& createInfo)
 
 	CreateWindowSurface(Instance::Get()->GetHandle());
 
+	m_Input.Init(m_Window);
+
 	VH_INFO("Window created");
 }
 
 void VulkanHelper::Window::PollEvents()
 {
 	m_UserPointer.Window = this;
+	m_UserPointer.Input = &m_Input;
 	glfwSetWindowUserPointer(m_Window, &m_UserPointer);
 
 	glfwPollEvents();

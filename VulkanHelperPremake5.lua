@@ -12,6 +12,11 @@ globalIncludes =
     "%{wks.location}/Lib/Vma/",
 
     "%{wks.location}/Lib/Dxc/inc/",
+
+    "%{wks.location}/Lib/Entt/",
+
+    "%{wks.location}/Lib/Glm/",
+
 }
 
 globalDefines = 

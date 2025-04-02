@@ -32,15 +32,15 @@ namespace VulkanHelper
 		
 	public:
 
-		[[nodiscard]] VkResult Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		[[nodiscard]] ResultCode Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 		void Unmap();
 
 		void Barrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkCommandBuffer cmd = VK_NULL_HANDLE);
 
-		void WriteToBuffer(void* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0, VkCommandBuffer cmdBuffer = 0);
+		[[nodiscard]] ResultCode WriteToBuffer(void* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0, VkCommandBuffer cmdBuffer = 0);
 		void ReadFromBuffer(void* outData, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0, VkCommandBuffer cmdBuffer = 0);
 
-		[[nodiscard]] VkResult Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		[[nodiscard]] ResultCode Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 		[[nodiscard]] VkDescriptorBufferInfo DescriptorInfo();
 
 		[[nodiscard]] inline VkBuffer GetHandle() const { return m_Handle; }

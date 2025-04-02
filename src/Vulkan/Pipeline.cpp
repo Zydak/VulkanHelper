@@ -44,6 +44,8 @@ namespace VulkanHelper
 
 	VulkanHelper::ResultCode Pipeline::Init(const GraphicsCreateInfo& info)
 	{
+		Destroy();
+
 		m_Device = info.Device;
 		m_PipelineType = PipelineType::Graphics;
 
@@ -126,6 +128,8 @@ namespace VulkanHelper
 
 	VulkanHelper::ResultCode Pipeline::Init(const ComputeCreateInfo& info)
 	{
+		Destroy();
+
 		m_Device = info.Device;
 
 		m_PipelineType = PipelineType::Compute;
@@ -150,6 +154,8 @@ namespace VulkanHelper
 
 	VulkanHelper::ResultCode Pipeline::Init(const RayTracingCreateInfo& info)
 	{
+		Destroy();
+
 		m_Device = info.Device;
 
 		m_PipelineType = PipelineType::RayTracing;

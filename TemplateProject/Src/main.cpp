@@ -1,5 +1,10 @@
 #include "VulkanHelper.h"
 
+struct PushData
+{
+	glm::mat4 MVP;
+};
+
 int main()
 {
 	VulkanHelper::Instance::CreateInfo instanceCreateInfo{};
@@ -33,6 +38,30 @@ int main()
 
 	window->InitRenderer(device.get());
 
+	VulkanHelper::PushConstant<PushData> pushConstant({ VK_SHADER_STAGE_VERTEX_BIT });
+
+	std::vector<float> vertices = {
+		// Coords			// Color
+		 0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // TOP
+		 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // RIGHT BOTTOM
+		-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // LEFT BOTTOM
+	};
+
+	std::vector<uint32_t> indices = { 0, 1, 2 };
+
+	std::vector<VulkanHelper::Mesh::InputAttribute> inputAttributes = { { VK_FORMAT_R32G32B32_SFLOAT, 0 }, { VK_FORMAT_R32G32B32_SFLOAT, 12 } };
+
+	VulkanHelper::Mesh::CreateInfo meshCreateInfo{};
+	meshCreateInfo.Device = device.get();
+	meshCreateInfo.InputAttributes = inputAttributes;
+	meshCreateInfo.VertexData = vertices.data();
+	meshCreateInfo.VertexDataSize = vertices.size() * sizeof(float);
+	meshCreateInfo.IndexData = indices;
+	meshCreateInfo.VertexSize = sizeof(float) * 6;
+
+	VulkanHelper::Mesh mesh;
+	(void)mesh.Init(meshCreateInfo);
+
 	VulkanHelper::Shader::CreateInfo shaderCreateInfo{};
 	shaderCreateInfo.Device = device.get();
 	shaderCreateInfo.Filepath = "Src/FragmentTest.hlsl";
@@ -54,13 +83,41 @@ int main()
 	pipelineCreateInfo.DepthFormat = VK_FORMAT_D16_UNORM;
 	pipelineCreateInfo.ColorFormats = { VK_FORMAT_R8G8B8A8_UNORM };
 	pipelineCreateInfo.Shaders = { &vertexShader, &fragmentShader };
+	pipelineCreateInfo.BindingDesc = { mesh.GetBindingDescription() };
+	pipelineCreateInfo.AttributeDesc = mesh.GetInputAttributes();
+	pipelineCreateInfo.PushConstants = pushConstant.GetRangePtr();
 
 	VulkanHelper::Pipeline pipeline;
 	pipeline.Init(pipelineCreateInfo);
 
+	VulkanHelper::Transform transform;
+	glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
+	glm::mat4 view = glm::mat4{ 1.0f };
+
 	while (!window->WantsToClose())
 	{
 		window->PollEvents();
+
+		if (window->GetInput()->IsKeyPressed(VH_KEY_SPACE))
+			transform.AddScale(glm::vec3(0.1f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_LEFT_ALT))
+			transform.AddScale(glm::vec3(-0.1f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_S))
+			transform.AddTranslation(glm::vec3(0.0f, 0.1f, 0.0f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_W))
+			transform.AddTranslation(glm::vec3(0.0f, -0.1f, 0.0f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_A))
+			transform.AddTranslation(glm::vec3(-0.1f, 0.0f, 0.0f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_D))
+			transform.AddTranslation(glm::vec3(0.1f, 0.0f, 0.0f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_Q))
+			transform.AddTranslation(glm::vec3(0.0f, 0.0f, -0.1f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_E))
+			transform.AddTranslation(glm::vec3(0.0f, 0.0f, 0.1f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_F))
+			transform.AddRotation(glm::vec3(0.0f, 0.5f, 0.0f));
+		if (window->GetInput()->IsKeyPressed(VH_KEY_G))
+			transform.AddRotation(glm::vec3(0.0f, -0.5f, 0.0f));
 
 		if (window->GetRenderer()->BeginFrame())
 		{
@@ -74,7 +131,17 @@ int main()
 			window->GetRenderer()->BeginRendering({ colorAttachment }, nullptr, window->GetExtent());
 
 			pipeline.Bind(window->GetRenderer()->GetCurrentCommandBuffer());
-			vkCmdDraw(window->GetRenderer()->GetCurrentCommandBuffer(), 3, 1, 0, 0);
+
+			PushData data;
+			data.MVP = glm::transpose(proj * view * transform.GetMat4());
+
+			VH_TRACE("{}", transform.GetScale().x);
+
+			pushConstant.SetData(data);
+			pushConstant.Push(pipeline.GetPipelineLayout(), window->GetRenderer()->GetCurrentCommandBuffer(), 0);
+
+			mesh.Bind(window->GetRenderer()->GetCurrentCommandBuffer());
+			mesh.Draw(window->GetRenderer()->GetCurrentCommandBuffer(), 1);
 
 			window->GetRenderer()->EndRendering();
 

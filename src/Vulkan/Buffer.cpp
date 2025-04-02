@@ -9,6 +9,9 @@ namespace VulkanHelper
 {
 	ResultCode Buffer::Init(const Buffer::CreateInfo& createInfo)
 	{
+		if (m_Handle != VK_NULL_HANDLE)
+			Destroy();
+
 		m_Allocation = new VmaAllocation();
 
 		m_Device = createInfo.Device;
@@ -29,9 +32,6 @@ namespace VulkanHelper
 
 	void Buffer::Destroy()
 	{
-		if (m_Handle == VK_NULL_HANDLE)
-			return;
-
 		Unmap();
 
 		//DeleteQueue::TrashBuffer(*this);
@@ -46,7 +46,8 @@ namespace VulkanHelper
 		if (this == &other)
 			return;
 
-		Destroy();
+		if (m_Handle != VK_NULL_HANDLE)
+			Destroy();
 
 		Move(std::move(other));
 	}
@@ -56,7 +57,8 @@ namespace VulkanHelper
 		if (this == &other)
 			return *this;
 
-		Destroy();
+		if (m_Handle != VK_NULL_HANDLE)
+			Destroy();
 
 		Move(std::move(other));
 
@@ -65,7 +67,8 @@ namespace VulkanHelper
 
 	Buffer::~Buffer()
 	{
-		Destroy();
+		if (m_Handle != VK_NULL_HANDLE)
+			Destroy();
 	}
 
 	VmaAllocationInfo Buffer::GetMemoryInfo() const
@@ -85,13 +88,13 @@ namespace VulkanHelper
 		return vkGetBufferDeviceAddress(m_Device->GetHandle(), &info);
 	}
 
-	VkResult Buffer::Map(VkDeviceSize size, VkDeviceSize offset)
+	ResultCode Buffer::Map(VkDeviceSize size, VkDeviceSize offset)
 	{
 		VH_ASSERT(!(m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), "Can't map device local buffer!");
 
 		VkResult result = vmaMapMemory(m_Device->GetAllocator(), *m_Allocation, &m_Mapped);
 
-		return result;
+		return (ResultCode)result;
 	}
 
 	void Buffer::Unmap()
@@ -130,13 +133,15 @@ namespace VulkanHelper
 		}
 	}
 
-	void Buffer::WriteToBuffer(void* data, VkDeviceSize size, VkDeviceSize offset, VkCommandBuffer cmdBuffer)
+	ResultCode Buffer::WriteToBuffer(void* data, VkDeviceSize size, VkDeviceSize offset, VkCommandBuffer cmdBuffer)
 	{
 		VH_ASSERT((size == VK_WHOLE_SIZE || size + offset <= m_BufferSize), "Data size is larger than buffer size, either resize the buffer or create a larger one");
 		VH_ASSERT(data != nullptr, "Invalid data pointer");
 
 		if (size == VK_WHOLE_SIZE)
 			size = m_BufferSize - offset;
+
+		ResultCode res = ResultCode::Success;
 
 		// If the buffer is device local, use a staging buffer to transfer the data.
 		if (m_MemoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
@@ -153,12 +158,18 @@ namespace VulkanHelper
 			info.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			info.UsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			Buffer stagingBuffer;
-			VH_CHECK(stagingBuffer.Init(info) == ResultCode::Success, "Failed to create staging buffer!");
+			res = stagingBuffer.Init(info);
+			if (res != ResultCode::Success)
+				return res;
 
-			(void)stagingBuffer.Map();
+			res = stagingBuffer.Map();
+			if (res != ResultCode::Success)
+				return res;
 
 			stagingBuffer.WriteToBuffer(data, size, 0, cmd);
-			(void)stagingBuffer.Flush();
+			res = stagingBuffer.Flush();
+			if (res != ResultCode::Success)
+				return res;
 
 			stagingBuffer.Unmap();
 
@@ -180,6 +191,8 @@ namespace VulkanHelper
 
 			memcpy(memOffset, data, size);
 		}
+
+		return res;
 	}
 
 	void Buffer::ReadFromBuffer(void* outData, VkDeviceSize size /*= VK_WHOLE_SIZE*/, VkDeviceSize offset /*= 0*/, VkCommandBuffer cmdBuffer /*= 0*/)
@@ -235,9 +248,9 @@ namespace VulkanHelper
 		}
 	}
 
-	VkResult Buffer::Flush(VkDeviceSize size, VkDeviceSize offset)
+	ResultCode Buffer::Flush(VkDeviceSize size, VkDeviceSize offset)
 	{
-		return vmaFlushAllocation(m_Device->GetAllocator(), *m_Allocation, offset, size);;
+		return (ResultCode)vmaFlushAllocation(m_Device->GetAllocator(), *m_Allocation, offset, size);;
 	}
 
 	VkDescriptorBufferInfo Buffer::DescriptorInfo()

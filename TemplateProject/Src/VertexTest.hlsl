@@ -1,26 +1,29 @@
+struct VSInput {
+	float3 position : POSITION;
+	float3 color : COLOR;
+};
+
 struct VSOutput {
 	float4 position : SV_POSITION;
 	float4 color : COLOR;
 };
 
-VSOutput main(uint id : SV_VertexID) 
+struct PushConstant {
+	float4x4 MVP;
+};
+
+[[vk::push_constant]]
+PushConstant push;
+
+VSOutput main(VSInput input) 
 {
 	VSOutput output;
 
-	float2 vertices[3] = {
-		float2(0.0, -0.8),  // Top
-		float2(0.8,  0.8),  // Bottom Right
-		float2(-0.8, 0.8)  // Bottom Left
-	};
+	// model * view * proj * pos
+	output.position = mul(float4(input.position, 1.0f), push.MVP);
 
-	float3 colors[3] = {
-		float3(1.0, 0.0, 0.0),
-		float3(0.0, 1.0, 0.0),
-		float3(0.0, 0.0, 1.0)
-	};
-
-	output.position = float4(vertices[id], 0.0, 1.0);
-	output.color = float4(colors[id], 1.0);
+    //output.position = mul(push.transform, float4(input.position, 1.0));
+	output.color = float4(input.color, 1.0);
 
 	return output;
 }
