@@ -1,39 +1,38 @@
 #pragma once
 
+#define NOMINMAX
+
 #include "pch.h"
-#include "Device.h"
-
-#include <shaderc/shaderc.hpp>
-
-#include <slang.h>
-
+#include "vulkan/vulkan_core.h"
+#include "ErrorCodes.h"
 #include "wrl/client.h"
+#include "dxcapi.h"
 
 namespace VulkanHelper
 {
+	class Device;
 	class Shader
 	{
 	public:
 		struct Define
 		{
-			std::string Name;
-			std::string Value;
+			std::string Name = "";
+			std::string Value = "";
 		};
+
 		struct CreateInfo
 		{
-			std::string Filepath;
-			VkShaderStageFlagBits Type;
+			Device* Device = nullptr;
+			std::string Filepath = "";
+			VkShaderStageFlagBits Type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 
 			std::vector<Define> Defines;
 
 			bool CacheToFile = false;
 		};
 
-		[[nodiscard]] bool Init(const CreateInfo& info);
-		void Destroy();
-
+		[[nodiscard]] ResultCode Init(const CreateInfo& createInfo);
 		Shader() = default;
-		Shader(const CreateInfo& info);
 		~Shader();
 
 		Shader(const Shader& other) = delete;
@@ -41,25 +40,34 @@ namespace VulkanHelper
 		Shader(Shader&& other) noexcept;
 		Shader& operator=(Shader&& other) noexcept;
 
-		VkPipelineShaderStageCreateInfo GetStageCreateInfo();
+	public:
 
-		inline VkShaderModule GetModuleHandle() { return m_ModuleHandle; }
-		inline VkShaderStageFlagBits GetType() { return m_Type; }
+		[[nodiscard]] ResultCode Compile();
 
-		inline bool IsInitialized() const { return m_Initialized; }
+	public:
+
+		[[nodiscard]] VkPipelineShaderStageCreateInfo GetStageCreateInfo();
+
+		[[nodiscard]] inline VkShaderModule GetModuleHandle() { return m_ModuleHandle; }
+		[[nodiscard]] inline VkShaderStageFlagBits GetType() const { return m_Type; }
+
 	private:
 
-		std::string ReadShaderFile(const std::string& filepath);
-		void CreateCacheDir();
-		std::vector<uint32_t> CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile);
-		shaderc_shader_kind VkStageToScStage(VkShaderStageFlagBits stage);
+		[[nodiscard]] std::vector<uint32_t> CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile);
+		
+		[[nodiscard]] std::vector<uint32_t> CompileSlang(const std::string& filepath, const std::vector<Define>& defines);
+		[[nodiscard]] std::vector<uint32_t> CompileHlsl(const std::string& filepath, const std::vector<Define>& defines);
 
+		Device* m_Device = nullptr;
 		VkShaderModule m_ModuleHandle = VK_NULL_HANDLE;
 		VkShaderStageFlagBits m_Type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
-		bool m_Initialized = false;
+		std::vector<Define> m_Defines;
+		std::string m_Filepath = "";
 
-		void Reset();
+		inline static Microsoft::WRL::ComPtr<IDxcUtils> s_DXCUtils = nullptr;
+		inline static Microsoft::WRL::ComPtr<IDxcCompiler3> s_DXCCompiler = nullptr;
 
-		inline static Microsoft::WRL::ComPtr<slang::IGlobalSession> s_GlobalSession = nullptr;
+		void Destroy();
+		void Move(Shader&& other) noexcept;
 	};
 }

@@ -1,15 +1,12 @@
 #pragma once
 #include "pch.h"
 
-#include "Device.h"
-
-#include <vulkan/vulkan_core.h>
-#include "DescriptorSet.h"
-
 #include "Shader.h"
 
 namespace VulkanHelper
 {
+	class Device;
+
 	class Pipeline
 	{
 	public:
@@ -17,33 +14,28 @@ namespace VulkanHelper
 		struct ComputeCreateInfo;
 		struct RayTracingCreateInfo;
 
-		void Init(const GraphicsCreateInfo& info);
-		void Init(const ComputeCreateInfo& info);
-		void Init(const RayTracingCreateInfo& info);
-		void Destroy();
+		[[nodiscard]] ResultCode Init(const GraphicsCreateInfo& createInfo);
+		[[nodiscard]] ResultCode Init(const RayTracingCreateInfo& createInfo);
+		[[nodiscard]] ResultCode Init(const ComputeCreateInfo& createInfo);
 
 		Pipeline() = default;
-		Pipeline(const GraphicsCreateInfo& info);
-		Pipeline(const ComputeCreateInfo& info);
-		Pipeline(const RayTracingCreateInfo& info);
 		~Pipeline();
 
 		Pipeline(const Pipeline&) = delete;
 		Pipeline& operator=(const Pipeline&) = delete;
-
 		Pipeline(Pipeline&& other) noexcept;
 		Pipeline& operator=(Pipeline&& other) noexcept;
+	public:
 
-		void Bind(VkCommandBuffer commandBuffer);
+		void Bind(VkCommandBuffer commandBuffer) const;
 
-		inline VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
-		inline VkPipeline GetPipeline() const { return m_PipelineHandle; }
-
-		inline bool IsInitialized() const { return m_Initialized; }
+		[[nodiscard]] inline VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
+		[[nodiscard]] inline VkPipeline GetPipeline() const { return m_PipelineHandle; }
 
 	public:
 		struct GraphicsCreateInfo
 		{
+			Device* Device = nullptr;
 			std::vector<Shader*> Shaders;
 			std::vector<VkVertexInputBindingDescription> BindingDesc;
 			std::vector<VkVertexInputAttributeDescription> AttributeDesc;
@@ -57,14 +49,16 @@ namespace VulkanHelper
 			bool BlendingEnable = false;
 			std::vector<VkDescriptorSetLayout> DescriptorSetLayouts;
 			VkPushConstantRange* PushConstants = nullptr;
-			VkRenderPass RenderPass = VK_NULL_HANDLE;
-			int ColorAttachmentCount = 1;
+			uint32_t ColorAttachmentCount = 1;
+			std::vector<VkFormat> ColorFormats;
+			VkFormat DepthFormat = VK_FORMAT_D32_SFLOAT;
 
 			const char* debugName = "";
 		};
 
 		struct ComputeCreateInfo
 		{
+			Device* Device = nullptr;
 			VulkanHelper::Shader* Shader = nullptr;
 			std::vector<VkDescriptorSetLayout> DescriptorSetLayouts;
 			VkPushConstantRange* PushConstants = nullptr;
@@ -74,6 +68,7 @@ namespace VulkanHelper
 
 		struct RayTracingCreateInfo
 		{
+			Device* Device = nullptr;
 			std::vector<Shader*> RayGenShaders;
 			std::vector<Shader*> MissShaders;
 			std::vector<Shader*> HitShaders;
@@ -101,11 +96,9 @@ namespace VulkanHelper
 		};
 
 		void CreatePipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t width, uint32_t height, VkPolygonMode polyMode, VkPrimitiveTopology topology, VkCullModeFlags cullMode, bool depthTestEnable, bool blendingEnable, int colorAttachmentCount = 1);
-		static std::vector<char> ReadFile(const std::string& filepath);
 
-		void CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
 		void CreatePipelineLayout(const std::vector<VkDescriptorSetLayout>& descriptorSetsLayouts, VkPushConstantRange* pushConstants);
-	
+
 		enum class PipelineType
 		{
 			Graphics,
@@ -114,13 +107,13 @@ namespace VulkanHelper
 			Undefined
 		};
 
+		Device* m_Device = nullptr;
 		VkPipeline m_PipelineHandle = 0;
 		VkPipelineLayout m_PipelineLayout = 0;
 		PipelineType m_PipelineType = PipelineType::Undefined;
 
-		bool m_Initialized = false;
-
-		void Reset();
+		void Destroy();
+		void Move(Pipeline&& other) noexcept;
 	};
 
 }

@@ -1,5 +1,6 @@
-bin/
-bin-int/
+Bin/
+BinInt/
+**/build/
 .vs/
 **/*.vcxproj.*
 **/*.vcxproj
@@ -7,3 +8,4 @@ bin-int/
 **/Vulture.log
 **/*.cmd
 **/*.rsp
+**/VulkanHelper.log

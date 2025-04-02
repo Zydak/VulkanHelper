@@ -1,10 +1,10 @@
-#include "pch.h"
-#include "Utility/Utility.h"
+#include "Pch.h"
 
 #include "Pipeline.h"
-#include <vulkan/vulkan_core.h>
+#include "Logger/Logger.h"
+#include "LoadedFunctions.h"
 
-#include "DeleteQueue.h"
+#include "Device.h"
 
 namespace VulkanHelper
 {
@@ -21,13 +21,32 @@ namespace VulkanHelper
 		VkShaderStageFlagBits Type;
 	};
 
-	void Pipeline::Init(const GraphicsCreateInfo& info)
+	void Pipeline::Destroy()
 	{
-		if (m_Initialized)
+		// TODO: figure out why the fuck I can't have 2 ray tracing pipelines at the same time
+		//if (m_PipelineType == PipelineType::RayTracing)
+		if (m_PipelineHandle != VK_NULL_HANDLE)
 		{
-			Destroy();
-		}
+			m_Device->WaitUntilIdle();
+			vkDestroyPipeline(m_Device->GetHandle(), m_PipelineHandle, nullptr);
+			m_PipelineHandle = VK_NULL_HANDLE;
 
+			vkDestroyPipelineLayout(m_Device->GetHandle(), m_PipelineLayout, nullptr);
+		}
+		//else
+		//	DeleteQueue::TrashPipeline(*this);
+	}
+
+	Pipeline::~Pipeline()
+	{
+		Destroy();
+	}
+
+	VulkanHelper::ResultCode Pipeline::Init(const GraphicsCreateInfo& info)
+	{
+		Destroy();
+
+		m_Device = info.Device;
 		m_PipelineType = PipelineType::Graphics;
 
 		CreatePipelineLayout(info.DescriptorSetLayouts, info.PushConstants);
@@ -82,32 +101,62 @@ namespace VulkanHelper
 		graphicsPipelineInfo.pDepthStencilState = &configInfo.DepthStencilInfo;
 
 		graphicsPipelineInfo.layout = m_PipelineLayout;
-		graphicsPipelineInfo.renderPass = info.RenderPass;
+		graphicsPipelineInfo.renderPass = VK_NULL_HANDLE;
 		graphicsPipelineInfo.subpass = configInfo.Subpass;
+
+		VkPipelineRenderingCreateInfoKHR pipelineRenderingInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+		pipelineRenderingInfo.pNext = VK_NULL_HANDLE;
+		pipelineRenderingInfo.colorAttachmentCount = info.ColorAttachmentCount;
+		pipelineRenderingInfo.pColorAttachmentFormats = info.ColorFormats.data();
+		pipelineRenderingInfo.depthAttachmentFormat = info.DepthFormat;
+		pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+		graphicsPipelineInfo.pNext = &pipelineRenderingInfo;
 
 		graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 		graphicsPipelineInfo.basePipelineIndex = -1;
 
-		VK_CORE_RETURN_ASSERT(
-			vkCreateGraphicsPipelines(Device::GetDevice(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &m_PipelineHandle),
-			VK_SUCCESS,
-			"failed to create graphics pipeline!"
-		);
+		ResultCode res = (ResultCode)vkCreateGraphicsPipelines(m_Device->GetHandle(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &m_PipelineHandle);
 
-		if (std::string(info.debugName) != std::string())
+		if (res == ResultCode::Success && std::string(info.debugName) != std::string())
 		{
-			VK_SET_NAME(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
+			m_Device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
 		}
 
-		m_Initialized = true;
+		return res;
 	}
 
-	void Pipeline::Init(const RayTracingCreateInfo& info)
+	VulkanHelper::ResultCode Pipeline::Init(const ComputeCreateInfo& info)
 	{
-		if (m_Initialized)
+		Destroy();
+
+		m_Device = info.Device;
+
+		m_PipelineType = PipelineType::Compute;
+
+		CreatePipelineLayout(info.DescriptorSetLayouts, info.PushConstants);
+
+		VkComputePipelineCreateInfo computePipelineInfo = {};
+
+		computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		computePipelineInfo.layout = m_PipelineLayout;
+		computePipelineInfo.stage = info.Shader->GetStageCreateInfo();
+
+		ResultCode res = (ResultCode)vkCreateComputePipelines(m_Device->GetHandle(), VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &m_PipelineHandle);
+
+		if (res == ResultCode::Success && std::string(info.debugName) != std::string())
 		{
-			Destroy();
+			m_Device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
 		}
+
+		return res;
+	}
+
+	VulkanHelper::ResultCode Pipeline::Init(const RayTracingCreateInfo& info)
+	{
+		Destroy();
+
+		m_Device = info.Device;
 
 		m_PipelineType = PipelineType::RayTracing;
 
@@ -198,159 +247,39 @@ namespace VulkanHelper
 		rayPipelineInfo.maxPipelineRayRecursionDepth = 2;  // Ray depth
 		rayPipelineInfo.layout = m_PipelineLayout;
 
-		Device::vkCreateRayTracingPipelinesKHR(Device::GetDevice(), {}, {}, 1, &rayPipelineInfo, nullptr, &m_PipelineHandle);
+		ResultCode res = (ResultCode)VulkanHelper::vkCreateRayTracingPipelinesKHR(m_Device->GetHandle(), {}, {}, 1, &rayPipelineInfo, nullptr, &m_PipelineHandle);
 
-		if (std::string(info.debugName) != std::string())
+		if (res == ResultCode::Success && std::string(info.debugName) != std::string())
 		{
-			Device::SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
+			m_Device->SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
 		}
 
-		m_Initialized = true;
-	}
-
-	void Pipeline::Init(const ComputeCreateInfo& info)
-	{
-		if (m_Initialized)
-		{
-			Destroy();
-		}
-
-		m_PipelineType = PipelineType::Compute;
-
-		CreatePipelineLayout(info.DescriptorSetLayouts, info.PushConstants);
-
-		VkComputePipelineCreateInfo computePipelineInfo = {};
-
-		computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-		computePipelineInfo.layout = m_PipelineLayout;
-		computePipelineInfo.stage = info.Shader->GetStageCreateInfo();
-
-		VK_CORE_RETURN_ASSERT(
-			vkCreateComputePipelines(Device::GetDevice(), VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &m_PipelineHandle),
-			VK_SUCCESS,
-			"failed to create graphics pipeline!"
-		);
-
-		if (std::string(info.debugName) != std::string())
-		{
-			Device::SetObjectName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_PipelineHandle, info.debugName);
-		}
-
-		m_Initialized = true;
-	}
-
-	void Pipeline::Destroy()
-	{
-		if (!m_Initialized)
-			return;
-
-		// TODO: figure out why the fuck I can't have 2 ray tracing pipelines at the same time
-		if (m_PipelineType == PipelineType::RayTracing)
-		{
-			VulkanHelper::Device::WaitIdle();
-			vkDestroyPipeline(Device::GetDevice(), m_PipelineHandle, nullptr);
-			vkDestroyPipelineLayout(Device::GetDevice(), m_PipelineLayout, nullptr);
-		}
-		else
-			DeleteQueue::TrashPipeline(*this);
-
-		Reset();
-	}
-
-	Pipeline::~Pipeline()
-	{
-		Destroy();
-	}
-
-	Pipeline::Pipeline(const GraphicsCreateInfo& info)
-	{
-		Init(info);
-	}
-
-	Pipeline::Pipeline(const ComputeCreateInfo& info)
-	{
-		Init(info);
-	}
-
-	Pipeline::Pipeline(const RayTracingCreateInfo& info)
-	{
-		Init(info);
+		return res;
 	}
 
 	Pipeline::Pipeline(Pipeline&& other) noexcept
 	{
-		if (m_Initialized)
-			Destroy();
+		if (this == &other)
+			return;
 
-		m_PipelineHandle	= std::move(other.m_PipelineHandle);
-		m_PipelineLayout	= std::move(other.m_PipelineLayout);
-		m_PipelineType		= std::move(other.m_PipelineType);
-		m_Initialized		= std::move(other.m_Initialized);
+		Destroy();
 
-		other.Reset();
+		Move(std::move(other));
 	}
 
 	Pipeline& Pipeline::operator=(Pipeline&& other) noexcept
 	{
-		if (m_Initialized)
-			Destroy();
+		if (this == &other)
+			return *this;
 
-		m_PipelineHandle = std::move(other.m_PipelineHandle);
-		m_PipelineLayout = std::move(other.m_PipelineLayout);
-		m_PipelineType = std::move(other.m_PipelineType);
-		m_Initialized = std::move(other.m_Initialized);
+		Destroy();
 
-		other.Reset();
+		Move(std::move(other));
 
 		return *this;
 	}
 
-	/*
-	 * @brief Reads the contents of a file into a vector of characters.
-	 *
-	 * @param filepath - The path to the file to be read.
-	 * @return A vector of characters containing the file contents.
-	 */
-	std::vector<char> Pipeline::ReadFile(const std::string& filepath)
-	{
-		std::ifstream file(filepath, std::ios::ate | std::ios::binary);    // ate goes to the end of the file so reading filesize is easier and binary avoids text transformation
-		VK_CORE_ASSERT(file.is_open(), "failed to open file: " + filepath);
-
-		uint32_t fileSize = (uint32_t)(file.tellg());    // tellg gets current position in file
-		std::vector<char> buffer(fileSize);
-		file.seekg(0);    // return to the beginning of the file
-		file.read(buffer.data(), fileSize);
-
-		file.close();
-		return buffer;
-	}
-
-	/*
-	 * @brief Creates a Vulkan shader module from the given shader code.
-	 *
-	 * @param code - The vector of characters containing the shader code.
-	 * @param shaderModule - Pointer to the Vulkan shader module to be created.
-	 */
-	void Pipeline::CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
-	{
-		VkShaderModuleCreateInfo createInfo{};
-
-		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = code.size();
-		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-		VK_CORE_RETURN_ASSERT(vkCreateShaderModule(Device::GetDevice(), &createInfo, nullptr, shaderModule),
-			VK_SUCCESS,
-			"failed to create shader Module"
-		);
-	}
-
-	/*
-	 * @brief Binds the pipeline to the given Vulkan command buffer.
-	 *
-	 * @param commandBuffer - The Vulkan command buffer to which the pipeline is bound.
-	 */
-	void Pipeline::Bind(VkCommandBuffer commandBuffer)
+	void Pipeline::Bind(VkCommandBuffer commandBuffer) const
 	{
 		VkPipelineBindPoint bindPoint;
 
@@ -366,19 +295,13 @@ namespace VulkanHelper
 			bindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
 			break;
 		default:
-			VK_CORE_ASSERT(false, "Undefined Pipeline Type!");
+			VH_CHECK(false, "Undefined Pipeline Type!");
 			break;
 		}
 
 		vkCmdBindPipeline(commandBuffer, bindPoint, m_PipelineHandle);
 	}
 
-	/*
-	 * @brief Creates a Vulkan pipeline layout using the specified descriptor set layouts and push constant ranges.
-	 *
-	 * @param descriptorSetsLayouts - The descriptor set layouts to be used in the pipeline layout.
-	 * @param pushConstants - The push constant ranges to be used in the pipeline layout.
-	 */
 	void Pipeline::CreatePipelineLayout(const std::vector<VkDescriptorSetLayout>& descriptorSetsLayouts, VkPushConstantRange* pushConstants)
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -387,31 +310,11 @@ namespace VulkanHelper
 		pipelineLayoutInfo.pSetLayouts = descriptorSetsLayouts.empty() ? nullptr : descriptorSetsLayouts.data();
 		pipelineLayoutInfo.pushConstantRangeCount = (pushConstants == nullptr) ? 0 : 1;
 		pipelineLayoutInfo.pPushConstantRanges = pushConstants;
-		VK_CORE_RETURN_ASSERT(vkCreatePipelineLayout(Device::GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout),
-			VK_SUCCESS,
+		VH_CHECK(vkCreatePipelineLayout(m_Device->GetHandle(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) == VK_SUCCESS,
 			"failed to create pipeline layout!"
 		);
 	}
 
-	void Pipeline::Reset()
-	{
-		m_PipelineHandle = VK_NULL_HANDLE;
-		m_PipelineLayout = VK_NULL_HANDLE;
-		m_PipelineType = PipelineType::Undefined;
-		m_Initialized = false;
-	}
-
-	/**
-	 * @brief Initializes a Vulkan pipeline configuration based on the specified parameters.
-	 *
-	 * @param configInfo - The pipeline configuration information structure to be initialized.
-	 * @param width - The width of the viewport.
-	 * @param height - The height of the viewport.
-	 * @param topology - The primitive topology.
-	 * @param cullMode - The cull mode flags.
-	 * @param depthTestEnable - Flag indicating whether depth testing is enabled.
-	 * @param blendingEnable - Flag indicating whether blending is enabled.
-	 */
 	void Pipeline::CreatePipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t width, uint32_t height, VkPolygonMode polyMode, VkPrimitiveTopology topology, VkCullModeFlags cullMode, bool depthTestEnable, bool blendingEnable, int colorAttachmentCount)
 	{
 		configInfo.InputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -495,5 +398,20 @@ namespace VulkanHelper
 		configInfo.DepthStencilInfo.stencilTestEnable = VK_FALSE;
 		configInfo.DepthStencilInfo.front = {};
 		configInfo.DepthStencilInfo.back = {};
+	}
+
+	void Pipeline::Move(Pipeline&& other) noexcept
+	{
+		m_Device = other.m_Device;
+		other.m_Device = nullptr;
+
+		m_PipelineHandle = other.m_PipelineHandle;
+		other.m_PipelineHandle = VK_NULL_HANDLE;
+
+		m_PipelineLayout = other.m_PipelineLayout;
+		other.m_PipelineLayout = VK_NULL_HANDLE;
+
+		m_PipelineType = other.m_PipelineType;
+		other.m_PipelineType = PipelineType::Undefined;
 	}
 }

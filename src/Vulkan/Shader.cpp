@@ -1,34 +1,23 @@
 #include "pch.h"
 
 #include "Shader.h"
-#include "Utility/Utility.h"
+#include "Logger/Logger.h"
+#include "Device.h"
 
-#include <shaderc/libshaderc_util/file_finder.h>
-#include <shaderc/glslc/file_includer.h>
 
 namespace VulkanHelper
 {
-	bool Shader::Init(const CreateInfo& info)
+
+	VulkanHelper::ResultCode Shader::Compile()
 	{
-		if (m_Initialized)
-			Destroy();
-
-		if (s_GlobalSession == nullptr)
+		if (!std::filesystem::exists(m_Filepath))
 		{
-			slang::createGlobalSession(&s_GlobalSession);
+			return ResultCode::FileNotFound;
 		}
 
-		if (!std::filesystem::exists(info.Filepath))
-		{
-			VK_CORE_ERROR("File does not exist: {}", info.Filepath);
-			return false;
-		}
-
-		m_Type = info.Type;
-
-		std::vector<uint32_t> data = CompileSource(info.Filepath, info.Defines, info.CacheToFile);
+		std::vector<uint32_t> data = CompileSource(m_Filepath, m_Defines, false);
 		if (data.empty())
-			return false;
+			return ResultCode::ShaderCompilationFailed;
 
 		VkShaderModuleCreateInfo createInfo{};
 
@@ -36,55 +25,43 @@ namespace VulkanHelper
 		createInfo.codeSize = data.size() * 4;
 		createInfo.pCode = data.data();
 
-		VK_CORE_RETURN_ASSERT(vkCreateShaderModule(Device::GetDevice(), &createInfo, nullptr, &m_ModuleHandle),
-			VK_SUCCESS,
-			"failed to create shader Module"
-		);
+		if (vkCreateShaderModule(m_Device->GetHandle(), &createInfo, nullptr, &m_ModuleHandle) != VK_SUCCESS)
+		{
+			return ResultCode::UnknownError;
+		}
 
-		Device::SetObjectName(VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)m_ModuleHandle, info.Filepath.c_str());
+		m_Device->SetObjectName(VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)m_ModuleHandle, m_Filepath.c_str());
 
-		m_Initialized = true;
-		
-		return true;
+		return ResultCode::Success;
 	}
 
 	void Shader::Destroy()
 	{
-		if (!m_Initialized)
+		if (m_ModuleHandle == VK_NULL_HANDLE)
 			return;
 
-		vkDestroyShaderModule(Device::GetDevice(), m_ModuleHandle, nullptr);
-		
-		Reset();
-	}
-
-	Shader::Shader(const CreateInfo& info)
-	{
-		bool result = Init(info);
+		vkDestroyShaderModule(m_Device->GetHandle(), m_ModuleHandle, nullptr);
+		m_ModuleHandle = VK_NULL_HANDLE;
 	}
 
 	Shader::Shader(Shader&& other) noexcept
 	{
-		if (m_Initialized)
-			Destroy();
+		if (this == &other)
+			return;
 
-		m_ModuleHandle	= std::move(other.m_ModuleHandle);
-		m_Type			= std::move(other.m_Type);
-		m_Initialized	= std::move(other.m_Initialized);
+		Destroy();
 
-		other.Reset();
+		Move(std::move(other));
 	}
 
 	Shader& Shader::operator=(Shader&& other) noexcept
 	{
-		if (m_Initialized)
-			Destroy();
+		if (this == &other)
+			return *this;
 
-		m_ModuleHandle	= std::move(other.m_ModuleHandle);
-		m_Type			= std::move(other.m_Type);
-		m_Initialized	= std::move(other.m_Initialized);
+		Destroy();
 
-		other.Reset();
+		Move(std::move(other));
 
 		return *this;
 	}
@@ -94,180 +71,177 @@ namespace VulkanHelper
 		Destroy();
 	}
 
-	static std::string GetLastPartAfterLastSlash(const std::string& str)
+	static std::string GetPartAfterLastSlash(const std::string& str)
 	{
 		size_t lastSlashPos = str.find_last_of('/');
-		if (lastSlashPos != std::string::npos && lastSlashPos != str.length() - 1) 
+		if (lastSlashPos != std::string::npos && lastSlashPos != str.length() - 1)
 		{
-			return str.substr(lastSlashPos + 1); // Extract the substring after the last slash
+			return str.substr(lastSlashPos + 1);
 		}
 		return str; // Return the original string if no slash is found or if the last character is a slash
+	}
+
+	static std::string GetPartBeforeLastSlash(const std::string& str)
+	{
+		size_t lastSlashPos = str.find_last_of('/');
+		if (lastSlashPos != std::string::npos && lastSlashPos != str.length() - 1)
+		{
+			return str.substr(0, lastSlashPos);
+		}
+		return str; // Return the original string if no slash is found or if the last character is a slash
+	}
+
+	ResultCode Shader::Init(const CreateInfo& createInfo)
+	{
+		Destroy();
+
+		m_Device = createInfo.Device;
+		m_Type = createInfo.Type;
+		m_Defines = createInfo.Defines;
+		m_Filepath = createInfo.Filepath;
+
+		if (s_DXCUtils == nullptr)
+		{
+			HRESULT hres = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&s_DXCUtils));
+			VH_CHECK(hres == 0, "Could not init DXC Utiliy");
+
+			hres = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&s_DXCCompiler));
+			VH_ASSERT(hres == 0, "Could not create DXC Compiler");
+		}
+
+		return Compile();
 	}
 
 	std::vector<uint32_t> Shader::CompileSource(const std::string& filepath, const std::vector<Define>& defines, bool cacheToFile)
 	{
 		size_t dotPos = filepath.find_last_of('.');
 		std::string extension = filepath.substr(dotPos, filepath.size() - dotPos);
-		std::vector<uint32_t> data;
-		std::string shaderName = GetLastPartAfterLastSlash(filepath);
 
-		if (std::filesystem::exists("CachedShaders/" + shaderName + ".cache"))
+		if (extension == ".slang")
 		{
-			File::ReadFromFileVec(data, "CachedShaders/" + shaderName + ".cache");
+			return CompileSlang(filepath, defines);
 		}
-		else if (extension == ".slang")
+		else if (extension == ".hlsl")
 		{
-			slang::TargetDesc targetDesc{};
-			targetDesc.format = SLANG_SPIRV;
-			targetDesc.profile = s_GlobalSession->findProfile("spirv_1_4");
-
-			const char* searchPaths[] = { "src/shaders/" };
-
-			std::vector<slang::CompilerOptionEntry> compilerOptions(2);
-			compilerOptions[0].name = slang::CompilerOptionName::Optimization;
-			compilerOptions[0].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL };
-
-			slang::SessionDesc sessionDesc{};
-
-			std::vector<slang::PreprocessorMacroDesc> macros(defines.size());
-
-			for (int i = 0; i < defines.size(); i++)
-			{
-				macros.emplace_back(defines[i].Name.c_str(), defines[i].Value.c_str());
-			}
-
-			sessionDesc.preprocessorMacros = macros.data();
-			sessionDesc.preprocessorMacroCount = macros.size();
-
-			sessionDesc.targets = &targetDesc;
-			sessionDesc.targetCount = 1;
-
-			sessionDesc.searchPaths = searchPaths;
-			sessionDesc.searchPathCount = 1;
-
-			sessionDesc.compilerOptionEntries = compilerOptions.data();
-			sessionDesc.compilerOptionEntryCount = (uint32_t)compilerOptions.size();
-
-			Microsoft::WRL::ComPtr<slang::ISession> session;
-			s_GlobalSession->createSession(sessionDesc, &session);
-
-			Microsoft::WRL::ComPtr<slang::IBlob> diagnostics;
-			Microsoft::WRL::ComPtr<slang::IModule> module = session->loadModule(filepath.c_str(), &diagnostics);
-
-			if (diagnostics)
-			{
-				std::string message((const char*)diagnostics->getBufferPointer());
-				if (message.find(": error") != std::string::npos)
-					VK_CORE_ERROR(message);
-				else
-					VK_CORE_WARN(message);
-			}
-
-			if (module == nullptr)
-				return data;
-
-			SlangResult res;
-
-			Microsoft::WRL::ComPtr<slang::IEntryPoint> entryPoint;
-			res = module->findEntryPointByName("main", &entryPoint);
-
-			if (res != 0)
-				return data;
-
-			slang::IComponentType* components[] = { module.Get(), entryPoint.Get() };
-			Microsoft::WRL::ComPtr<slang::IComponentType> program;
-			res = session->createCompositeComponentType(components, 2, &program);
-
-			if (res != 0)
-				return data;
-
-			Microsoft::WRL::ComPtr<slang::IComponentType> linkedProgram;
-			Microsoft::WRL::ComPtr<ISlangBlob> diagnosticBlob;
-			res = program->link(&linkedProgram, &diagnosticBlob);
-
-			if (diagnosticBlob)
-			{
-				std::string message((const char*)diagnosticBlob->getBufferPointer());
-				if (message.find(": error") != std::string::npos)
-					VK_CORE_ERROR(message);
-				else
-					VK_CORE_WARN(message);
-			}
-
-			if (res != 0)
-				return data;
-
-			int entryPointIndex = 0; // only one entry point
-			int targetIndex = 0; // only one target
-			Microsoft::WRL::ComPtr<slang::IBlob> kernelBlob;
-			Microsoft::WRL::ComPtr<slang::IBlob> diagnostics1;
-
-			res = linkedProgram->getEntryPointCode(entryPointIndex, targetIndex, &kernelBlob, &diagnostics1);
-
-			if (diagnostics1)
-			{
-				std::string message((const char*)diagnostics1->getBufferPointer());
-				if (message.find(": error") != std::string::npos)
-					VK_CORE_ERROR(message);
-				else
-					VK_CORE_WARN(message);
-			}
-
-			if (res != 0)
-				return data;
-
-			int codeSize = (int)kernelBlob->getBufferSize();
-
-			data.resize(codeSize / 4);
-
-			memcpy(data.data(), kernelBlob->getBufferPointer(), codeSize);
-		}
-		else if (extension == ".glsl")
-		{
-			VK_CORE_INFO("Compiling shader {}", filepath);
-
-			shaderc::Compiler compiler;
-			shaderc::CompileOptions options;
-			options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
-			options.SetOptimizationLevel(shaderc_optimization_level_performance);
-			for (int i = 0; i < defines.size(); i++)
-			{
-				options.AddMacroDefinition(defines[i].Name, defines[i].Value);
-			}
-			shaderc_util::FileFinder fileFinder;
-			options.SetIncluder(std::make_unique<glslc::FileIncluder>(&fileFinder));
-
-			std::string source = File::ReadFromFile(filepath);
-			shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, VkStageToScStage(m_Type), filepath.c_str(), options);
-
-			if (module.GetCompilationStatus() != shaderc_compilation_status_success)
-			{
-				VK_CORE_ERROR("Failed to compile shader! {}", module.GetErrorMessage());
-				return std::vector<uint32_t>();
-			}
-
-			data = std::vector<uint32_t>(module.cbegin(), module.cend());
+			return CompileHlsl(filepath, defines);
 		}
 		else
 		{
-			VK_CORE_ASSERT(false, "The extension of shader has be either .slang or .glsl to indicate what language does it use! Given extension is {}", extension);
+			VH_ERROR("Unsupported shader extension: {0}", extension);
+			return {};
+		}
+	}
+
+	std::vector<uint32_t> Shader::CompileSlang(const std::string& filepath, const std::vector<Define>& defines)
+	{
+		return {};
+	}
+
+	std::vector<uint32_t> Shader::CompileHlsl(const std::string& filepath, const std::vector<Define>& defines)
+	{
+		std::vector<uint32_t> data;
+
+		HRESULT hres;
+
+		uint32_t codePage = DXC_CP_ACP;
+		Microsoft::WRL::ComPtr<IDxcBlobEncoding> sourceBlob;
+		std::wstring wideFilepath = std::wstring(filepath.begin(), filepath.end());
+		hres = s_DXCUtils->LoadFile(wideFilepath.c_str(), &codePage, &sourceBlob);
+		VH_ASSERT(hres == 0, "Could not load file");
+
+		// Select target profile based on shader file extension
+		LPCWSTR targetProfile{};
+		switch (m_Type)
+		{
+		case VK_SHADER_STAGE_VERTEX_BIT:
+			targetProfile = L"vs_6_4";
+			break;
+		case VK_SHADER_STAGE_FRAGMENT_BIT:
+			targetProfile = L"ps_6_4";
+			break;
+		case VK_SHADER_STAGE_COMPUTE_BIT:
+			targetProfile = L"cs_6_4";
+			break;
+		default:
+			VH_ASSERT(false, "Unsupported shader type");
+			break;
 		}
 
-		if (cacheToFile)
+		// Configure the compiler arguments for compiling the HLSL shader to SPIR-V
+		std::vector<LPCWSTR> arguments = {
+			// (Optional) name of the shader file to be displayed e.g. in an error message
+			wideFilepath.c_str(),
+			// Shader main entry point
+			L"-E", L"main",
+			// Enable Optimizations
+			L"-O3",
+			// Shader target profile
+			L"-T", targetProfile,
+			// Compile to SPIRV
+			L"-spirv"
+		};
+
+		// Compile shader
+		DxcBuffer buffer{};
+		buffer.Encoding = DXC_CP_ACP;
+		buffer.Ptr = sourceBlob->GetBufferPointer();
+		buffer.Size = sourceBlob->GetBufferSize();
+
+		Microsoft::WRL::ComPtr<IDxcResult> result{ nullptr };
+		
+		hres = s_DXCCompiler->Compile(
+			&buffer,
+			arguments.data(),
+			(uint32_t)arguments.size(),
+			nullptr,
+			IID_PPV_ARGS(&result)
+		);
+
+		if (SUCCEEDED(hres)) 
 		{
-			CreateCacheDir();
-			File::WriteToFile(data.data(), sizeof(uint32_t)* (uint32_t)data.size(), ("CachedShaders/" + shaderName + ".cache"));
+			result->GetStatus(&hres);
 		}
+
+		// Output error if compilation failed
+		if (FAILED(hres) && (result)) 
+		{
+			Microsoft::WRL::ComPtr<IDxcBlobEncoding> errorBlob;
+			hres = result->GetErrorBuffer(&errorBlob);
+			if (SUCCEEDED(hres) && errorBlob) 
+			{
+				VH_ERROR("Shader compilation failed :\n\n{0}", (const char*)errorBlob->GetBufferPointer());
+				return data;
+			}
+		}
+
+		Microsoft::WRL::ComPtr<IDxcBlob> code;
+		result->GetResult(&code);
+
+		int codeSize = (int)code->GetBufferSize();
+
+		data.resize(codeSize / 4);
+
+		memcpy(data.data(), code->GetBufferPointer(), codeSize);
 
 		return data;
 	}
 
-	void Shader::CreateCacheDir()
+	void Shader::Move(Shader&& other) noexcept
 	{
-		if (!std::filesystem::exists("CachedShaders"))
-		{
-			std::filesystem::create_directory("CachedShaders");
-		}
+		m_Device = other.m_Device;
+		other.m_Device = nullptr;
+
+		m_ModuleHandle = other.m_ModuleHandle;
+		other.m_ModuleHandle = VK_NULL_HANDLE;
+
+		m_Type = other.m_Type;
+		other.m_Type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+
+		m_Defines = std::move(other.m_Defines);
+		other.m_Defines.clear();
+
+		m_Filepath = std::move(other.m_Filepath);
+		other.m_Filepath = "";
 	}
 
 	VkPipelineShaderStageCreateInfo Shader::GetStageCreateInfo()
@@ -282,110 +256,6 @@ namespace VulkanHelper
 		stage.pSpecializationInfo = nullptr;
 
 		return stage;
-	}
-
-	std::string Shader::ReadShaderFile(const std::string& filepath)
-	{
-		std::string source = File::ReadFromFile(filepath);
-
-		while (true)
-		{
-			size_t includePos = source.find("#include");
-			if (includePos != std::string::npos)
-			{
-				// Find the position of the first double quote after "#include"
-				size_t startQuotePos = source.find('\"', includePos);
-				if (startQuotePos != std::string::npos)
-				{
-					// Find the position of the second double quote after "#include"
-					size_t endQuotePos = source.find('\"', startQuotePos + 1);
-					if (endQuotePos != std::string::npos)
-					{
-						// Extract the substring between the double quotes
-						std::string includedFile = source.substr(startQuotePos + 1, endQuotePos - startQuotePos - 1);
-						
-						std::string includedFilePath = filepath.substr(0, filepath.find_last_of('/')) + "/" + includedFile;
-
-						size_t size = (endQuotePos + 1) - includePos;
-						source.erase(includePos, size);
-
-						std::string includedSource = File::ReadFromFile(includedFilePath);
-
-						source.insert(includePos, includedSource);
-					}
-					else
-						break;
-				}
-				else
-					break;
-			}
-			else
-				break;
-		}
-
-		return source;
-	}
-
-	shaderc_shader_kind Shader::VkStageToScStage(VkShaderStageFlagBits stage)
-	{
-		switch (stage)
-		{
-		case VK_SHADER_STAGE_VERTEX_BIT:
-			return shaderc_vertex_shader;
-			break;
-		case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
-			return shaderc_tess_control_shader;
-			break;
-		case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
-			return shaderc_tess_evaluation_shader;
-			break;
-		case VK_SHADER_STAGE_GEOMETRY_BIT:
-			return shaderc_geometry_shader;
-			break;
-		case VK_SHADER_STAGE_FRAGMENT_BIT:
-			return shaderc_fragment_shader;
-			break;
-		case VK_SHADER_STAGE_COMPUTE_BIT:
-			return shaderc_compute_shader;
-			break;
-		case VK_SHADER_STAGE_RAYGEN_BIT_KHR:
-			return shaderc_raygen_shader;
-			break;
-		case VK_SHADER_STAGE_ANY_HIT_BIT_KHR:
-			return shaderc_anyhit_shader;
-			break;
-		case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR:
-			return shaderc_closesthit_shader;
-			break;
-		case VK_SHADER_STAGE_MISS_BIT_KHR:
-			return shaderc_miss_shader;
-			break;
-		case VK_SHADER_STAGE_INTERSECTION_BIT_KHR:
-			return shaderc_intersection_shader;
-			break;
-		case VK_SHADER_STAGE_CALLABLE_BIT_KHR:
-			return shaderc_callable_shader;
-			break;
-		case VK_SHADER_STAGE_TASK_BIT_EXT:
-			return shaderc_task_shader;
-			break;
-		case VK_SHADER_STAGE_MESH_BIT_EXT:
-			return shaderc_mesh_shader;
-			break;
-		default:
-			VK_CORE_ASSERT(false, "Incorrect shader type");
-			break;
-		}
-
-		// just to get rid of the warning
-		return shaderc_mesh_shader;
-	}
-
-	void Shader::Reset()
-	{
-		m_ModuleHandle = VK_NULL_HANDLE;
-		m_Type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
-		m_Initialized = false;
 	}
 
 }

@@ -1,44 +1,26 @@
 #pragma once
-#include "pch.h"
+#include "Pch.h"
 
 #include "Device.h"
-#include "Image.h"
-#include "Framebuffer.h"
 
 #include <vulkan/vulkan_core.h>
 
 namespace VulkanHelper
 {
-	enum class PresentModes
-	{
-		VSync,
-		Immediate,
-		MailBox
-	};
-
-	struct PresentMode
-	{
-		PresentModes Mode;
-		bool Available;
-	};
-
 	class Swapchain
 	{
 	public:
 
 		struct CreateInfo
 		{
-			VkExtent2D WindowExtent = { 0, 0 };
-			PresentModes PrefferedPresentMode = PresentModes::VSync;
+			Device* Device = nullptr;
+			VkExtent2D Extent = { 0, 0 };
+			VkPresentModeKHR PresentMode = VK_PRESENT_MODE_FIFO_KHR;
 			uint32_t MaxFramesInFlight = 0;
-			Ref<Swapchain> PreviousSwapchain = nullptr;
 			VkSurfaceKHR Surface;
+			Swapchain* PreviousSwapchain = nullptr;
 		};
 
-		void Init(const CreateInfo& createInfo);
-		void Destroy();
-
-		Swapchain() = default;
 		Swapchain(const CreateInfo& createInfo);
 		~Swapchain();
 
@@ -47,57 +29,45 @@ namespace VulkanHelper
 		Swapchain(Swapchain&& other) noexcept;
 		Swapchain& operator=(Swapchain&& other) noexcept;
 
-		inline VkRenderPass GetSwapchainRenderPass() const { return m_RenderPass; }
+	public:
 
-		VkFramebuffer GetPresentableFrameBuffer(int imageIndex) const { return m_PresentableFramebuffers[imageIndex]; };
+		[[nodiscard]] VkResult SubmitCommandBuffer(VkCommandBuffer buffer, uint32_t& imageIndex);
+		[[nodiscard]] VkResult AcquireNextImage(uint32_t& imageIndex);
 
-		inline VkImageView GetPresentableImageView(int imageIndex) const { return m_PresentableImageViews[imageIndex]; }
-		inline VkImage GetPresentableImage(int imageIndex) const { return m_PresentableImages[imageIndex]; }
+		[[nodiscard]] VkFormat FindDepthFormat();
 
-		inline uint32_t GetWidth() const { return m_SwapchainExtent.width; }
-		inline uint32_t GetHeight() const { return m_SwapchainExtent.height; }
-		inline VkFormat GetSwapchainImageFormat() const { return m_SwapchainImageFormat; }
-		inline uint32_t GetImageCount() const { return (uint32_t)m_PresentableImageViews.size(); }
-		inline VkExtent2D GetSwapchainExtent() const { return m_SwapchainExtent; }
+	public:
 
-		inline bool IsInitialized() const { return m_Initialized; }
+		[[nodiscard]] inline VkImageView GetPresentableImageView(int imageIndex) const { return m_PresentableImageViews[imageIndex]; }
+		[[nodiscard]] inline VkImage GetPresentableImage(int imageIndex) const { return m_PresentableImages[imageIndex]; }
 
-		inline const std::vector<PresentMode>& GetAvailablePresentModes() const { return m_AvailablePresentModes; }
-		inline PresentModes GetCurrentPresentMode() const { return m_CurrentPresentMode; }
+		[[nodiscard]] inline VkFormat GetSwapchainImageFormat() const { return m_SwapchainImageFormat; }
+		[[nodiscard]] inline uint32_t GetImageCount() const { return (uint32_t)m_PresentableImageViews.size(); }
+		[[nodiscard]] inline VkExtent2D GetSwapchainExtent() const { return m_Extent; }
 
-		float GetExtentAspectRatio() const { return float(m_SwapchainExtent.width) / float(m_SwapchainExtent.height); }
+		[[nodiscard]] inline VkPresentModeKHR GetCurrentPresentMode() const { return m_CurrentPresentMode; }
 
-		VkResult SubmitCommandBuffers(const VkCommandBuffer* buffers, uint32_t& imageIndex);
-		VkResult AcquireNextImage(uint32_t& imageIndex);
-
-		bool CompareSwapFormats(const Swapchain& swapChain) const { return swapChain.m_SwapchainDepthFormat == m_SwapchainDepthFormat && swapChain.m_SwapchainImageFormat == m_SwapchainImageFormat; }
-
-		static VkFormat FindDepthFormat();
 	private:
-		void CreateSwapchain(const PresentModes& prefferedPresentMode);
+
+		void CreateSwapchain(Swapchain* oldSwapchain);
 		void CreateImageViews();
-		void CreateRenderPass();
-		void CreateFramebuffers();
 		void CreateSyncObjects();
 
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-		VkPresentModeKHR ChooseSwapPresentMode(const PresentModes& presentMode);
-		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-		void FindPresentModes(const std::vector<VkPresentModeKHR>& availablePresentModes);
 
 	private:
-		std::vector<PresentMode> m_AvailablePresentModes;
-		PresentModes m_CurrentPresentMode;
 
-		uint32_t m_MaxFramesInFlight;
+		Device* m_Device;
 
-		Ref<Swapchain> m_OldSwapchain;
-		VkSwapchainKHR m_Swapchain;
-		VkExtent2D m_WindowExtent;
-		VkSurfaceKHR m_Surface;
+		VkPresentModeKHR m_CurrentPresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+
+		uint32_t m_MaxFramesInFlight = 0;
+
+		VkSwapchainKHR m_Handle = VK_NULL_HANDLE;
+		VkExtent2D m_Extent = { 0, 0 };
+		VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 
 		uint32_t m_CurrentFrame = 0;
-		std::vector<VkFramebuffer> m_PresentableFramebuffers;
 
 		std::vector<VkImage> m_PresentableImages;
 		std::vector<VkImageView> m_PresentableImageViews;
@@ -107,15 +77,11 @@ namespace VulkanHelper
 		std::vector<VkFence> m_InFlightFences;
 		std::vector<VkFence> m_ImagesInFlight;
 
-		VkFormat m_SwapchainImageFormat;
-		VkFormat m_SwapchainDepthFormat;
-		VkExtent2D m_SwapchainExtent;
+		VkFormat m_SwapchainImageFormat = VK_FORMAT_UNDEFINED;
+		VkFormat m_SwapchainDepthFormat = VK_FORMAT_UNDEFINED;
 
-		VkRenderPass m_RenderPass{};
-
-		bool m_Initialized = false;
-
-		void Reset();
+		void Destroy();
+		void Move(Swapchain&& other) noexcept;
 	};
 
 }

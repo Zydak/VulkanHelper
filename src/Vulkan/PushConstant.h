@@ -1,6 +1,7 @@
 #pragma once
+#include "Pch.h"
 
-#include "Device.h"
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {
@@ -12,9 +13,8 @@ namespace VulkanHelper
 		{
 			VkShaderStageFlags Stage;
 		};
-
+		
 		void Init(CreateInfo createInfo);
-		void Destroy();
 
 		PushConstant() = default;
 		PushConstant(CreateInfo createInfo);
@@ -32,27 +32,21 @@ namespace VulkanHelper
 		inline VkPushConstantRange* GetRangePtr() { return &m_Range; }
 		inline T GetData() const { return m_Data; }
 		inline T* GetDataPtr() { return &m_Data; }
-
-		inline bool IsInitialized() const { return m_Initialized; }
 	private:
 		T m_Data = T{};
 
 		VkPushConstantRange m_Range = {};
 		VkShaderStageFlags m_Stage = {};
-		bool m_Initialized = false;
 
-		void Reset();
+		void Destroy();
 	};
 
 	template<typename T>
 	PushConstant<T>& PushConstant<T>::operator=(PushConstant<T>&& other) noexcept
 	{
-		m_Data			= std::move(other.m_Data);
-		m_Range			= std::move(other.m_Range);
-		m_Stage			= std::move(other.m_Stage);
-		m_Initialized	= std::move(other.m_Initialized);
-
-		other.Reset();
+		m_Data = std::move(other.m_Data);
+		m_Range = std::move(other.m_Range);
+		m_Stage = std::move(other.m_Stage);
 
 		return *this;
 	}
@@ -63,19 +57,6 @@ namespace VulkanHelper
 		m_Data = std::move(other.m_Data);
 		m_Range = std::move(other.m_Range);
 		m_Stage = std::move(other.m_Stage);
-		m_Initialized = std::move(other.m_Initialized);
-
-		other.Reset();
-	}
-
-	template<typename T>
-	void VulkanHelper::PushConstant<T>::Reset()
-	{
-		m_Data = T{};
-
-		m_Range = {};
-		m_Stage = {};
-		m_Initialized = false;
 	}
 
 	template<typename T>
@@ -87,25 +68,19 @@ namespace VulkanHelper
 	template<typename T>
 	void VulkanHelper::PushConstant<T>::Destroy()
 	{
-		if (!m_Initialized)
-			Destroy();
-
-		Reset();
+		// Nothing to destroy for now
 	}
 
 	template<typename T>
 	void VulkanHelper::PushConstant<T>::Init(CreateInfo createInfo)
 	{
-		if (m_Initialized)
-			Destroy();
+		Destroy();
 
 		m_Stage = createInfo.Stage;
 
 		m_Range.offset = 0;
 		m_Range.size = sizeof(T);
 		m_Range.stageFlags = m_Stage;
-
-		m_Initialized = true;
 	}
 
 	template<typename T>
@@ -124,8 +99,7 @@ namespace VulkanHelper
 	template<typename T>
 	VulkanHelper::PushConstant<T>::~PushConstant()
 	{
-		if (m_Initialized)
-			Destroy();
+		Destroy();
 	}
 
 	template<typename T>
