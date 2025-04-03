@@ -24,12 +24,18 @@ int main()
 	dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
 	dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
 
+	VkPhysicalDeviceVulkan12Features features12{};
+	features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	features12.runtimeDescriptorArray = VK_TRUE;
+	features12.descriptorIndexing = VK_TRUE;
+
 	VkPhysicalDeviceFeatures2 features{};
 	features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	features.pNext = &dynamicRenderingFeatures;
+	dynamicRenderingFeatures.pNext = &features12;
 
 	VulkanHelper::Device::CreateInfo deviceCreateInfo{};
-	deviceCreateInfo.Extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
+	deviceCreateInfo.Extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME };
 	deviceCreateInfo.PhysicalDevice = devices[0];
 	deviceCreateInfo.Surface = window->GetSurface();
 	deviceCreateInfo.Features = features;
@@ -62,6 +68,38 @@ int main()
 	VulkanHelper::Mesh mesh;
 	(void)mesh.Init(meshCreateInfo);
 
+	// Desc set
+	VulkanHelper::DescriptorPool descriptorPool;
+	VulkanHelper::DescriptorPool::PoolSize poolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 };
+	VulkanHelper::DescriptorPool::CreateInfo descriptorPoolCreateInfo{};
+	descriptorPoolCreateInfo.Device = device.get();
+	descriptorPoolCreateInfo.PoolSizes = { poolSize };
+	descriptorPoolCreateInfo.MaxSets = 2;
+	descriptorPool.Init(descriptorPoolCreateInfo);
+
+	VulkanHelper::DescriptorSetLayout::Binding binding{0, 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT};
+	VulkanHelper::DescriptorSet::CreateInfo descriptorSetCreateInfo{};
+	descriptorSetCreateInfo.Device = device.get();
+	descriptorSetCreateInfo.Bindings = { binding };
+	descriptorSetCreateInfo.Pool = &descriptorPool;
+	VulkanHelper::DescriptorSet descriptorSet;
+	descriptorSet.Init(descriptorSetCreateInfo);
+
+	VulkanHelper::Buffer::CreateInfo uniformBufferCreateInfo{};
+	uniformBufferCreateInfo.Device = device.get();
+	uniformBufferCreateInfo.BufferSize = sizeof(glm::mat4);
+	uniformBufferCreateInfo.UsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	uniformBufferCreateInfo.MemoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	uniformBufferCreateInfo.DedicatedAllocation = true;
+	VulkanHelper::Buffer uniformBuffer;
+	uniformBuffer.Init(uniformBufferCreateInfo);
+	uniformBuffer.Map();
+
+	descriptorSet.AddBuffer(0, 0, uniformBuffer.DescriptorInfo());
+	descriptorSet.AddBuffer(0, 1, uniformBuffer.DescriptorInfo());
+	descriptorSet.Write();
+
+	// Pipeline
 	VulkanHelper::Shader::CreateInfo shaderCreateInfo{};
 	shaderCreateInfo.Device = device.get();
 	shaderCreateInfo.Filepath = "Src/FragmentTest.hlsl";
@@ -86,6 +124,7 @@ int main()
 	pipelineCreateInfo.BindingDesc = { mesh.GetBindingDescription() };
 	pipelineCreateInfo.AttributeDesc = mesh.GetInputAttributes();
 	pipelineCreateInfo.PushConstants = pushConstant.GetRangePtr();
+	pipelineCreateInfo.DescriptorSetLayouts = { descriptorSet.GetLayout()->GetDescriptorSetLayoutHandle() };
 
 	VulkanHelper::Pipeline pipeline;
 	pipeline.Init(pipelineCreateInfo);
@@ -131,9 +170,11 @@ int main()
 			window->GetRenderer()->BeginRendering({ colorAttachment }, nullptr, window->GetExtent());
 
 			pipeline.Bind(window->GetRenderer()->GetCurrentCommandBuffer());
+			descriptorSet.Bind(0, &pipeline, window->GetRenderer()->GetCurrentCommandBuffer());
 
 			PushData data;
 			data.MVP = glm::transpose(proj * view * transform.GetMat4());
+			uniformBuffer.WriteToBuffer(&data, sizeof(data), 0, window->GetRenderer()->GetCurrentCommandBuffer());
 
 			VH_TRACE("{}", transform.GetScale().x);
 

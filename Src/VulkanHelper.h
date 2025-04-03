@@ -14,6 +14,7 @@
 #include "Vulkan/Mesh.h"
 #include "Vulkan/Image.h"
 #include "Vulkan/PushConstant.h"
+#include "Vulkan/DescriptorSet.h"
 
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"

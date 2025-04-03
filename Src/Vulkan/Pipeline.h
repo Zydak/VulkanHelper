@@ -27,10 +27,19 @@ namespace VulkanHelper
 		Pipeline& operator=(Pipeline&& other) noexcept;
 	public:
 
+		enum class PipelineType
+		{
+			Graphics,
+			Compute,
+			RayTracing,
+			Undefined
+		};
+
 		void Bind(VkCommandBuffer commandBuffer) const;
 
 		[[nodiscard]] inline VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		[[nodiscard]] inline VkPipeline GetPipeline() const { return m_PipelineHandle; }
+		[[nodiscard]] inline PipelineType GetPipelineType() const { return m_PipelineType; }
 
 	public:
 		struct GraphicsCreateInfo
@@ -98,14 +107,6 @@ namespace VulkanHelper
 		void CreatePipelineConfigInfo(PipelineConfigInfo& configInfo, uint32_t width, uint32_t height, VkPolygonMode polyMode, VkPrimitiveTopology topology, VkCullModeFlags cullMode, bool depthTestEnable, bool blendingEnable, int colorAttachmentCount = 1);
 
 		void CreatePipelineLayout(const std::vector<VkDescriptorSetLayout>& descriptorSetsLayouts, VkPushConstantRange* pushConstants);
-
-		enum class PipelineType
-		{
-			Graphics,
-			Compute,
-			RayTracing,
-			Undefined
-		};
 
 		Device* m_Device = nullptr;
 		VkPipeline m_PipelineHandle = 0;

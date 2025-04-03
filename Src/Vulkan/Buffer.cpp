@@ -4,6 +4,7 @@
 #include "Logger/Logger.h"
 
 #include "Device.h"
+#include "DeleteQueue.h"
 
 namespace VulkanHelper
 {
@@ -34,10 +35,8 @@ namespace VulkanHelper
 	{
 		Unmap();
 
-		//DeleteQueue::TrashBuffer(*this);
+		DeleteQueue::DeleteBuffer(*this);
 
-		vmaDestroyBuffer(m_Device->GetAllocator(), m_Handle, *m_Allocation);
-		delete m_Allocation;
 		m_Handle = VK_NULL_HANDLE;
 	}
 
