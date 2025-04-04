@@ -22,7 +22,9 @@ namespace VulkanHelper
 			bool Resizable = false;
 		};
 
-		Window(CreateInfo& createInfo);
+		void Init(const CreateInfo& createInfo);
+		Window(const CreateInfo& createInfo) { Init(createInfo); }
+		Window() = default;
 		~Window();
 
 		Window(const Window&) = delete;
@@ -34,7 +36,7 @@ namespace VulkanHelper
 
 		void InitRenderer(Device* device, uint32_t maxFramesInFlight = 2);
 
-		void PollEvents();
+		static void PollEvents();
 		void Close(bool value) { glfwSetWindowShouldClose(m_Window, value); }
 
 	public:

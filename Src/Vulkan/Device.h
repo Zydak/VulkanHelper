@@ -25,7 +25,9 @@ namespace VulkanHelper
 			CommandPool Compute;
 		};
 
-		Device(const CreateInfo& createInfo);
+		void Init(const CreateInfo& createInfo);
+		Device(const CreateInfo& createInfo) { Init(createInfo); }
+		Device() = default;
 		~Device();
 
 		Device(const Device&) = delete;

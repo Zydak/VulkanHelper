@@ -32,8 +32,11 @@ void VulkanHelper::Window::InitRenderer(Device* device, uint32_t maxFramesInFlig
 	m_Renderer = std::make_unique<Renderer>(createInfo);
 }
 
-VulkanHelper::Window::Window(CreateInfo& createInfo)
+void VulkanHelper::Window::Init(const CreateInfo& createInfo)
 {
+	if (m_Window != nullptr)
+		Destroy();
+
 	m_Width = createInfo.Width;
 	m_Height = createInfo.Height;
 	m_Name = createInfo.Name;
@@ -49,14 +52,14 @@ VulkanHelper::Window::Window(CreateInfo& createInfo)
 	m_Input.Init(m_Window);
 
 	VH_INFO("Window created");
+
+	m_UserPointer.Window = this;
+	m_UserPointer.Input = &m_Input;
+	glfwSetWindowUserPointer(m_Window, &m_UserPointer);
 }
 
 void VulkanHelper::Window::PollEvents()
 {
-	m_UserPointer.Window = this;
-	m_UserPointer.Input = &m_Input;
-	glfwSetWindowUserPointer(m_Window, &m_UserPointer);
-
 	glfwPollEvents();
 }
 
@@ -81,6 +84,10 @@ VulkanHelper::Window& VulkanHelper::Window::operator=(Window&& other) noexcept
 
 	Move(std::move(other));
 
+	m_UserPointer.Window = this;
+	m_UserPointer.Input = &m_Input;
+	glfwSetWindowUserPointer(m_Window, &m_UserPointer);
+
 	return *this;
 }
 
@@ -92,6 +99,10 @@ VulkanHelper::Window::Window(Window&& other) noexcept
 	Destroy();
 
 	Move(std::move(other));
+
+	m_UserPointer.Window = this;
+	m_UserPointer.Input = &m_Input;
+	glfwSetWindowUserPointer(m_Window, &m_UserPointer);
 }
 
 VulkanHelper::Window::~Window()

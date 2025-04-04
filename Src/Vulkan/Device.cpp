@@ -20,8 +20,11 @@ void VulkanHelper::Device::Destroy()
 	m_Handle = VK_NULL_HANDLE;
 }
 
-VulkanHelper::Device::Device(const CreateInfo& createInfo)
+void VulkanHelper::Device::Init(const CreateInfo& createInfo)
 {
+	if (m_Handle != VK_NULL_HANDLE)
+		Destroy();
+
 	m_PhysicalDevice = createInfo.PhysicalDevice;
 	VH_INFO("Selected Physical device: {0}", m_PhysicalDevice.Name);
 

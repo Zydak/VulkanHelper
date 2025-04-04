@@ -1,21 +1,21 @@
 globalIncludes = 
 {
-    "%{wks.location}/Src/",
+    "Src/",
 
-    "%{wks.location}/Lib/Glfw/include/",
+    "Lib/Glfw/include/",
 
-    "%{wks.location}/Lib/VulkanHpp/vulkan/",
-    "%{wks.location}/Lib/VulkanHpp/VulkanHeaders/include/",
+    "Lib/VulkanHpp/vulkan/",
+    "Lib/VulkanHpp/VulkanHeaders/include/",
 
-    "%{wks.location}/Lib/Spdlog/include/",
+    "Lib/Spdlog/include/",
 
-    "%{wks.location}/Lib/Vma/",
+    "Lib/Vma/",
 
-    "%{wks.location}/Lib/Dxc/inc/",
+    "Lib/Dxc/inc/",
 
-    "%{wks.location}/Lib/Entt/",
+    "Lib/Entt/",
 
-    "%{wks.location}/Lib/Glm/",
+    "Lib/Glm/",
 
 }
 
