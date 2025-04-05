@@ -135,6 +135,10 @@ void VulkanHelper::Image::TransitionImageLayout(VkImageLayout newLayout, VkComma
 		srcAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		srcStage |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 		break;
+	case VK_IMAGE_LAYOUT_UNDEFINED:
+		srcAccess = 0;
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		break;
 	default:
 		break;
 	}
@@ -217,11 +221,11 @@ VulkanHelper::ResultCode VulkanHelper::Image::WritePixels(void* data, uint64_t d
 	(void)buffer.Flush();
 	buffer.Unmap();
 
-	TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd, baseLayer);
-	CopyBufferToImage(buffer.GetHandle(), baseLayer, cmd);
+	TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, commandBuffer, baseLayer);
+	CopyBufferToImage(buffer.GetHandle(), baseLayer, commandBuffer);
 
 	if (generateMipMaps)
-		GenerateMipmaps(cmd);
+		GenerateMipmaps(commandBuffer);
 
 	if (!cmd)
 		m_Device->EndSingleTimeCommands(commandBuffer, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle());
@@ -244,7 +248,7 @@ void VulkanHelper::Image::GenerateMipmaps(VkCommandBuffer commandBuffer) const
 	int32_t mipWidth = (int32_t)m_Size.width;
 	int32_t mipHeight = (int32_t)m_Size.height;
 
-	for (uint32_t i = 0; i < m_MipLevels; i++)
+	for (uint32_t i = 0; i < m_MipLevels - 1; i++)
 	{
 		barrier.subresourceRange.baseMipLevel = i;
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; // Since this function is called only from WritePixels(...) image will always be in DST_OPTIMAL layout
@@ -339,7 +343,7 @@ void VulkanHelper::Image::CopyBufferToImage(VkBuffer buffer, uint32_t baseLayer,
 	region.imageOffset = { offset.x, offset.y, 0 };
 	region.imageExtent = { m_Size.width - offset.x, m_Size.height - offset.y, 1 };
 
-	vkCmdCopyBufferToImage(cmd, buffer, m_ImageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	vkCmdCopyBufferToImage(commandBuffer, buffer, m_ImageHandle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
 	if (!cmd)
 		m_Device->EndSingleTimeCommands(commandBuffer, m_Device->GetGraphicsQueue(), m_Device->GetGraphicsCommandPool()->GetHandle());
@@ -371,7 +375,8 @@ void VulkanHelper::Image::Destroy()
 {
 	vkDestroyImageView(m_Device->GetHandle(), m_ViewHandle, nullptr);
 	vmaDestroyImage(m_Device->GetAllocator(), m_ImageHandle, *m_Allocation);
-	m_ImageHandle = VK_NULL_HANDLE;
+
+	Reset();
 }
 
 void VulkanHelper::Image::Move(Image&& other)
@@ -392,6 +397,26 @@ void VulkanHelper::Image::Move(Image&& other)
 	m_Usage = std::move(other.m_Usage);
 	m_MemoryProperties = std::move(other.m_MemoryProperties);
 	m_Layout = std::move(other.m_Layout);
+
+	other.Reset();
+}
+
+void VulkanHelper::Image::Reset()
+{
+	m_Device = nullptr;
+	m_Format = VK_FORMAT_MAX_ENUM;
+	m_Aspect = VK_IMAGE_ASPECT_NONE;
+	m_Tiling = VK_IMAGE_TILING_OPTIMAL;
+	m_ViewType = VK_IMAGE_VIEW_TYPE_2D;
+	m_ImageHandle = VK_NULL_HANDLE;
+	m_ViewHandle = VK_NULL_HANDLE;
+	m_Allocation = nullptr;
+	m_Size = { 0, 0 };
+	m_MipLevels = 0;
+	m_LayerCount = 1;
+	m_Usage = 0;
+	m_MemoryProperties = 0;
+	m_Layout = VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
 uint32_t VulkanHelper::Image::FormatToSize(VkFormat format)

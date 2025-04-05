@@ -27,7 +27,7 @@ void VulkanHelper::CommandPool::Destroy()
 	if (m_Handle != VK_NULL_HANDLE)
 		vkDestroyCommandPool(m_Device, m_Handle, nullptr);
 
-	m_Handle = VK_NULL_HANDLE;
+	Reset();
 }
 
 VulkanHelper::CommandPool& VulkanHelper::CommandPool::operator=(CommandPool&& other) noexcept
@@ -70,4 +70,14 @@ void VulkanHelper::CommandPool::Move(CommandPool&& other) noexcept
 
 	m_Flags = other.m_Flags;
 	other.m_Flags = 0;
+
+	other.Reset();
+}
+
+void VulkanHelper::CommandPool::Reset()
+{
+	m_Device = nullptr;
+	m_Handle = VK_NULL_HANDLE;
+	m_QueueFamilyIndex = 0;
+	m_Flags = 0;
 }

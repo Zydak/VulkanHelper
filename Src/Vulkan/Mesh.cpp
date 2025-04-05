@@ -3,6 +3,9 @@
 #include "Mesh.h"
 #include "Device.h"
 
+#include "assimp/scene.h"
+#include "assimp/mesh.h"
+
 VulkanHelper::ResultCode VulkanHelper::Mesh::Init(const CreateInfo& createInfo)
 {
 	Destroy();
@@ -54,6 +57,70 @@ VulkanHelper::ResultCode VulkanHelper::Mesh::Init(const CreateInfo& createInfo)
 	return res;
 }
 
+VulkanHelper::ResultCode VulkanHelper::Mesh::Init(Device* device, aiMesh* mesh, const aiScene* scene, glm::mat4 mat /*= glm::mat4(1.0f)*/)
+{
+	std::vector<DefaultVertex> vertices;
+	std::vector<uint32_t> indices;
+
+	// vertices
+	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+	{
+		DefaultVertex vertex;
+		glm::vec3 vector;
+
+		// positions
+		vector.x = mesh->mVertices[i].x;
+		vector.y = mesh->mVertices[i].y;
+		vector.z = mesh->mVertices[i].z;
+		vertex.Position = mat * glm::vec4(vector, 1.0f);
+
+		// normals
+		if (mesh->HasNormals())
+		{
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			vertex.Normal = glm::normalize(glm::vec3(mat * glm::vec4(vector, 0.0f)));
+		}
+
+		// texture coordinates
+		if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates
+		{
+			glm::vec2 vec;
+			// a vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't 
+			// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
+			vec.x = mesh->mTextureCoords[0][i].x;
+			vec.y = mesh->mTextureCoords[0][i].y;
+			vertex.TexCoord = vec;
+		}
+		else
+			vertex.TexCoord = glm::vec2(0.0f, 0.0f);
+
+		vertices.push_back(vertex);
+	}
+
+	// indices
+	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+	{
+		aiFace face = mesh->mFaces[i];
+		for (unsigned int j = 0; j < face.mNumIndices; j++)
+			indices.push_back(face.mIndices[j]);
+	}
+
+	CreateInfo createInfo{};
+	createInfo.Device = device;
+	createInfo.VertexData = vertices.data();
+	createInfo.VertexDataSize = vertices.size() * sizeof(DefaultVertex);
+	createInfo.VertexSize = sizeof(DefaultVertex);
+	createInfo.InputAttributes = {
+		{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(DefaultVertex, Position) },
+		{ VK_FORMAT_R32G32B32_SFLOAT, offsetof(DefaultVertex, Normal) },
+		{ VK_FORMAT_R32G32_SFLOAT, offsetof(DefaultVertex, TexCoord) }
+	};
+	createInfo.IndexData = indices;
+	return Init(createInfo);
+}
+
 VulkanHelper::Mesh::~Mesh()
 {
 	Destroy();
@@ -75,6 +142,8 @@ void VulkanHelper::Mesh::Destroy()
 {
 	if (m_VertexBuffer.GetHandle() == VK_NULL_HANDLE)
 		return;
+	
+	Reset();
 }
 
 void VulkanHelper::Mesh::Move(Mesh&& other)
@@ -87,6 +156,20 @@ void VulkanHelper::Mesh::Move(Mesh&& other)
 	m_IndexCount = other.m_IndexCount;
 	InputAttributes = std::move(other.InputAttributes);
 	m_VertexSize = other.m_VertexSize;
+
+	other.Reset();
+}
+
+void VulkanHelper::Mesh::Reset()
+{
+	m_Device = nullptr;
+	m_VertexBuffer = Buffer();
+	m_VertexCount = 0;
+	m_HasIndexBuffer = false;
+	m_IndexBuffer = Buffer();
+	m_IndexCount = 0;
+	InputAttributes.clear();
+	m_VertexSize = 0;
 }
 
 VulkanHelper::Mesh& VulkanHelper::Mesh::operator=(Mesh&& other) noexcept

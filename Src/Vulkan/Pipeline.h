@@ -115,6 +115,7 @@ namespace VulkanHelper
 
 		void Destroy();
 		void Move(Pipeline&& other) noexcept;
+		void Reset();
 	};
 
 }

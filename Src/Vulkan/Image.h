@@ -83,6 +83,7 @@ namespace VulkanHelper
 
 		void Destroy();
 		void Move(Image&& other);
+		void Reset();
 	};
 
 }

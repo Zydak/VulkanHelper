@@ -235,6 +235,9 @@ namespace VulkanHelper
 			if (name.find("class ") != std::string::npos)
 				name = name.substr(6, name.size() - 6);
 
+			if (name.find("struct ") != std::string::npos)
+				name = name.substr(7, name.size() - 7);
+
 			if (name.find(" * __ptr64") != std::string::npos)
 				name = name.substr(0, name.size() - 10);
 

@@ -105,6 +105,8 @@ namespace VulkanHelper
 				buf.second--;
 			}
 		}
+
+		s_Mutex.unlock();
 	}
 
 	void DeleteQueue::DeletePipeline(const Pipeline& pipeline)

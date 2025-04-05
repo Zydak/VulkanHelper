@@ -71,5 +71,6 @@ namespace VulkanHelper
 
 		void Destroy();
 		void Move(Buffer&& other);
+		void Reset();
 	};
 }

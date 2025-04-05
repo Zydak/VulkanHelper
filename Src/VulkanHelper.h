@@ -15,6 +15,7 @@
 #include "Vulkan/Image.h"
 #include "Vulkan/PushConstant.h"
 #include "Vulkan/DescriptorSet.h"
+#include "Vulkan/DeleteQueue.h"
 
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"
@@ -22,6 +23,8 @@
 #include "Scene/System.h"
 
 #include "Asset/Serializer.h"
+#include "Asset/Asset.h"
+#include "Asset/AssetManager.h"
 
 #include "Math/Transform.h"
 #include "Math/Quaternion.h"

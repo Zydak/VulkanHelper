@@ -37,7 +37,7 @@ namespace VulkanHelper
 
 		DeleteQueue::DeleteBuffer(*this);
 
-		m_Handle = VK_NULL_HANDLE;
+		Reset();
 	}
 
 	Buffer::Buffer(Buffer&& other) noexcept
@@ -287,5 +287,20 @@ namespace VulkanHelper
 
 		m_IsDedicatedAllocation = other.m_IsDedicatedAllocation;
 		other.m_IsDedicatedAllocation = false;
+
+		other.Reset();
 	}
+
+	void Buffer::Reset()
+	{
+		m_Device = nullptr;
+		m_Mapped = nullptr;
+		m_Handle = VK_NULL_HANDLE;
+		m_Allocation = nullptr;
+		m_BufferSize = 0;
+		m_UsageFlags = 0;
+		m_MemoryPropertyFlags = 0;
+		m_IsDedicatedAllocation = false;
+	}
+
 }

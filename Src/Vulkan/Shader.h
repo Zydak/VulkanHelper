@@ -69,5 +69,6 @@ namespace VulkanHelper
 
 		void Destroy();
 		void Move(Shader&& other) noexcept;
+		void Reset();
 	};
 }

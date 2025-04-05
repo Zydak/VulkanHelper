@@ -40,6 +40,7 @@ namespace VulkanHelper
 
 		void Destroy();
 		void Move(CommandPool&& other) noexcept;
+		void Reset();
 	};
 }
 

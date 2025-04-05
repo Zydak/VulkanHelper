@@ -4,6 +4,10 @@
 #include "ErrorCodes.h"
 #include "vulkan/vulkan.h"
 #include "Buffer.h"
+#include "glm.hpp"
+
+struct aiMesh;
+struct aiScene;
 
 namespace VulkanHelper
 {
@@ -33,6 +37,7 @@ namespace VulkanHelper
 		};
 
 		ResultCode Init(const CreateInfo& createInfo);
+		ResultCode Init(Device* device, aiMesh* mesh, const aiScene* scene, glm::mat4 mat = glm::mat4(1.0f));
 		Mesh() = default;
 		~Mesh();
 
@@ -57,6 +62,14 @@ namespace VulkanHelper
 		inline const VkVertexInputBindingDescription GetBindingDescription() const { return { 0, m_VertexSize, VK_VERTEX_INPUT_RATE_VERTEX }; }
 
 	private:
+
+		struct DefaultVertex
+		{
+			glm::vec3 Position;
+			glm::vec3 Normal;
+			glm::vec2 TexCoord;
+		};
+
 		void CreateInputAttributes(const std::vector<InputAttribute>& inputAttributes);
 		Device* m_Device = nullptr;
 
@@ -72,5 +85,6 @@ namespace VulkanHelper
 
 		void Destroy();
 		void Move(Mesh&& other);
+		void Reset();
 	};
 }

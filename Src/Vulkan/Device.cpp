@@ -7,6 +7,8 @@
 
 #include "LoadedFunctions.h"
 
+#include "DeleteQueue.h"
+
 static std::vector<const char*> s_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 void VulkanHelper::Device::Destroy()

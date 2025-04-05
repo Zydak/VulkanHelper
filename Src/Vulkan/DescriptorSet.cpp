@@ -56,10 +56,20 @@ void VulkanHelper::DescriptorSet::Move(DescriptorSet&& other) noexcept
 	m_DescriptorSetHandle = other.m_DescriptorSetHandle;
 	m_Layout = std::move(other.m_Layout);
 	m_Writer = std::move(other.m_Writer);
+
+	other.Reset();
 }
 
 void VulkanHelper::DescriptorSet::Destroy()
 {
+	m_DescriptorSetHandle = VK_NULL_HANDLE;
+	Reset();
+}
+
+void VulkanHelper::DescriptorSet::Reset()
+{
+	m_Device = nullptr;
+	m_Pool = nullptr;
 	m_DescriptorSetHandle = VK_NULL_HANDLE;
 }
 

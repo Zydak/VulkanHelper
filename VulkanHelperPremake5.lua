@@ -17,6 +17,10 @@ globalIncludes =
 
     "Lib/Glm/",
 
+    "Lib/StbImage/",
+
+    "Lib/Assimp/include",
+
 }
 
 globalDefines = 
@@ -66,7 +70,8 @@ project "VulkanHelper"
         "Lib/Dxc/lib/x64/dxcompiler",
 
         "Glfw/glfw3_mt",
-        "Spdlog"
+        "Spdlog",
+        "Lib/Assimp/lib/x64/assimp-vc143-mt",
     }
     
     buildoptions { "/MP" }

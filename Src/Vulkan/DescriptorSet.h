@@ -45,13 +45,14 @@ namespace VulkanHelper
 		[[nodiscard]] inline DescriptorSetLayout* GetLayout() { return &m_Layout; }
 
 	private:
-		void Move(DescriptorSet&& other) noexcept;
-		void Destroy();
-
 		Device* m_Device = nullptr;
 		DescriptorPool* m_Pool = nullptr;
 		VkDescriptorSet m_DescriptorSetHandle = VK_NULL_HANDLE;
 		DescriptorWriter m_Writer;
 		DescriptorSetLayout m_Layout;
+
+		void Move(DescriptorSet&& other) noexcept;
+		void Destroy();
+		void Reset();
 	};
 }

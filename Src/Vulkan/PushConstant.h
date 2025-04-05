@@ -39,7 +39,16 @@ namespace VulkanHelper
 		VkShaderStageFlags m_Stage = {};
 
 		void Destroy();
+		void Reset();
 	};
+
+	template<typename T>
+	void VulkanHelper::PushConstant<T>::Reset()
+	{
+		m_Data = T{};
+		m_Range = {};
+		m_Stage = 0;
+	}
 
 	template<typename T>
 	PushConstant<T>& PushConstant<T>::operator=(PushConstant<T>&& other) noexcept
@@ -47,6 +56,8 @@ namespace VulkanHelper
 		m_Data = std::move(other.m_Data);
 		m_Range = std::move(other.m_Range);
 		m_Stage = std::move(other.m_Stage);
+
+		other.Reset();
 
 		return *this;
 	}
@@ -57,6 +68,8 @@ namespace VulkanHelper
 		m_Data = std::move(other.m_Data);
 		m_Range = std::move(other.m_Range);
 		m_Stage = std::move(other.m_Stage);
+
+		other.Reset();
 	}
 
 	template<typename T>
@@ -68,7 +81,7 @@ namespace VulkanHelper
 	template<typename T>
 	void VulkanHelper::PushConstant<T>::Destroy()
 	{
-		// Nothing to destroy for now
+		Reset();
 	}
 
 	template<typename T>

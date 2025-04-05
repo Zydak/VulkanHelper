@@ -46,7 +46,7 @@ namespace VulkanHelper
 		[[nodiscard]] VkResult FindMemoryTypeIndex(uint32_t* outMemoryIndex, VkMemoryPropertyFlags flags) const;
 
 		[[nodiscard]] ResultCode AllocateBuffer(VkBuffer* outBuffer, VmaAllocation* outAllocation, const VkBufferCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = false);
-		[[nodiscard]] ResultCode AllocateImage(VkImage* outImage, VmaAllocation* outAllocation, const VkImageCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = false);
+		[[nodiscard]] ResultCode AllocateImage(VkImage* outImage, VmaAllocation* outAllocation, const VkImageCreateInfo& createInfo, VkMemoryPropertyFlags memoryPropertyFlags = 0, bool dedicatedAllocation = true);
 
 		void BeginSingleTimeCommands(VkCommandBuffer* buffer, VkCommandPool pool);
 		void EndSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool);

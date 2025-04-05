@@ -41,7 +41,8 @@ namespace VulkanHelper
 			return;
 
 		vkDestroyShaderModule(m_Device->GetHandle(), m_ModuleHandle, nullptr);
-		m_ModuleHandle = VK_NULL_HANDLE;
+
+		Reset();
 	}
 
 	Shader::Shader(Shader&& other) noexcept
@@ -242,6 +243,17 @@ namespace VulkanHelper
 
 		m_Filepath = std::move(other.m_Filepath);
 		other.m_Filepath = "";
+
+		other.Reset();
+	}
+
+	void Shader::Reset()
+	{
+		m_Device = nullptr;
+		m_ModuleHandle = VK_NULL_HANDLE;
+		m_Type = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+		m_Defines.clear();
+		m_Filepath = "";
 	}
 
 	VkPipelineShaderStageCreateInfo Shader::GetStageCreateInfo()

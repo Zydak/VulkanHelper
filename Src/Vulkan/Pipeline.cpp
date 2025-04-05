@@ -35,6 +35,8 @@ namespace VulkanHelper
 		}
 		//else
 		//	DeleteQueue::TrashPipeline(*this);
+
+		Reset();
 	}
 
 	Pipeline::~Pipeline()
@@ -413,5 +415,16 @@ namespace VulkanHelper
 
 		m_PipelineType = other.m_PipelineType;
 		other.m_PipelineType = PipelineType::Undefined;
+		
+		other.Reset();
 	}
+
+	void Pipeline::Reset()
+	{
+		m_Device = nullptr;
+		m_PipelineHandle = VK_NULL_HANDLE;
+		m_PipelineLayout = VK_NULL_HANDLE;
+		m_PipelineType = PipelineType::Undefined;
+	}
+
 }
