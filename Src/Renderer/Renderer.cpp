@@ -135,6 +135,56 @@ void VulkanHelper::Renderer::EndRendering()
 	VulkanHelper::vkCmdEndRendering(m_CommandBuffers[m_CurrentImageIndex]);
 }
 
+void VulkanHelper::Renderer::BlitPass(Image* image)
+{
+	image->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, GetCurrentCommandBuffer());
+
+	Image::TransitionImageLayout(
+		m_Device,
+		m_Swapchain->GetPresentableImage(m_CurrentImageIndex),
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		0,
+		VK_ACCESS_TRANSFER_WRITE_BIT,
+		GetCurrentCommandBuffer()
+	);
+
+	VkImageBlit blit{};
+	blit.srcOffsets[0] = { 0, 0, 0 };
+	blit.srcOffsets[1] = { (int32_t)image->GetImageSize().width, (int32_t)image->GetImageSize().height, 1 };
+	blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blit.srcSubresource.layerCount = 1;
+	blit.dstOffsets[0] = { 0, 0, 0 };
+	blit.dstOffsets[1] = { (int32_t)m_Swapchain->GetSwapchainExtent().width, (int32_t)m_Swapchain->GetSwapchainExtent().height, 1 };
+	blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	blit.dstSubresource.layerCount = 1;
+
+	vkCmdBlitImage(
+		GetCurrentCommandBuffer(),
+		image->GetImage(),
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		m_Swapchain->GetPresentableImage(m_CurrentImageIndex),
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&blit,
+		VK_FILTER_NEAREST
+	);
+
+	Image::TransitionImageLayout(
+		m_Device,
+		m_Swapchain->GetPresentableImage(m_CurrentImageIndex),
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_ACCESS_TRANSFER_WRITE_BIT,
+		0,
+		GetCurrentCommandBuffer()
+	);
+}
+
 VulkanHelper::Renderer::~Renderer()
 {
 	Destroy();

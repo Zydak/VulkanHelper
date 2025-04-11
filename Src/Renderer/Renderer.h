@@ -2,6 +2,7 @@
 #include "Pch.h"
 
 #include "Vulkan/Swapchain.h"
+#include "Vulkan/Image.h"
 
 namespace VulkanHelper
 {
@@ -34,6 +35,8 @@ namespace VulkanHelper
 
 		void BeginRendering(const std::vector<VkRenderingAttachmentInfo>& colorAttachments, VkRenderingAttachmentInfo* depthAttachment, const VkExtent2D& renderSize);
 		void EndRendering();
+
+		void BlitPass(Image* image);
 
 	public:
 

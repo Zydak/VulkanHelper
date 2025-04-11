@@ -51,10 +51,10 @@ void VulkanHelper::Device::CreateCommandPoolsForThread()
 		createInfo.Device = m_Handle;
 		createInfo.Flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		createInfo.QueueFamilyIndex = Instance::Get()->FindQueueFamilies(m_PhysicalDevice.Handle, m_Surface).GraphicsFamily;
+		createInfo.QueueFamilyIndex = m_PhysicalDevice.QueueFamilies.GraphicsFamily;
 		CommandPool graphicsPool(createInfo);
 
-		createInfo.QueueFamilyIndex = Instance::Get()->FindQueueFamilies(m_PhysicalDevice.Handle, m_Surface).ComputeFamily;
+		createInfo.QueueFamilyIndex = m_PhysicalDevice.QueueFamilies.ComputeFamily;
 		CommandPool computePool(createInfo);
 
 		m_CommandPools.insert({ id, std::make_unique<CommandPools>(std::move(graphicsPool), std::move(computePool)) });

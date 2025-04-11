@@ -8,11 +8,20 @@
 
 namespace VulkanHelper
 {
+	enum class AssetType
+	{
+		Texture,
+		Model,
+		Unknown
+	};
+
 	class Asset
 	{
 	public:
 		Asset() = default;
 		~Asset() = default;
+
+		virtual AssetType GetAssetType() = 0;
 	};
 
 	class TextureAsset : public Asset
@@ -20,6 +29,9 @@ namespace VulkanHelper
 	public:
 		TextureAsset() = default;
 		~TextureAsset() = default;
+
+		AssetType GetAssetType() override { return AssetType::Texture; }
+
 		Image Image;
 	};
 
@@ -59,6 +71,8 @@ namespace VulkanHelper
 	public:
 		ModelAsset() = default;
 		~ModelAsset() = default;
+
+		AssetType GetAssetType() override { return AssetType::Model; }
 
 		std::vector<Mesh> Meshes;
 		std::vector<std::string> MeshNames;

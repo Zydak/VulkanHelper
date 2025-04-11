@@ -140,6 +140,7 @@ void VulkanHelper::Image::TransitionImageLayout(VkImageLayout newLayout, VkComma
 		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		break;
 	default:
+		VH_CHECK(false, "Undefined Image Layout!");
 		break;
 	}
 
@@ -161,7 +162,20 @@ void VulkanHelper::Image::TransitionImageLayout(VkImageLayout newLayout, VkComma
 		dstAccess |= VK_ACCESS_TRANSFER_WRITE_BIT;
 		dstStage |= VK_PIPELINE_STAGE_TRANSFER_BIT;
 		break;
+	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+		dstAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dstStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		break;
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		dstAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dstStage |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		break;
+	case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+		dstAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dstStage |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		break;
 	default:
+		VH_CHECK(false, "Undefined Image Layout!");
 		break;
 	}
 

@@ -17,6 +17,27 @@ namespace VulkanHelper
 	{
 	public:
 
+		struct DefaultVertex
+		{
+			glm::vec3 Position;
+			glm::vec3 Normal;
+			glm::vec2 TexCoord;
+
+			static VkVertexInputBindingDescription GetBindingDescription()
+			{
+				return { 0, sizeof(DefaultVertex), VK_VERTEX_INPUT_RATE_VERTEX };
+			}
+
+			static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions()
+			{
+				return {
+					VkVertexInputAttributeDescription{ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(DefaultVertex, Position) },
+					VkVertexInputAttributeDescription{ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(DefaultVertex, Normal) },
+					VkVertexInputAttributeDescription{ 2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(DefaultVertex, TexCoord) }
+				};
+			}
+		};
+
 		struct InputAttribute
 		{
 			VkFormat Format = VK_FORMAT_UNDEFINED;
@@ -62,13 +83,6 @@ namespace VulkanHelper
 		inline const VkVertexInputBindingDescription GetBindingDescription() const { return { 0, m_VertexSize, VK_VERTEX_INPUT_RATE_VERTEX }; }
 
 	private:
-
-		struct DefaultVertex
-		{
-			glm::vec3 Position;
-			glm::vec3 Normal;
-			glm::vec2 TexCoord;
-		};
 
 		void CreateInputAttributes(const std::vector<InputAttribute>& inputAttributes);
 		Device* m_Device = nullptr;

@@ -16,8 +16,6 @@
 
 VulkanHelper::Image VulkanHelper::AssetImporter::ImportTexture(Device* device, std::string path, bool HDR)
 {
-	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
 	for (int i = 0; i < path.size(); i++)
 	{
 		if (path[i] == '%')
@@ -50,7 +48,7 @@ VulkanHelper::Image VulkanHelper::AssetImporter::ImportTexture(Device* device, s
 	info.Width = sizeX;
 	info.Properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	info.Usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	info.MipMapCount = glm::min(5, (int)glm::floor(glm::log2((float)glm::max(sizeX, sizeY))));
+	info.MipMapCount = glm::max(1, glm::min(5, (int)glm::floor(glm::log2((float)glm::max(sizeX, sizeY)))));
 	info.Device = device;
 	Image image;
 	image.Init(info);
@@ -59,7 +57,7 @@ VulkanHelper::Image VulkanHelper::AssetImporter::ImportTexture(Device* device, s
 
 	stbi_image_free(pixels);
 
-	return Image(std::move(image));
+	return image;
 }
 
 void VulkanHelper::AssetImporter::ImportModel(
@@ -91,14 +89,6 @@ void VulkanHelper::AssetImporter::ImportModel(
 
 	int index = 0;
 	ProcessAssimpNode(device, scene->mRootNode, scene, path, outMeshes, outMeshNames, outMeshTransfrorms, outMaterials, index);
-
-	for (size_t i = 0; i < outMaterials->size(); i++)
-	{
-		(*outMaterials)[i].AlbedoTexture.WaitToLoad();
-		(*outMaterials)[i].NormalTexture.WaitToLoad();
-		(*outMaterials)[i].MetallnessTexture.WaitToLoad();
-		(*outMaterials)[i].RoughnessTexture.WaitToLoad();
-	}
 }
 
 void VulkanHelper::AssetImporter::ProcessAssimpNode(
@@ -143,7 +133,6 @@ void VulkanHelper::AssetImporter::ProcessAssimpNode(
 		}
 
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-		Material mat;
 
 		aiColor4D emissiveColor(0.0f, 0.0f, 0.0f, 0.0f);
 		aiColor4D diffuseColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -152,7 +141,8 @@ void VulkanHelper::AssetImporter::ProcessAssimpNode(
 			std::string matName = material->GetName().C_Str();
 
 			outMaterials->emplace_back();
-			(*outMaterials)[outMaterials->size() - 1].MaterialName = matName;
+			Material& mat = (*outMaterials)[outMaterials->size() - 1];
+			mat.MaterialName = matName;
 
 			material->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor);
 			material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissiveColor.a);

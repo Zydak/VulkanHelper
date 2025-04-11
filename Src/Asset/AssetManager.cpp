@@ -12,7 +12,7 @@ void VulkanHelper::AssetManager::Init(Device* device)
 {
 	s_Device = device;
 
-	s_ThreadPool.Init({ device, 1 });
+	s_ThreadPool.Init({ device, std::thread::hardware_concurrency() / 2 });
 }
 
 VulkanHelper::AssetHandle VulkanHelper::AssetManager::GetAsset(const std::string& path)

@@ -47,6 +47,18 @@ namespace VulkanHelper
 #define VH_ASSERT(condition, ...)
 #endif
 
+#ifndef DISTRIBUTION
+#define VH_RETURN_ASSERT(condition, ...)\
+		int res = condition;\
+		if(res != 0) {\
+			VH_ERROR("Return value is {}", res);\
+			VH_ERROR(__VA_ARGS__);\
+			__debugbreak();\
+		}
+#else
+#define VH_RETURN_ASSERT(condition, ...)
+#endif
+
 #define VH_CHECK(condition, ...)\
 		if(!(condition)) {\
 			VH_ERROR(__VA_ARGS__);\

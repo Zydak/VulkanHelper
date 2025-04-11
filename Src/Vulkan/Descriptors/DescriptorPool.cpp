@@ -54,12 +54,12 @@ namespace VulkanHelper
 		if (m_DescriptorPoolHandles.size() == 0)
 			return;
 
-		m_DescriptorPoolHandles.clear();
-
 		for (uint32_t i = 0; i <= m_CurrentPool; i++)
 		{
 			vkDestroyDescriptorPool(m_Device->GetHandle(), m_DescriptorPoolHandles[i], nullptr);
 		}
+
+		m_DescriptorPoolHandles.clear();
 	}
 
 	DescriptorPool::DescriptorPool(DescriptorPool&& other) noexcept

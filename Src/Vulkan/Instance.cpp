@@ -175,6 +175,7 @@ std::vector<VulkanHelper::Instance::PhysicalDevice> VulkanHelper::Instance::Quer
 		if (surface != VK_NULL_HANDLE)
 		{
 			outDevices[i].SwapchainSupport = QuerySwapchainSupport(devices[i], surface);
+			outDevices[i].QueueFamilies = FindQueueFamilies(devices[i], surface);
 		}
 
 		outDevices[i].Properties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };

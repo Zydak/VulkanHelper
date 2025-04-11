@@ -48,6 +48,7 @@ namespace VulkanHelper
 				std::vector<VkPresentModeKHR> PresentModes;
 			};
 
+			QueueFamilyIndices QueueFamilies;
 			VkPhysicalDeviceProperties2 Properties;
 			SwapchainSupportDetails SwapchainSupport;
 			std::string Name = "INVALID DEVICE";

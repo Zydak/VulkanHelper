@@ -24,7 +24,7 @@ namespace VulkanHelper
 			uint32_t Width = 0;
 			VkImageViewType ViewType = VK_IMAGE_VIEW_TYPE_2D;
 			uint32_t LayerCount = 1;
-			uint32_t MipMapCount = 0;
+			uint32_t MipMapCount = 1;
 
 			const char* DebugName = "";
 		};
