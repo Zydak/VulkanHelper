@@ -30,7 +30,7 @@ VkCommandBuffer VulkanHelper::Renderer::GetCurrentCommandBuffer()
 	return m_CommandBuffers[m_CurrentImageIndex];
 }
 
-bool VulkanHelper::Renderer::BeginFrame()
+VulkanHelper::ResultCode VulkanHelper::Renderer::BeginFrame()
 {
 	VH_CHECK(!m_IsFrameStarted, "Can't call BeginFrame while already in progress!");
 
@@ -38,7 +38,7 @@ bool VulkanHelper::Renderer::BeginFrame()
 	if (extent.width == 0 || extent.height == 0)
 	{
 		// If the extent is 0 the window is either minimized or someone resized it to 0. In either case skip the rendering
-		return false;
+		return ResultCode::SkipRendering;
 	}
 
 	bool windowWasResized = extent.width != m_PreviousExtent.width || extent.height != m_PreviousExtent.height;
@@ -47,7 +47,7 @@ bool VulkanHelper::Renderer::BeginFrame()
 		m_PreviousExtent = extent;
 		RecreateSwapchain();
 
-		//return false;
+		return ResultCode::WindowResized;
 	}
 
 	auto result = m_Swapchain->AcquireNextImage(m_CurrentImageIndex);
@@ -55,7 +55,7 @@ bool VulkanHelper::Renderer::BeginFrame()
 	{
 		RecreateSwapchain();
 
-		//return false;
+		return ResultCode::WindowResized;
 	}
 
 	m_IsFrameStarted = true;
@@ -69,7 +69,7 @@ bool VulkanHelper::Renderer::BeginFrame()
 		"failed to begin recording command buffer!"
 	);
 
-	return true;
+	return ResultCode::Success;
 }
 
 void VulkanHelper::Renderer::EndFrame()

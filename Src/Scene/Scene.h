@@ -32,10 +32,10 @@ namespace VulkanHelper
 		void DestroyScripts();
 		void UpdateScripts(double deltaTime);
 
-		template<typename T>
-		void AddSystem()
+		template<typename T, typename... Args>
+		void AddSystem(Args&&... args)
 		{
-			m_Systems.emplace_back(new T());
+			m_Systems.emplace_back(new T(std::forward<Args>(args)...));
 		}
 
 		void InitSystems();

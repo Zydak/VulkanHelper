@@ -25,5 +25,7 @@ namespace VulkanHelper
 
 		ShaderCompilationFailed = -14,
 		FileNotFound = -15,
+		WindowResized = -16,
+		SkipRendering = -17,
 	};
 }

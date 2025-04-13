@@ -30,7 +30,7 @@ namespace VulkanHelper
 
 	public:
 
-		[[nodiscard]] bool BeginFrame();
+		[[nodiscard]] ResultCode BeginFrame();
 		void EndFrame();
 
 		void BeginRendering(const std::vector<VkRenderingAttachmentInfo>& colorAttachments, VkRenderingAttachmentInfo* depthAttachment, const VkExtent2D& renderSize);
