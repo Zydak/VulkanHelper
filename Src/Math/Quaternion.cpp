@@ -99,6 +99,13 @@ namespace VulkanHelper
 		m_FrontVec = glm::vec3(rotationMat[0][2], rotationMat[1][2], rotationMat[2][2]);
 		m_RightVec = glm::vec3(rotationMat[0][0], rotationMat[1][0], rotationMat[2][0]);
 		m_UpVec = glm::vec3(rotationMat[0][1], rotationMat[1][1], rotationMat[2][1]);
+
+		if (m_LockXAxis)
+			m_RightVec = { 1.0f, 0.0f, 0.0f };
+		if (m_LockYAxis)
+			m_UpVec = { 0.0f, 1.0f, 0.0f };
+		if (m_LockZAxis)
+			m_FrontVec = { 0.0f, 0.0f, 1.0f };
 	}
 
 	bool Quaternion::operator!=(const Quaternion& other) const

@@ -37,8 +37,16 @@ namespace VulkanHelper
 		bool operator ==(const Quaternion& other) const;
 		bool operator !=(const Quaternion& other) const;
 
+		inline void LockXAxis(bool lock) { m_LockXAxis = lock; }
+		inline void LockYAxis(bool lock) { m_LockYAxis = lock; }
+		inline void LockZAxis(bool lock) { m_LockZAxis = lock; }
+
 	private:
 		void UpdateVectors();
+
+		bool m_LockXAxis = false;
+		bool m_LockYAxis = false;
+		bool m_LockZAxis = false;
 
 		glm::quat m_Quat{ 1.0f, 0.0f, 0.0f, 0.0f };
 		glm::vec3 m_FrontVec{ 0.0f, 0.0f, 1.0f };

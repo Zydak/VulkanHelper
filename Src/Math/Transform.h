@@ -27,7 +27,7 @@ namespace VulkanHelper
 		glm::mat4 GetMat4();
 
 		inline glm::vec3 GetTranslation() const { return m_Translation; }
-		inline Quaternion GetRotation() const { return m_Rotation; }
+		inline Quaternion& GetRotation() { return m_Rotation; }
 		inline glm::vec3 GetScale() const { return m_Scale; }
 
 		void SetTranslation(const glm::vec3& vec);

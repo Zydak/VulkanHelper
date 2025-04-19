@@ -38,7 +38,7 @@ namespace VulkanHelper
 		std::vector<std::string> ScriptClassesNames;
 
 		template<typename T>
-		void AddScript()
+		T* AddScript()
 		{
 			Scripts.push_back(new T());
 
@@ -47,6 +47,8 @@ namespace VulkanHelper
 				name = name.substr(6, name.size() - 6);
 
 			ScriptClassesNames.push_back(name);
+
+			return reinterpret_cast<T*>(Scripts.back());
 		}
 
 		void InitializeScripts();

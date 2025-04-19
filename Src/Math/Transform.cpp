@@ -57,7 +57,7 @@ namespace VulkanHelper
 		glm::mat4 rotationMat = m_Rotation.GetMat4();
 		glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), m_Scale);
 
-		return translationMat * rotationMat * scaleMat;
+		return rotationMat * translationMat * scaleMat;
 	}
 
 	void Transform::SetTranslation(const glm::vec3& vec)
