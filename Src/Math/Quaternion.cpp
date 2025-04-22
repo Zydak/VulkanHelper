@@ -103,9 +103,9 @@ namespace VulkanHelper
 		if (m_LockXAxis)
 			m_RightVec = { 1.0f, 0.0f, 0.0f };
 		if (m_LockYAxis)
-			m_UpVec = { 0.0f, 1.0f, 0.0f };
+			m_UpVec = { 0.0f, -1.0f, 0.0f };
 		if (m_LockZAxis)
-			m_FrontVec = { 0.0f, 0.0f, 1.0f };
+			m_FrontVec = { 0.0f, 0.0f, -1.0f };
 	}
 
 	bool Quaternion::operator!=(const Quaternion& other) const
