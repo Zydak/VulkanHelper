@@ -35,6 +35,10 @@ void VulkanHelper::Device::Init(const CreateInfo& createInfo)
 	m_Features = createInfo.Features;
 	m_Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 
+	m_Properties = {};
+	m_Properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	vkGetPhysicalDeviceProperties2(m_PhysicalDevice.Handle, &m_Properties);
+
 	CreateLogicalDevice();
 
 	CreateCommandPoolsForThread();

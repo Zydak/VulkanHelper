@@ -48,12 +48,12 @@ VulkanHelper::Image VulkanHelper::AssetImporter::ImportTexture(Device* device, s
 	info.Width = sizeX;
 	info.Properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	info.Usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	info.MipMapCount = glm::max(1, glm::min(5, (int)glm::floor(glm::log2((float)glm::max(sizeX, sizeY)))));
+	info.MipMapCount = 1;// glm::max(1, glm::min(5, (int)glm::floor(glm::log2((float)glm::max(sizeX, sizeY)))));
 	info.Device = device;
 	Image image;
 	image.Init(info);
 
-	image.WritePixels(pixels, imageSize, true);
+	image.WritePixels(pixels, imageSize, false);
 
 	stbi_image_free(pixels);
 

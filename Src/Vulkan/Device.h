@@ -63,6 +63,7 @@ namespace VulkanHelper
 		[[nodiscard]] CommandPool* GetComputeCommandPool() { return &m_CommandPools[std::this_thread::get_id()]->Compute; }
 		[[nodiscard]] Instance::PhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }
 		[[nodiscard]] VmaAllocator GetAllocator() const { return m_Allocator; }
+		[[nodiscard]] VkPhysicalDeviceProperties2 GetPhysicalDeviceProperties() const { return m_Properties; }
 
 	private:
 
@@ -75,6 +76,7 @@ namespace VulkanHelper
 		Instance::PhysicalDevice m_PhysicalDevice;
 		std::vector<const char*> m_Extensions;
 		VkPhysicalDeviceFeatures2 m_Features;
+		VkPhysicalDeviceProperties2 m_Properties;
 
 		std::unordered_map<std::thread::id, std::unique_ptr<CommandPools>> m_CommandPools;
 

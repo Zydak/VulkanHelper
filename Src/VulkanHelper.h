@@ -16,6 +16,7 @@
 #include "Vulkan/PushConstant.h"
 #include "Vulkan/DescriptorSet.h"
 #include "Vulkan/DeleteQueue.h"
+#include "Vulkan/Sampler.h"
 
 #include "Scene/Scene.h"
 #include "Scene/Entity.h"

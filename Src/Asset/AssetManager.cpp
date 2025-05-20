@@ -43,7 +43,7 @@ VulkanHelper::AssetHandle VulkanHelper::AssetManager::GetAsset(const std::string
 	
 	AssetHandle handle;
 	handle.Future = promise->get_future();
-	if (extension == ".png" || extension == ".jpg")
+	if (extension == ".png" || extension == ".jpg" || extension == ".hdr")
 		handle.Asset = std::make_shared<TextureAsset>();
 	else if (extension == ".gltf" || extension == ".glb" || extension == ".obj")
 		handle.Asset = std::make_shared<ModelAsset>();
@@ -55,9 +55,9 @@ VulkanHelper::AssetHandle VulkanHelper::AssetManager::GetAsset(const std::string
 	s_Assets[hashValue] = { handle.Future, handle.Asset };
 	s_AssetsMutex.unlock();
 
-	if (extension == ".png" || extension == ".jpg")
+	if (extension == ".png" || extension == ".jpg" || extension == ".hdr")
 	{
-		s_ThreadPool.PushTask([](std::string path, std::shared_ptr<std::promise<void>> promise)
+		s_ThreadPool.PushTask([](std::string path, std::shared_ptr<std::promise<void>> promise, std::string extension)
 			{
 				VH_TRACE("Loading Texture: {}", path);
 
@@ -74,10 +74,10 @@ VulkanHelper::AssetHandle VulkanHelper::AssetManager::GetAsset(const std::string
 				s_AssetsMutex.unlock();
 
 				TextureAsset* textureAsset = (TextureAsset*)s_Assets[hashValue].Asset.lock().get();
-				textureAsset->Image = std::move(AssetImporter::ImportTexture(s_Device, path, false));
+				textureAsset->Image = std::move(AssetImporter::ImportTexture(s_Device, path, extension == ".hdr"));
 
 				promise->set_value();
-			}, path, promise);
+			}, path, promise, extension);
 	}
 	else if (extension == ".gltf" || extension == ".glb" || extension == ".obj")
 	{
