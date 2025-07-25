@@ -6,7 +6,7 @@ int main()
 {
     Foo();
 
-    int x = std::numeric_limits<int>::max() - 1;
+    int x = std::numeric_limits<int>::max();
     x++;
 
     std::cout << x << std::endl;
