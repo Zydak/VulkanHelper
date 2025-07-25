@@ -9,3 +9,5 @@ BinInt/
 **/*.cmd
 **/*.rsp
 **/VulkanHelper.log
+.cache/
+.vscode/
