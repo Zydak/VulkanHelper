@@ -1,15 +1,13 @@
-#include "Foo.h"
-#include <limits>
-#include <iostream>
+#include "Window/Window.h"
 
 int main()
 {
-    Foo();
+    VulkanHelper::Window window = VulkanHelper::Window::New({600, 600, "Example Project", "", true}).value();
 
-    int x = std::numeric_limits<int>::max();
-    x++;
-
-    std::cout << x << std::endl;
+    while (!window.WantsToClose())
+    {
+        VulkanHelper::Window::PollEvents();
+    }
 
     return 0;
 }

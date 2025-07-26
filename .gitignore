@@ -11,3 +11,5 @@ BinInt/
 **/VulkanHelper.log
 .cache/
 .vscode/
+Libraries/*
+!Libraries/CMakeLists.txt
