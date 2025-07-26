@@ -63,6 +63,9 @@ namespace VulkanHelper
 
         /**
          * @brief Initialize GLFW (if not already initialized) and create a new GLFW window with the specified configuration.
+
+         * This static factory function attempts to create a wrapper around GLFWwindow according to the provided configuration.
+         * If successful, it returns a Window object; otherwise, it returns a VHError.
          *
          * @param config Configuration parameters for the new window.
          * @return On success, returns std::expected containing a Window.

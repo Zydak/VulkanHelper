@@ -22,8 +22,29 @@ namespace VulkanHelper
             VTrace = 5
         };
 
+        /**
+         * @brief Gets the singleton instance of the Logger.
+         *
+         * This function returns a reference to the global Logger instance.
+         *
+         * @return Logger& Reference to the singleton Logger instance.
+         */
         static Logger& GetInstance();
 
+        /**
+         * @brief Logs a formatted message with the specified verbosity and style.
+         *
+         * This templated function logs a message to the console and/or file, depending on the set verbosity levels.
+         * The message is formatted using fmtlib, and includes the function name and line number for context.
+         *
+         * @tparam T Variadic template arguments for text.
+         * @param verbosity The verbosity level of the message (e.g., error, warning, info).
+         * @param style The fmt::text_style to use for console output.
+         * @param function The name of the calling function (usually __PRETTY_FUNCTION__).
+         * @param line The line number in the source file.
+         * @param str The format string for the log message.
+         * @param args Arguments to be formatted into the log message.
+         */
         template<typename ...T>
         void Log(Verbosity verbosity, const fmt::text_style& style, const char* function, int line, const char* str, T&& ...args)
         {
@@ -39,7 +60,22 @@ namespace VulkanHelper
                 m_LogFileOutput.print(fmt::runtime(formattedStr));
         }
 
+        /**
+         * @brief Sets the minimum verbosity level for console output.
+         *
+         * Messages below this verbosity will not be printed to the console.
+         *
+         * @param verbosity The minimum verbosity level for console output.
+         */
         inline void SetVerbosityConsole(Verbosity verbosity) { m_ConsoleVerbosity = verbosity; }
+
+        /**
+         * @brief Sets the minimum verbosity level for file output.
+         *
+         * Messages below this verbosity will not be written to the log file.
+         *
+         * @param verbosity The minimum verbosity level for file output.
+         */
         inline void SetVerbosityFile(Verbosity verbosity) { m_FileVerbosity = verbosity; }
     
     private:

@@ -20,7 +20,7 @@ namespace VulkanHelper
         if (GLFWInitialized == false)
         {
             if (glfwInit() != GLFW_TRUE)
-                return std::unexpected(VHError::FAIL);
+                return std::unexpected(VHError::INITIALIZATION_FAILED);
 
             GLFWInitialized = true;
         }
@@ -30,7 +30,7 @@ namespace VulkanHelper
 
         GLFWwindow* window = glfwCreateWindow(config.Width, config.Height, config.Name.c_str(), NULL, NULL);
         if (window == nullptr)
-            return std::unexpected(VHError::FAIL);
+            return std::unexpected(VHError::INITIALIZATION_FAILED);
 
         glfwMakeContextCurrent(window);
 
