@@ -33,10 +33,9 @@ namespace VulkanHelper
         FRAGMENTED_POOL = -12,          ///< A pool allocation has failed due to fragmentation of the pool's memory. (VK_ERROR_FRAGMENTED_POOL)
         UNKNOWN = -13,                  ///< An unknown error has occurred. (VK_ERROR_UNKNOWN)
         WRONG_ARGUMENTS = -14,          ///< A function was called with incorrect or invalid arguments.
-        OUT_OF_POOL_MEMORY = -1000069000, ///< A pool memory allocation has failed. (VK_ERROR_OUT_OF_POOL_MEMORY)
-
-
+        
         // Vulkan extensions and platform-specific errors
+        OUT_OF_POOL_MEMORY = -1000069000, ///< A pool memory allocation has failed. (VK_ERROR_OUT_OF_POOL_MEMORY)
         INVALID_EXTERNAL_HANDLE = -1000072003, ///< An external handle is not valid. (VK_ERROR_INVALID_EXTERNAL_HANDLE)
         FRAGMENTATION = -1000161000,   ///< A descriptor pool creation has fragmented the pool. (VK_ERROR_FRAGMENTATION)
         INVALID_OPAQUE_CAPTURE_ADDRESS = -1000257000, ///< An invalid opaque capture address was provided. (VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS)

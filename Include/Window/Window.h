@@ -5,8 +5,11 @@
 #include <expected>
 
 #include "Core/Error.h"
+#include "Vulkan/PhysicalDevice.h"
+#include "Vulkan/Instance.h"
 
 struct GLFWwindow;
+typedef struct VkSurfaceKHR_T* VkSurfaceKHR;
 
 namespace VulkanHelper
 {
@@ -30,6 +33,12 @@ namespace VulkanHelper
          */
         struct Config
         {
+            /**
+             * @brief Pointer to the Vulkan Instance this window will be associated with.
+             * @note Must not be null; the window will use this instance to create a VkSurfaceKHR.
+             */
+            Instance *Instance = nullptr;
+
             /**
              * @brief The initial width of the window in pixels.
              * @note Must be non-zero for window creation to succeed.
@@ -98,7 +107,7 @@ namespace VulkanHelper
          *
          * @return true if a close has been requested, false otherwise.
          */
-        [[nodiscard]] bool WantsToClose();
+        [[nodiscard]] bool WantsToClose() const;
 
         /**
          * @brief Programmatically signal that the window should close.
@@ -107,6 +116,19 @@ namespace VulkanHelper
          * calls to WantsToClose() will return true.
          */
         void Close();
+
+        /**
+         * @brief Checks if the given physical device is compatible with this window's surface.
+         *
+         * This function queries the provided Vulkan physical device to determine if it supports presentation
+         * to the window's surface (e.g., via vkGetPhysicalDeviceSurfaceSupportKHR). This is typically used
+         * to filter out devices that cannot present images to the window, ensuring that only compatible GPUs
+         * are considered for rendering.
+         *
+         * @param device The Vulkan physical device to check for surface compatibility.
+         * @return true if the device supports presentation to this window's surface; false otherwise.
+         */
+        [[nodiscard]] bool IsPhysicalDeviceCompatible(const PhysicalDevice& device) const;
 
         //------------------------------------------------------------------------
         // Inline Getters
@@ -135,14 +157,18 @@ namespace VulkanHelper
 
     private:
         // Constructable only by calling New(...)
-        Window(GLFWwindow* window, std::string&& name, uint32_t width, uint32_t height)
-            : m_Window(window),
+        Window(Instance* instance, GLFWwindow* window, VkSurfaceKHR surface, std::string&& name, uint32_t width, uint32_t height)
+            : m_Instance(instance),
+            m_Window(window),
+            m_Surface(surface),
             m_Name(std::move(name)),
             m_Width(width),
             m_Height(height)
         {}
 
+        Instance* m_Instance;    ///< Pointer to the Vulkan Instance this window is associated with.
         GLFWwindow*   m_Window;  ///< Underlying GLFW window handle.
+        VkSurfaceKHR m_Surface;  ///< Vulkan surface handle, if created.
         std::string   m_Name;    ///< User-specified window title.
         uint32_t      m_Width;   ///< Current window width in pixels.
         uint32_t      m_Height;  ///< Current window height in pixels.

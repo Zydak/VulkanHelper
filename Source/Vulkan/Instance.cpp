@@ -1,12 +1,11 @@
 #include "Vulkan/Instance.h"
 #include "Core/Error.h"
-#include "vulkan/vulkan.h"
 #include "Log/Log.h"
 #include <expected>
 #include <vector>
-#include <vulkan/vulkan_core.h>
 
-#include "GLFW/glfw3.h"
+#include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -25,11 +24,28 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityF
 	}
 	return VK_FALSE;
 }
+static void GLFWErrorCallback(int errorCode, const char* message)
+{
+    VH_LOG_ERROR("GLFW ERROR: Error code: {} | Message: {}", errorCode, message);
+}
 
 namespace VulkanHelper
 {
     std::expected<Instance, VHError> Instance::New(const Instance::Config& config)
     {
+        VH_LOG_INFO("Creating Vulkan Instance");
+
+        static bool GLFWInitialized = false;
+        if (GLFWInitialized == false)
+        {
+            if (glfwInit() != GLFW_TRUE)
+                return std::unexpected(VHError::INITIALIZATION_FAILED);
+
+            glfwSetErrorCallback(GLFWErrorCallback);
+
+            GLFWInitialized = true;
+        }
+
         VkApplicationInfo appInfo
         {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -60,6 +76,11 @@ namespace VulkanHelper
             uint32_t glfwExtensionCount = 0;
             const char** glfwExtensions;
             glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+            if (glfwExtensions == nullptr)
+            {
+                VH_LOG_ERROR("Failed to get GLFW required instance extensions!");
+                return std::unexpected(VHError::INITIALIZATION_FAILED);
+            }
 
             for (uint32_t i = 0; i < glfwExtensionCount; ++i)
             {
@@ -84,12 +105,15 @@ namespace VulkanHelper
             instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
         #endif
 
+        for (const auto& ext : extensions)
+        {
+            VH_LOG_DEBUG("Enabling Vulkan Extension: {}", ext);
+        }
+
         VkInstance instance;
         VkResult res = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
         if (res != VK_SUCCESS)
-        {
             return std::unexpected(VHError(res)); // VkResult maps to VHError so this is legal
-        }
         
         VkDebugUtilsMessengerEXT messenger;
         Instance::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
@@ -122,6 +146,7 @@ namespace VulkanHelper
     {
         if (m_Instance != nullptr)
         {
+            VH_LOG_INFO("Destroying Vulkan Instance");
             if (m_DebugMessenger != nullptr)
                 Instance::DestroyDebugUtilsMessengerEXT(m_Instance, &m_DebugMessenger);
 
