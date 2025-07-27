@@ -113,7 +113,7 @@ namespace VulkanHelper
             }
         }
 
-        return Device(device, std::move(queues), std::move(commandPools));
+        return Device(config.PhysicalDevice, device, std::move(queues), std::move(commandPools));
     }
 
     Device::~Device()
@@ -123,20 +123,26 @@ namespace VulkanHelper
             if (m_CommandPools.GraphicsPool != nullptr)
             {
                 vkDestroyCommandPool(m_Device, m_CommandPools.GraphicsPool, nullptr);
+                m_CommandPools.GraphicsPool = nullptr;
                 VH_LOG_INFO("Destroying Graphics Command Pool");
             }
             if (m_CommandPools.ComputePool != nullptr)
             {
                 vkDestroyCommandPool(m_Device, m_CommandPools.ComputePool, nullptr);
+                m_CommandPools.ComputePool = nullptr;
                 VH_LOG_INFO("Destroying Compute Command Pool");
             }
             vkDestroyDevice(m_Device, nullptr);
+            m_Device = nullptr;
             VH_LOG_INFO("Destroying Vulkan Device");
+
+            m_Queues = {};
         }
     }
 
     Device::Device(Device&& other) noexcept
-        : m_Device(other.m_Device),
+        : m_PhysicalDevice(std::move(other.m_PhysicalDevice)), 
+          m_Device(other.m_Device),
           m_Queues(other.m_Queues),
           m_CommandPools(other.m_CommandPools)
     {
@@ -150,6 +156,7 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
+        m_PhysicalDevice = std::move(other.m_PhysicalDevice);
         m_Device = other.m_Device;
         m_Queues = std::move(other.m_Queues);
         m_CommandPools = std::move(other.m_CommandPools);
@@ -161,7 +168,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    Device::QueueFamilyIndices Device::FindQueueFamilies(const PhysicalDevice& physicalDevice, Window* window)
+    Device::QueueFamilyIndices Device::FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window)
     {
         QueueFamilyIndices indices;
 

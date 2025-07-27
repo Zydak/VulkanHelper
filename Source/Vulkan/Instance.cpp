@@ -153,9 +153,13 @@ namespace VulkanHelper
         {
             VH_LOG_INFO("Destroying Vulkan Instance");
             if (m_DebugMessenger != nullptr)
+            {
                 Instance::DestroyDebugUtilsMessengerEXT(m_Instance, &m_DebugMessenger);
+                m_DebugMessenger = nullptr;
+            }
 
             vkDestroyInstance(m_Instance, nullptr);
+            m_Instance = nullptr;
         }
     }
 

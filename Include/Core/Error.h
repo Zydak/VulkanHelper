@@ -33,6 +33,7 @@ namespace VulkanHelper
         FRAGMENTED_POOL = -12,          ///< A pool allocation has failed due to fragmentation of the pool's memory. (VK_ERROR_FRAGMENTED_POOL)
         UNKNOWN = -13,                  ///< An unknown error has occurred. (VK_ERROR_UNKNOWN)
         WRONG_ARGUMENTS = -14,          ///< A function was called with incorrect or invalid arguments.
+        NOT_IMPLEMENTED = -15,          ///< A function is not implemented or not supported.
         
         // Vulkan extensions and platform-specific errors
         OUT_OF_POOL_MEMORY = -1000069000, ///< A pool memory allocation has failed. (VK_ERROR_OUT_OF_POOL_MEMORY)

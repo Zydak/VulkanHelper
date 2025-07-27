@@ -48,6 +48,25 @@ namespace VulkanHelper
         return PhysicalDevice(config.Device, vendor, properties.deviceName, discrete);
     }
 
+    PhysicalDevice::PhysicalDevice(const PhysicalDevice& other)
+        : m_Device(other.m_Device), m_Vendor(other.m_Vendor), m_Name(other.m_Name), m_Discrete(other.m_Discrete)
+    {
+
+    }
+
+    PhysicalDevice& PhysicalDevice::operator=(const PhysicalDevice& other)
+    {
+        if (this == &other)
+            return *this;
+
+        m_Device = other.m_Device;
+        m_Vendor = other.m_Vendor;
+        m_Name = other.m_Name;
+        m_Discrete = other.m_Discrete;
+
+        return *this;
+    }
+
     PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept
         : m_Device(other.m_Device), m_Vendor(other.m_Vendor), m_Name(std::move(other.m_Name)), m_Discrete(other.m_Discrete)
     {

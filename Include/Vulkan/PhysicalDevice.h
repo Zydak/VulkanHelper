@@ -40,8 +40,8 @@ namespace VulkanHelper
          */
         [[nodiscard]] static std::expected<PhysicalDevice, VHResult> New(const Config& config);
 
-        PhysicalDevice(const PhysicalDevice& other) = delete;
-        PhysicalDevice& operator=(const PhysicalDevice& other) = delete;
+        PhysicalDevice(const PhysicalDevice& other);
+        PhysicalDevice& operator=(const PhysicalDevice& other);
 
         PhysicalDevice(PhysicalDevice&& other) noexcept;
         PhysicalDevice& operator=(PhysicalDevice&& other) noexcept;

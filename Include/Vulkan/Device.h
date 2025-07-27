@@ -35,7 +35,7 @@ namespace VulkanHelper
              * If non-null, the device will be created with presentation capabilities for the given window's surface.
              * If null, presentation support is not requested.
              */
-            VulkanHelper::Window* Window = nullptr;
+            const VulkanHelper::Window* Window = nullptr;
         };
 
         /**
@@ -93,6 +93,12 @@ namespace VulkanHelper
          */
         [[nodiscard]] inline VkCommandPool GetComputeCommandPool() const { return m_CommandPools.ComputePool; }
 
+        /**
+         * @brief Gets the physical device associated with this logical device.
+         *
+         * @return Pointer to the PhysicalDevice object used to create this logical device.
+         */
+        [[nodiscard]] inline const PhysicalDevice& GetPhysicalDevice() const { return m_PhysicalDevice; }
     private:
         struct QueueFamilyIndices
         {
@@ -114,13 +120,14 @@ namespace VulkanHelper
             VkCommandPool ComputePool = NULL;
         };
 
-        Device(VkDevice device, Queues queues, CommandPools commandPools)
-            : m_Device(device), m_Queues(std::move(queues)), m_CommandPools(std::move(commandPools)) {}
+        Device(PhysicalDevice physicalDevice, VkDevice device, Queues queues, CommandPools commandPools)
+            : m_PhysicalDevice(physicalDevice), m_Device(device), m_Queues(std::move(queues)), m_CommandPools(std::move(commandPools)) {}
 
+        PhysicalDevice m_PhysicalDevice;
         VkDevice m_Device = nullptr;
         Queues m_Queues;
         CommandPools m_CommandPools;
         
-        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, Window* window);
+        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window);
     };
 }

@@ -1,3 +1,4 @@
+#include "Vulkan/Swapchain.h"
 #include "Window/Window.h"
 #include "Vulkan/Instance.h"
 #include "Log/Log.h"
@@ -42,7 +43,12 @@ int main()
         return -1;
     }
 
-    VulkanHelper::Device device = VulkanHelper::Device::New({std::move(*selectedDevice), &window}).value();
+    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, &window}).value();
+    VulkanHelper::Swapchain swapchain = VulkanHelper::Swapchain::New({
+        .Device = &device,
+        .Window = &window,
+        .MaxFramesInFlight = 2
+    }).value();
 
     while (!window.WantsToClose())
     {
