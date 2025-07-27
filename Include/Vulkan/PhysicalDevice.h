@@ -38,7 +38,7 @@ namespace VulkanHelper
          * @param config The configuration struct specifying the Vulkan instance and physical device to wrap.
          * @return std::expected<PhysicalDevice, VHError> An expected containing the created PhysicalDevice on success, or a VHError on failure.
          */
-        [[nodiscard]] static std::expected<PhysicalDevice, VHError> New(const Config& config);
+        [[nodiscard]] static std::expected<PhysicalDevice, VHResult> New(const Config& config);
 
         PhysicalDevice(const PhysicalDevice& other) = delete;
         PhysicalDevice& operator=(const PhysicalDevice& other) = delete;

@@ -6,6 +6,7 @@
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_core.h>
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -31,15 +32,15 @@ static void GLFWErrorCallback(int errorCode, const char* message)
 
 namespace VulkanHelper
 {
-    std::expected<Instance, VHError> Instance::New(const Instance::Config& config)
+    std::expected<Instance, VHResult> Instance::New(const Instance::Config& config)
     {
         VH_LOG_INFO("Creating Vulkan Instance");
 
         static bool GLFWInitialized = false;
-        if (GLFWInitialized == false)
+        if (GLFWInitialized == false && config.AddGLFWExtensions)
         {
             if (glfwInit() != GLFW_TRUE)
-                return std::unexpected(VHError::INITIALIZATION_FAILED);
+                return std::unexpected(VHResult::INITIALIZATION_FAILED);
 
             glfwSetErrorCallback(GLFWErrorCallback);
 
@@ -79,15 +80,17 @@ namespace VulkanHelper
             if (glfwExtensions == nullptr)
             {
                 VH_LOG_ERROR("Failed to get GLFW required instance extensions!");
-                return std::unexpected(VHError::INITIALIZATION_FAILED);
+                return std::unexpected(VHResult::INITIALIZATION_FAILED);
             }
 
+            extensions.reserve(glfwExtensionCount + 1);
             for (uint32_t i = 0; i < glfwExtensionCount; ++i)
             {
                 extensions.emplace_back(glfwExtensions[i]);
             }
         }
 
+        // Layers only enabled in debug builds
         #if !defined(NDEBUG)
             const char* debugLayer = "VK_LAYER_KHRONOS_validation";
             instanceCreateInfo.enabledLayerCount = 1;
@@ -113,10 +116,12 @@ namespace VulkanHelper
         VkInstance instance;
         VkResult res = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
         if (res != VK_SUCCESS)
-            return std::unexpected(VHError(res)); // VkResult maps to VHError so this is legal
+            return std::unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
         
+        #if !defined(NDEBUG)
         VkDebugUtilsMessengerEXT messenger;
         Instance::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
+        #endif
 
         return Instance(messenger, instance);
     }

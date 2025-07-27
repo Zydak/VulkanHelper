@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string>
 #include <expected>
+#include <string_view>
 
 #include "Core/Error.h"
 #include "Vulkan/PhysicalDevice.h"
@@ -37,7 +38,7 @@ namespace VulkanHelper
              * @brief Pointer to the Vulkan Instance this window will be associated with.
              * @note Must not be null; the window will use this instance to create a VkSurfaceKHR.
              */
-            Instance *Instance = nullptr;
+            VulkanHelper::Instance *Instance = nullptr;
 
             /**
              * @brief The initial width of the window in pixels.
@@ -55,13 +56,13 @@ namespace VulkanHelper
              * @brief The title text to display in the window's title bar.
              * @note If empty, the window will have no title.
              */
-            std::string Name = "";
+            std::string_view Name = "";
 
             /**
              * @brief Filesystem path to an image to use as the window icon.
              * @note If empty or if loading fails, the default GLFW icon is used.
              */
-            std::string IconPath = "";
+            std::string_view IconPath = "";
 
             /**
              * @brief Whether the window can be resized by the user.
@@ -80,7 +81,7 @@ namespace VulkanHelper
          * @return On success, returns std::expected containing a Window.
          *         On failure, returns std::expected containing a VHError::Fail
          */
-        static std::expected<Window, VHError> New(const Config& config);
+        static std::expected<Window, VHResult> New(const Config& config);
 
         ~Window();
 
@@ -154,6 +155,13 @@ namespace VulkanHelper
          * @return The name/title originally specified at creation.
          */
         [[nodiscard]] inline std::string GetName() const { return m_Name; }
+
+        /**
+         * @brief Retrieve the window's surface.
+         *
+         * @return VkSurfaceKHR of the window.
+         */
+        [[nodiscard]] inline VkSurfaceKHR GetSurface() const { return m_Surface; }
 
     private:
         // Constructable only by calling New(...)

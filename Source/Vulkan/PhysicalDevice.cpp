@@ -6,12 +6,12 @@
 
 namespace VulkanHelper
 {
-    std::expected<PhysicalDevice, VHError> PhysicalDevice::New(const Config& config)
+    std::expected<PhysicalDevice, VHResult> PhysicalDevice::New(const Config& config)
     {
         if (config.Device == nullptr || config.Instance == nullptr)
         {
             VH_LOG_ERROR("Invalid PhysicalDevice configuration: Device or Instance is null.");
-            return std::unexpected(VHError::WRONG_ARGUMENTS);
+            return std::unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
         VkPhysicalDeviceProperties properties;
@@ -89,6 +89,7 @@ namespace VulkanHelper
             }
             if (!found)
             {
+                VH_LOG_WARN("Physical device {} does not support extension: {}", m_Name, extensions[i]);
                 return false;
             }
         }

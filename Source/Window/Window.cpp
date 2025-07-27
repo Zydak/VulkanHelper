@@ -7,7 +7,7 @@
 
 namespace VulkanHelper
 {
-    std::expected<Window, VHError> Window::New(const Config& config)
+    std::expected<Window, VHResult> Window::New(const Config& config)
     {
         VH_LOG_INFO("Initializing Window");
 
@@ -15,16 +15,16 @@ namespace VulkanHelper
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, config.Resizable);
 
-        GLFWwindow* window = glfwCreateWindow(config.Width, config.Height, config.Name.c_str(), NULL, NULL);
-        if (window == nullptr)
-            return std::unexpected(VHError::INITIALIZATION_FAILED);
+        std::string name = std::string(config.Name);
 
-        std::string name = config.Name;
+        GLFWwindow* window = glfwCreateWindow(config.Width, config.Height, name.c_str(), NULL, NULL);
+        if (window == nullptr)
+            return std::unexpected(VHResult::INITIALIZATION_FAILED);
 
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         VkResult res = glfwCreateWindowSurface(config.Instance->GetInstance(), window, nullptr, &surface);
         if (res != VK_SUCCESS)
-            return std::unexpected(VHError(res)); // VkResult maps to VHError so this is legal
+            return std::unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
         return Window(config.Instance, window, surface, std::move(name), config.Width, config.Height);
     }

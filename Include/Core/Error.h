@@ -11,12 +11,12 @@ namespace VulkanHelper
      * @note This enum maps closely to Vulkan's VkResult codes, but also includes custom values for library-specific errors.
      */
 
-    enum class VHError
+    enum class VHResult
     {
         OK = 0,                         ///< Operation completed successfully. (VK_SUCCESS)
         NOT_READY = 1,                  ///< A fence or query has not yet completed. (VK_NOT_READY)
         TIMEOUT = 2,                    ///< A wait operation has not completed in the specified time. (VK_TIMEOUT)
-        VK_EVENT_SET = 3,               ///< An event is signaled. (VK_EVENT_SET)
+        EVENT_SET = 3,                  ///< An event is signaled. (VK_EVENT_SET)
         EVENT_RESET = 4,                ///< An event is unsignaled. (VK_EVENT_RESET)
         INCOMPLETE = 5,                 ///< A return array was too small for the result. (VK_INCOMPLETE)
         OUT_OF_HOST_MEMORY = -1,        ///< A host memory allocation has failed. (VK_ERROR_OUT_OF_HOST_MEMORY)

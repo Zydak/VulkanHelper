@@ -27,7 +27,7 @@ namespace VulkanHelper
          * @param config The configuration struct specifying instance creation options, such as whether to add GLFW extensions.
          * @return std::expected<Instance, VHError> An expected containing the created Instance on success, or a VHError on failure.
          */
-        static std::expected<Instance, VHError> New(const Config& config);
+        static std::expected<Instance, VHResult> New(const Config& config);
 
         Instance(const Instance& other) = delete;
         Instance& operator=(const Instance& other) = delete;

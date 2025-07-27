@@ -1,6 +1,7 @@
 #include "Window/Window.h"
 #include "Vulkan/Instance.h"
 #include "Log/Log.h"
+#include "Vulkan/Device.h"
 
 int main()
 {
@@ -40,6 +41,8 @@ int main()
         VH_LOG_FATAL("Selected physical device is not compatible with the window surface!");
         return -1;
     }
+
+    VulkanHelper::Device device = VulkanHelper::Device::New({std::move(*selectedDevice), &window}).value();
 
     while (!window.WantsToClose())
     {
