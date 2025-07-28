@@ -1,62 +1,60 @@
 #include "Vulkan/Device.h"
 #include "Log/Log.h"
 
-#include <vector>
-
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
 
 namespace VulkanHelper
 {
-    std::expected<Device, VHResult> Device::New(const Config& config)
+    VulkanHelper::Expected<Device, VHResult> Device::New(const Config& config)
     {
-        std::vector<const char*> extensions;
+        VulkanHelper::Vector<const char*> extensions;
         if (config.Window != nullptr)
         {
-            extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+            extensions.EmplaceBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         }
 
         if (!config.PhysicalDevice.IsSuitable(extensions))
         {
             VH_LOG_ERROR("Physical device is not suitable for the required extensions! Pick a different device.");
-            return std::unexpected(VHResult::EXTENSION_NOT_PRESENT);
+            return VulkanHelper::Unexpected(VHResult::EXTENSION_NOT_PRESENT);
         }
         
         // Create Queue Families
         QueueFamilyIndices indices = FindQueueFamilies(config.PhysicalDevice, config.Window);
-        std::vector<uint32_t> queueFamilyIndices;
+        VulkanHelper::Vector<uint32_t> queueFamilyIndices;
 
         // Upload only unique queue families, sometimes the same family can be used for multiple operations 
         // (graphics queue with presentation capabilities is very common for example)
         if (indices.GraphicsFamily != UINT32_MAX)
-            queueFamilyIndices.push_back(indices.GraphicsFamily);
+            queueFamilyIndices.PushBack(indices.GraphicsFamily);
         if (indices.ComputeFamily != UINT32_MAX && indices.ComputeFamily != indices.GraphicsFamily)
-            queueFamilyIndices.push_back(indices.ComputeFamily);
+            queueFamilyIndices.PushBack(indices.ComputeFamily);
         if (indices.PresentFamily != UINT32_MAX && indices.PresentFamily != indices.GraphicsFamily && indices.PresentFamily != indices.ComputeFamily)
-            queueFamilyIndices.push_back(indices.PresentFamily);
+            queueFamilyIndices.PushBack(indices.PresentFamily);
 
-        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        VulkanHelper::Vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         float priority = 1.0f;
-        for (uint32_t familyIndex : queueFamilyIndices)
+        for (size_t i = 0; i < queueFamilyIndices.Size(); i++)
         {
             VkDeviceQueueCreateInfo queueCreateInfo = {};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = familyIndex;
+            queueCreateInfo.queueFamilyIndex = queueFamilyIndices[i];
             queueCreateInfo.queueCount = 1; // Single queue per family for simplicity
             queueCreateInfo.pQueuePriorities = &priority;
 
-            queueCreateInfos.push_back(queueCreateInfo);
+            queueCreateInfos.PushBack(queueCreateInfo);
         }
 
         // Create logical device
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.queueCreateInfoCount = (uint32_t)queueCreateInfos.size();
-        createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.queueCreateInfoCount = (uint32_t)queueCreateInfos.Size();
+        createInfo.pQueueCreateInfos = queueCreateInfos.Data();
         createInfo.pEnabledFeatures = nullptr;
-        createInfo.enabledExtensionCount = (uint32_t)extensions.size();
-        createInfo.ppEnabledExtensionNames = extensions.data();
+        createInfo.enabledExtensionCount = (uint32_t)extensions.Size();
+        createInfo.ppEnabledExtensionNames = extensions.Data();
         createInfo.pNext = nullptr;
 
         #if !defined(NDEBUG)
@@ -73,7 +71,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create Vulkan device");
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
         VH_LOG_INFO("Vulkan Device created successfully");
 
@@ -99,7 +97,7 @@ namespace VulkanHelper
             if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPools.GraphicsPool) != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create graphics command pool");
-                return std::unexpected(VHResult::INITIALIZATION_FAILED);
+                return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
             }
         }
         
@@ -109,7 +107,7 @@ namespace VulkanHelper
             if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPools.ComputePool) != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create compute command pool");
-                return std::unexpected(VHResult::INITIALIZATION_FAILED);
+                return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
             }
         }
 
@@ -180,8 +178,8 @@ namespace VulkanHelper
             return indices; // Will return with all indices as UINT32_MAX
         }
 
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.GetDevice(), &queueFamilyCount, queueFamilies.data());
+        VulkanHelper::Vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.GetDevice(), &queueFamilyCount, queueFamilies.Data());
 
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {

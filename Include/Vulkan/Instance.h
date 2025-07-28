@@ -1,9 +1,9 @@
 #pragma once
-#include <expected>
+
+#include "Core/Expected.h"
 #include "Core/Error.h"
 #include "Vulkan/PhysicalDevice.h"
 
-// Forward declare stuff since client application isn't linking to Vulkan
 struct VkDebugUtilsMessengerCreateInfoEXT;
 typedef struct VkInstance_T* VkInstance;
 typedef struct VkDebugUtilsMessengerEXT_T* VkDebugUtilsMessengerEXT;
@@ -25,9 +25,9 @@ namespace VulkanHelper
          * If successful, it returns an Instance object; otherwise, it returns a VHError describing the failure.
          *
          * @param config The configuration struct specifying instance creation options, such as whether to add GLFW extensions.
-         * @return std::expected<Instance, VHError> An expected containing the created Instance on success, or a VHError on failure.
+         * @return VulkanHelper::Expected<Instance, VHError> An expected containing the created Instance on success, or a VHError on failure.
          */
-        static std::expected<Instance, VHResult> New(const Config& config);
+        static VulkanHelper::Expected<Instance, VHResult> New(const Config& config);
 
         Instance(const Instance& other) = delete;
         Instance& operator=(const Instance& other) = delete;
@@ -44,7 +44,7 @@ namespace VulkanHelper
          * @param extensions A vector of required Vulkan extension names.
          * @return std::vector<PhysicalDevice> A vector of suitable PhysicalDevice objects.
          */
-        std::vector<PhysicalDevice> GetSuitablePhysicalDevices(const std::vector<const char*>& extensions) const;
+        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const;
 
         /**
          * @brief Retrieves the underlying Vulkan VkInstance handle.

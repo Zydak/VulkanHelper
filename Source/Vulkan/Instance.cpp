@@ -1,8 +1,6 @@
 #include "Vulkan/Instance.h"
 #include "Core/Error.h"
 #include "Log/Log.h"
-#include <expected>
-#include <vector>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -32,7 +30,7 @@ static void GLFWErrorCallback(int errorCode, const char* message)
 
 namespace VulkanHelper
 {
-    std::expected<Instance, VHResult> Instance::New(const Instance::Config& config)
+    VulkanHelper::Expected<Instance, VHResult> Instance::New(const Instance::Config& config)
     {
         VH_LOG_INFO("Creating Vulkan Instance");
 
@@ -40,7 +38,7 @@ namespace VulkanHelper
         if (GLFWInitialized == false && config.AddGLFWExtensions)
         {
             if (glfwInit() != GLFW_TRUE)
-                return std::unexpected(VHResult::INITIALIZATION_FAILED);
+                return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
 
             glfwSetErrorCallback(GLFWErrorCallback);
 
@@ -70,7 +68,7 @@ namespace VulkanHelper
             .ppEnabledExtensionNames = nullptr,
         };
 
-        std::vector<const char*> extensions;
+        VulkanHelper::Vector<const char*> extensions;
 
         if (config.AddGLFWExtensions)
         {
@@ -80,13 +78,13 @@ namespace VulkanHelper
             if (glfwExtensions == nullptr)
             {
                 VH_LOG_ERROR("Failed to get GLFW required instance extensions!");
-                return std::unexpected(VHResult::INITIALIZATION_FAILED);
+                return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
             }
 
-            extensions.reserve(glfwExtensionCount + 1);
+            extensions.Reserve(glfwExtensionCount + 1);
             for (uint32_t i = 0; i < glfwExtensionCount; ++i)
             {
-                extensions.emplace_back(glfwExtensions[i]);
+                extensions.EmplaceBack(glfwExtensions[i]);
             }
         }
 
@@ -103,20 +101,20 @@ namespace VulkanHelper
             debugLayersCreateInfo.pfnUserCallback = DebugCallback;
             instanceCreateInfo.pNext = &debugLayersCreateInfo;
 
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            instanceCreateInfo.enabledExtensionCount = extensions.size();
-            instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
+            extensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            instanceCreateInfo.enabledExtensionCount = extensions.Size();
+            instanceCreateInfo.ppEnabledExtensionNames = extensions.Data();
         #endif
 
-        for (const auto& ext : extensions)
+        for (size_t i = 0; i < extensions.Size(); i++)
         {
-            VH_LOG_DEBUG("Enabling Vulkan Extension: {}", ext);
+            VH_LOG_DEBUG("Enabling Vulkan Extension: {}", extensions[i]);
         }
 
         VkInstance instance;
         VkResult res = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
         if (res != VK_SUCCESS)
-            return std::unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
+            return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
         
         #if !defined(NDEBUG)
         VkDebugUtilsMessengerEXT messenger;
@@ -163,7 +161,7 @@ namespace VulkanHelper
         }
     }
 
-    std::vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const std::vector<const char*>& extensions) const
+    VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
@@ -174,17 +172,17 @@ namespace VulkanHelper
             return {};
         }
 
-        std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
+        VulkanHelper::Vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.Data());
 
-        std::vector<PhysicalDevice> suitableDevices;
-        suitableDevices.reserve(deviceCount);
-        for (const auto& device : devices)
+        VulkanHelper::Vector<PhysicalDevice> suitableDevices;
+        suitableDevices.Reserve(deviceCount);
+        for (size_t i = 0; i < devices.Size(); i++)
         {
-            auto physicalDevice = PhysicalDevice::New({ m_Instance, device });
-            if (physicalDevice.has_value() && physicalDevice.value().IsSuitable(extensions))
+            auto physicalDevice = PhysicalDevice::New({ m_Instance, devices[i] });
+            if (physicalDevice.HasValue() && physicalDevice.Value().IsSuitable(extensions))
             {
-                suitableDevices.emplace_back(std::move(physicalDevice.value()));
+                suitableDevices.EmplaceBack(std::move(physicalDevice.Value()));
             }
             else
             {

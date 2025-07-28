@@ -6,26 +6,26 @@
 
 int main()
 {
-    VulkanHelper::Instance instance = VulkanHelper::Instance::New({true}).value();
+    VulkanHelper::Instance instance = VulkanHelper::Instance::New({true}).Value();
     auto physicalDevices = instance.GetSuitablePhysicalDevices({});
-    if (physicalDevices.empty())
+    if (physicalDevices.Empty())
     {
         VH_LOG_FATAL("No suitable physical devices found!");
         return -1;
     }
-    for (const auto& device : physicalDevices)
+    for (size_t i = 0; i < physicalDevices.Size(); i++)
     {
-        VH_LOG_INFO("Found Physical Device: {} (Vendor: {}, Discrete: {})", device.GetName(), int(device.GetVendor()), device.IsDiscrete());
+        VH_LOG_INFO("Found Physical Device: {} (Vendor: {}, Discrete: {})", physicalDevices[i].GetName(), int(physicalDevices[i].GetVendor()), physicalDevices[i].IsDiscrete());
     }
 
     // Pick discrete GPU if available
     VulkanHelper::PhysicalDevice* selectedDevice = nullptr;
-    for (auto& device : physicalDevices)
+    for (size_t i = 0; i < physicalDevices.Size(); i++)
     {   
-        if (device.IsDiscrete())
+        if (physicalDevices[i].IsDiscrete())
         {
-            VH_LOG_INFO("Selected Discrete GPU: {}", device.GetName());
-            selectedDevice = &device;
+            VH_LOG_INFO("Selected Discrete GPU: {}", physicalDevices[i].GetName());
+            selectedDevice = &physicalDevices[i];
             break;
         }
     }
@@ -35,7 +35,7 @@ int main()
         selectedDevice = &physicalDevices[0];
     }
 
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 600, 600, "Example Project", "", true}).value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 600, 600, "Example Project", "", true}).Value();
 
     if (!window.IsPhysicalDeviceCompatible(*selectedDevice))
     {
@@ -43,12 +43,12 @@ int main()
         return -1;
     }
 
-    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, &window}).value();
+    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, &window}).Value();
     VulkanHelper::Swapchain swapchain = VulkanHelper::Swapchain::New({
         .Device = &device,
         .Window = &window,
         .MaxFramesInFlight = 2
-    }).value();
+    }).Value();
 
     while (!window.WantsToClose())
     {

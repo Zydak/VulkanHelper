@@ -7,7 +7,7 @@
 
 namespace VulkanHelper
 {
-    std::expected<Window, VHResult> Window::New(const Config& config)
+    VulkanHelper::Expected<Window, VHResult> Window::New(const Config& config)
     {
         VH_LOG_INFO("Initializing Window");
 
@@ -19,12 +19,12 @@ namespace VulkanHelper
 
         GLFWwindow* window = glfwCreateWindow(config.Width, config.Height, name.c_str(), NULL, NULL);
         if (window == nullptr)
-            return std::unexpected(VHResult::INITIALIZATION_FAILED);
+            return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
 
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         VkResult res = glfwCreateWindowSurface(config.Instance->GetInstance(), window, nullptr, &surface);
         if (res != VK_SUCCESS)
-            return std::unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
+            return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
         return Window(config.Instance, window, surface, std::move(name), config.Width, config.Height);
     }
@@ -99,8 +99,8 @@ namespace VulkanHelper
             VH_LOG_ERROR("Physical device does not support any queue families!");
             return false;
         }
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device.GetDevice(), &queueFamilyCount, queueFamilies.data());
+        VulkanHelper::Vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device.GetDevice(), &queueFamilyCount, queueFamilies.Data());
         bool supportsPresentation = false;
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {

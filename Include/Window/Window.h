@@ -1,10 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-#include <string>
-#include <expected>
-#include <string_view>
-
 #include "Core/Error.h"
 #include "Vulkan/PhysicalDevice.h"
 #include "Vulkan/Instance.h"
@@ -56,13 +51,13 @@ namespace VulkanHelper
              * @brief The title text to display in the window's title bar.
              * @note If empty, the window will have no title.
              */
-            std::string_view Name = "";
+            const char* Name = "";
 
             /**
              * @brief Filesystem path to an image to use as the window icon.
              * @note If empty or if loading fails, the default GLFW icon is used.
              */
-            std::string_view IconPath = "";
+            const char* IconPath = "";
 
             /**
              * @brief Whether the window can be resized by the user.
@@ -81,7 +76,7 @@ namespace VulkanHelper
          * @return On success, returns std::expected containing a Window.
          *         On failure, returns std::expected containing a VHError::Fail
          */
-        static std::expected<Window, VHResult> New(const Config& config);
+        static VulkanHelper::Expected<Window, VHResult> New(const Config& config);
 
         ~Window();
 

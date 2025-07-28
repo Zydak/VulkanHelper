@@ -1,8 +1,8 @@
 #pragma once
-#include <string>
-#include <expected>
+
 #include "Core/Error.h"
-#include <vector>
+#include "Core/Expected.h"
+#include "Core/Vector.h"
 
 typedef struct VkPhysicalDevice_T* VkPhysicalDevice;
 typedef struct VkInstance_T* VkInstance;
@@ -38,7 +38,7 @@ namespace VulkanHelper
          * @param config The configuration struct specifying the Vulkan instance and physical device to wrap.
          * @return std::expected<PhysicalDevice, VHError> An expected containing the created PhysicalDevice on success, or a VHError on failure.
          */
-        [[nodiscard]] static std::expected<PhysicalDevice, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<PhysicalDevice, VHResult> New(const Config& config);
 
         PhysicalDevice(const PhysicalDevice& other);
         PhysicalDevice& operator=(const PhysicalDevice& other);
@@ -54,7 +54,7 @@ namespace VulkanHelper
          * @param extensions A vector of required Vulkan extension names.
          * @return true if the device supports all required extensions and is suitable; false otherwise.
          */
-        [[nodiscard]] bool IsSuitable(const std::vector<const char*>& extensions) const;
+        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const;
 
         /**
          * @brief Retrieves the underlying Vulkan VkPhysicalDevice handle.

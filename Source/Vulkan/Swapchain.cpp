@@ -1,24 +1,23 @@
 #include "Vulkan/Swapchain.h"
 #include "Core/Error.h"
 #include "Log/Log.h"
-#include <expected>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
 namespace VulkanHelper
 {
     // TODO: REALLY beffy function, needs to be split up
-    std::expected<Swapchain, VHResult> Swapchain::New(const Config& config)
+    VulkanHelper::Expected<Swapchain, VHResult> Swapchain::New(const Config& config)
     {
         if (config.Device == nullptr || config.Window == nullptr)
         {
             VH_LOG_ERROR("Invalid Swapchain configuration: Device or Window is null.");
-            return std::unexpected(VHResult::WRONG_ARGUMENTS);
+            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
         if (config.MaxFramesInFlight == 0)
         {
             VH_LOG_ERROR("MaxFramesInFlight must be greater than 0.");
-            return std::unexpected(VHResult::WRONG_ARGUMENTS);
+            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
         // Get surface capabilities
@@ -27,7 +26,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface capabilities");
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
 
         // Get format info
@@ -36,19 +35,19 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface formats");
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
         if (formatCount == 0)
         {
             VH_LOG_ERROR("No surface formats available!");
-            return std::unexpected(VHResult::INITIALIZATION_FAILED);
+            return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
-        std::vector<VkSurfaceFormatKHR> formats(formatCount);
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &formatCount, formats.data());
+        VulkanHelper::Vector<VkSurfaceFormatKHR> formats(formatCount);
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &formatCount, formats.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface formats");
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
 
         // Get present modes
@@ -57,28 +56,28 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface present modes");
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
         if (presentModeCount == 0)
         {
             VH_LOG_ERROR("No surface present modes available!");
-            return std::unexpected(VHResult::INITIALIZATION_FAILED);
+            return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
-        std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-        res = vkGetPhysicalDeviceSurfacePresentModesKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &presentModeCount, presentModes.data());
+        VulkanHelper::Vector<VkPresentModeKHR> presentModes(presentModeCount);
+        res = vkGetPhysicalDeviceSurfacePresentModesKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &presentModeCount, presentModes.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface present modes");
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
 
         // Choose format
         VkSurfaceFormatKHR chosenFormat = formats[0]; // Default to first format
-        for (const auto& format : formats)
+        for (size_t i = 0; i < formats.Size(); i++)
         {
-            if (format.format == VK_FORMAT_R8G8B8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            if (formats[i].format == VK_FORMAT_R8G8B8A8_UNORM && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
             {
-                chosenFormat = format;
+                chosenFormat = formats[i];
                 break;
             }
         }
@@ -93,47 +92,47 @@ namespace VulkanHelper
         if (imageCount > surfaceCapabilities.maxImageCount && surfaceCapabilities.maxImageCount > 0)
         {
             VH_LOG_ERROR("Requested image count exceeds maximum supported by surface! Check your MaxFramesInFlight setting, it's probably too high.");
-            return std::unexpected(VHResult::INITIALIZATION_FAILED);
+            return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
         // Create fences and semaphores for synchronization
-        std::vector<VkFence> frameFences(config.MaxFramesInFlight, VK_NULL_HANDLE);
-        std::vector<VkSemaphore> acquireSemaphores(config.MaxFramesInFlight, VK_NULL_HANDLE);
-        std::vector<VkSemaphore> submitSemaphores(imageCount, VK_NULL_HANDLE);
+        VulkanHelper::Vector<VkFence> frameFences(config.MaxFramesInFlight, VK_NULL_HANDLE);
+        VulkanHelper::Vector<VkSemaphore> acquireSemaphores(config.MaxFramesInFlight, VK_NULL_HANDLE);
+        VulkanHelper::Vector<VkSemaphore> submitSemaphores(imageCount, VK_NULL_HANDLE);
 
         VkFenceCreateInfo fenceInfo{};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        for (auto& fence : frameFences)
+        for (size_t i = 0; i < frameFences.Size(); i++)
         {
-            VkResult res = vkCreateFence(config.Device->GetDevice(), &fenceInfo, nullptr, &fence);
+            VkResult res = vkCreateFence(config.Device->GetDevice(), &fenceInfo, nullptr, &frameFences[i]);
             if (res != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create fence for swapchain");
-                for (auto f : frameFences) vkDestroyFence(config.Device->GetDevice(), f, nullptr);
-                return std::unexpected(VHResult(res));
+                for (size_t i = 0; i < frameFences.Size(); i++) vkDestroyFence(config.Device->GetDevice(), frameFences[i], nullptr);
+                return VulkanHelper::Unexpected(VHResult(res));
             }
         }
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        for (auto& semaphore : acquireSemaphores)
+        for (size_t i = 0; i < acquireSemaphores.Size(); i++)
         {
-            VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &semaphore);
+            VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &acquireSemaphores[i]);
             if (res != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create acquire semaphore for swapchain");
-                for (auto s : acquireSemaphores) vkDestroySemaphore(config.Device->GetDevice(), s, nullptr);
-                return std::unexpected(VHResult(res));
+                for (size_t i = 0; i < acquireSemaphores.Size(); i++) vkDestroySemaphore(config.Device->GetDevice(), acquireSemaphores[i], nullptr);
+                return VulkanHelper::Unexpected(VHResult(res));
             }
         }
-        for (auto& semaphore : submitSemaphores)
+        for (size_t i = 0; i < submitSemaphores.Size(); i++)
         {
-            VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &semaphore);
+            VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &submitSemaphores[i]);
             if (res != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create acquire semaphore for swapchain");
-                for (auto s : submitSemaphores) vkDestroySemaphore(config.Device->GetDevice(), s, nullptr);
-                return std::unexpected(VHResult(res));
+                for (size_t i = 0; i < submitSemaphores.Size(); i++) vkDestroySemaphore(config.Device->GetDevice(), submitSemaphores[i], nullptr);
+                return VulkanHelper::Unexpected(VHResult(res));
             }
         }
 
@@ -161,18 +160,18 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create swapchain");
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
 
         vkGetSwapchainImagesKHR(config.Device->GetDevice(), swapchain, &imageCount, nullptr);
         VH_LOG_INFO("Swapchain created successfully with {} images", imageCount);
-        std::vector<VkImage> swapchainImages(imageCount);
-        res = vkGetSwapchainImagesKHR(config.Device->GetDevice(), swapchain, &imageCount, swapchainImages.data());
+        VulkanHelper::Vector<VkImage> swapchainImages(imageCount);
+        res = vkGetSwapchainImagesKHR(config.Device->GetDevice(), swapchain, &imageCount, swapchainImages.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get swapchain images");
             vkDestroySwapchainKHR(config.Device->GetDevice(), swapchain, nullptr);
-            return std::unexpected(VHResult(res));
+            return VulkanHelper::Unexpected(VHResult(res));
         }
 
         return Swapchain{
@@ -196,28 +195,28 @@ namespace VulkanHelper
             m_Swapchain = VK_NULL_HANDLE;
             VH_LOG_INFO("Destroying Vulkan Swapchain");
         }
-        for (auto& fence : m_FrameFences)
+        for (size_t i = 0; i < m_FrameFences.Size(); i++)
         {
-            if (fence != VK_NULL_HANDLE)
+            if (m_FrameFences[i] != VK_NULL_HANDLE)
             {
-                vkDestroyFence(m_Device->GetDevice(), fence, nullptr);
-                fence = VK_NULL_HANDLE;
+                vkDestroyFence(m_Device->GetDevice(), m_FrameFences[i] , nullptr);
+                m_FrameFences[i]  = VK_NULL_HANDLE;
             }
         }
-        for (auto& semaphore : m_AcquireSemapores)
+        for (size_t i = 0; i < m_AcquireSemapores.Size(); i++)
         {
-            if (semaphore != VK_NULL_HANDLE)
+            if (m_AcquireSemapores[i]  != VK_NULL_HANDLE)
             {
-                vkDestroySemaphore(m_Device->GetDevice(), semaphore, nullptr);
-                semaphore = VK_NULL_HANDLE;
+                vkDestroySemaphore(m_Device->GetDevice(), m_AcquireSemapores[i] , nullptr);
+                m_AcquireSemapores[i]  = VK_NULL_HANDLE;
             }
         }
-        for (auto& semaphore : m_SubmitSemaphores)
+        for (size_t i = 0; i < m_SubmitSemaphores.Size(); i++)
         {
-            if (semaphore != VK_NULL_HANDLE)
+            if (m_SubmitSemaphores[i]  != VK_NULL_HANDLE)
             {
-                vkDestroySemaphore(m_Device->GetDevice(), semaphore, nullptr);
-                semaphore = VK_NULL_HANDLE;
+                vkDestroySemaphore(m_Device->GetDevice(), m_SubmitSemaphores[i] , nullptr);
+                m_SubmitSemaphores[i]  = VK_NULL_HANDLE;
             }
         }
     }

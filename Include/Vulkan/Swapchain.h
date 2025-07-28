@@ -1,6 +1,5 @@
 #pragma once
-#include <cstdint>
-#include <expected>
+
 #include "Core/Error.h"
 #include "Device.h"
 #include "Window/Window.h"
@@ -53,9 +52,9 @@ namespace VulkanHelper
          * If successful, it returns a Swapchain object; otherwise, it returns a VHError describing the failure.
          *
          * @param config The configuration struct specifying swapchain creation options.
-         * @return std::expected<Swapchain, VHError> An expected containing the created Swapchain on success, or a VHError on failure.
+         * @return VulkanHelper::Expected<Swapchain, VHError> An expected containing the created Swapchain on success, or a VHError on failure.
          */
-        [[nodiscard]] static std::expected<Swapchain, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<Swapchain, VHResult> New(const Config& config);
 
         ~Swapchain();
         Swapchain(const Swapchain& other) = delete;
@@ -75,9 +74,9 @@ namespace VulkanHelper
             uint32_t currentFrameIndex,
             uint32_t imageCount,
             uint32_t currentImageIndex,
-            std::vector<VkFence>&& frameFences,
-            std::vector<VkSemaphore>&& acquireSemaphores,
-            std::vector<VkSemaphore>&& submitSemaphores)
+            VulkanHelper::Vector<VkFence>&& frameFences,
+            VulkanHelper::Vector<VkSemaphore>&& acquireSemaphores,
+            VulkanHelper::Vector<VkSemaphore>&& submitSemaphores)
             : m_Device(device),
               m_Swapchain(swapchain),
               m_MaxFramesInFlight(maxFramesInFlight),
@@ -97,8 +96,8 @@ namespace VulkanHelper
         uint32_t m_ImageCount;
         uint32_t m_CurrentImageIndex = 0;
 
-        std::vector<VkFence> m_FrameFences;
-        std::vector<VkSemaphore> m_AcquireSemapores;
-        std::vector<VkSemaphore> m_SubmitSemaphores;
+        VulkanHelper::Vector<VkFence> m_FrameFences;
+        VulkanHelper::Vector<VkSemaphore> m_AcquireSemapores;
+        VulkanHelper::Vector<VkSemaphore> m_SubmitSemaphores;
     };
 }

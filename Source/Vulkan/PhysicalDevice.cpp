@@ -1,17 +1,17 @@
 #include "Vulkan/PhysicalDevice.h"
 
 #include <vulkan/vulkan.h>
+#include "Core/Expected.h"
 #include "Log/Log.h"
-
 
 namespace VulkanHelper
 {
-    std::expected<PhysicalDevice, VHResult> PhysicalDevice::New(const Config& config)
+    VulkanHelper::Expected<PhysicalDevice, VHResult> PhysicalDevice::New(const Config& config)
     {
         if (config.Device == nullptr || config.Instance == nullptr)
         {
             VH_LOG_ERROR("Invalid PhysicalDevice configuration: Device or Instance is null.");
-            return std::unexpected(VHResult::WRONG_ARGUMENTS);
+            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
         VkPhysicalDeviceProperties properties;
@@ -88,17 +88,17 @@ namespace VulkanHelper
         return *this;
     }
 
-    bool PhysicalDevice::IsSuitable(const std::vector<const char*>& extensions) const
+    bool PhysicalDevice::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const
     {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(m_Device, nullptr, &extensionCount, nullptr); // Get count of all available extensions
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(m_Device, nullptr, &extensionCount, availableExtensions.data()); // Get all available extensions
+        VulkanHelper::Vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(m_Device, nullptr, &extensionCount, availableExtensions.Data()); // Get all available extensions
 
-        for (size_t i = 0; i < extensions.size(); i++)
+        for (size_t i = 0; i < extensions.Size(); i++)
         {
             bool found = false;
-            for (size_t j = 0; j < availableExtensions.size(); j++)
+            for (size_t j = 0; j < availableExtensions.Size(); j++)
             {
                 if (strcmp(extensions[i], availableExtensions[j].extensionName) == 0)
                 {

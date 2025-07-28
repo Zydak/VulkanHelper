@@ -1,5 +1,6 @@
 #pragma once
-#include <expected>
+
+#include "Core/Expected.h"
 
 #include "Core/Error.h"
 #include "Vulkan/PhysicalDevice.h"
@@ -45,9 +46,9 @@ namespace VulkanHelper
          * It selects appropriate queue families for graphics, compute, and presentation, and creates command pools for each.
          *
          * @param config Configuration struct specifying the physical device and optional window for presentation support.
-         * @return std::expected<Device, VHError> An expected containing the created Device on success, or a VHError on failure.
+         * @return VulkanHelper::Expected<Device, VHError> An expected containing the created Device on success, or a VHError on failure.
          */
-        [[nodiscard]] static std::expected<Device, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<Device, VHResult> New(const Config& config);
         ~Device();
         Device(const Device& other) = delete;
         Device& operator=(const Device& other) = delete;
@@ -67,12 +68,14 @@ namespace VulkanHelper
          * @return VkQueue handle of the graphics queue.
          */
         [[nodiscard]] inline VkQueue GetGraphicsQueue() const { return m_Queues.GraphicsQueue; }
+
         /**
          * @brief Gets the compute queue handle for this device.
          *
          * @return VkQueue handle of to the compute queue.
          */
         [[nodiscard]] inline VkQueue GetComputeQueue() const { return m_Queues.ComputeQueue; }
+
         /**
          * @brief Gets the present queue handle for this device.
          *
@@ -86,6 +89,7 @@ namespace VulkanHelper
          * @return VkCommandPool handle of the graphics command pool.
          */
         [[nodiscard]] inline VkCommandPool GetGraphicsCommandPool() const { return m_CommandPools.GraphicsPool; }
+        
         /**
          * @brief Gets the compute command pool for this device.
          *
