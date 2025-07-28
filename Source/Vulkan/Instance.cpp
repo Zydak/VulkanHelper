@@ -23,6 +23,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityF
 	}
 	return VK_FALSE;
 }
+
 static void GLFWErrorCallback(int errorCode, const char* message)
 {
     VH_LOG_ERROR("GLFW ERROR: Error code: {} | Message: {}", errorCode, message);
@@ -30,7 +31,37 @@ static void GLFWErrorCallback(int errorCode, const char* message)
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<Instance, VHResult> Instance::New(const Instance::Config& config)
+    class Instance::Impl
+    {
+    public:
+        static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+
+        Impl(const Impl& other) = delete;
+        Impl& operator=(const Impl& other) = delete;
+
+        Impl(Impl&& other) noexcept;
+        Impl& operator=(Impl&& other) noexcept;
+
+        ~Impl();
+
+        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const;
+
+        [[nodiscard]] inline VkInstance GetInstance() const { return m_Instance; }
+    private:
+        Impl(VkDebugUtilsMessengerEXT messenger, VkInstance instance)
+            : m_DebugMessenger(messenger),
+            m_Instance(instance)
+        {}
+
+        VkDebugUtilsMessengerEXT m_DebugMessenger;
+        VkInstance m_Instance;
+
+        // Dynamically Loaded functions
+        static void CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkDebugUtilsMessengerEXT* outDebugMessenger);
+        static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT* debugMessenger);
+    };
+
+    VulkanHelper::Expected<Instance::Impl*, VHResult> Instance::Impl::New(const Instance::Config& config)
     {
         VH_LOG_INFO("Creating Vulkan Instance");
 
@@ -118,23 +149,25 @@ namespace VulkanHelper
         
         #if !defined(NDEBUG)
         VkDebugUtilsMessengerEXT messenger;
-        Instance::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
+        Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
 
-        return Instance(messenger, instance);
+        return new Impl(messenger, instance);
     }
 
-    Instance::Instance(Instance&& other) noexcept
+    Instance::Impl::Impl(Impl&& other) noexcept
         : m_DebugMessenger(other.m_DebugMessenger), m_Instance(other.m_Instance)
     {
         other.m_DebugMessenger = nullptr;
         other.m_Instance = nullptr;
     }
 
-    Instance& Instance::operator=(Instance&& other) noexcept
+    Instance::Impl& Instance::Impl::operator=(Impl&& other) noexcept
     {
         if (this == &other)
             return *this;
+
+        this->~Impl(); // Clean up current state
 
         m_DebugMessenger = other.m_DebugMessenger;
         other.m_DebugMessenger = nullptr;
@@ -145,14 +178,14 @@ namespace VulkanHelper
         return *this;
     }
 
-    Instance::~Instance()
+    Instance::Impl::~Impl()
     {
         if (m_Instance != nullptr)
         {
             VH_LOG_INFO("Destroying Vulkan Instance");
             if (m_DebugMessenger != nullptr)
             {
-                Instance::DestroyDebugUtilsMessengerEXT(m_Instance, &m_DebugMessenger);
+                Impl::DestroyDebugUtilsMessengerEXT(m_Instance, &m_DebugMessenger);
                 m_DebugMessenger = nullptr;
             }
 
@@ -161,7 +194,7 @@ namespace VulkanHelper
         }
     }
 
-    VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const
+    VulkanHelper::Vector<PhysicalDevice> Instance::Impl::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
@@ -193,17 +226,71 @@ namespace VulkanHelper
         return suitableDevices;
     }
 
-    void Instance::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkDebugUtilsMessengerEXT* outDebugMessenger)
+    void Instance::Impl::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkDebugUtilsMessengerEXT* outDebugMessenger)
     {
         static auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
         VH_ASSERT(func != nullptr, "Can't load vkCreateDebugUtilsMessengerEXT!");
         func(instance, pCreateInfo, nullptr, outDebugMessenger);
     }
     
-    void Instance::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT* debugMessenger)
+    void Instance::Impl::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT* debugMessenger)
     {
         static auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         VH_ASSERT(func != nullptr, "Can't load vkDestroyDebugUtilsMessengerEXT!");
         func(instance, *debugMessenger, nullptr);
+    }
+
+    //
+    //  Forward functions
+    //
+
+    VulkanHelper::Expected<Instance, VHResult> Instance::New(const Config& config)
+    {
+        auto implResult = Impl::New(config);
+        if (!implResult.HasValue())
+        {
+            return VulkanHelper::Unexpected(implResult.Error());
+        }
+
+        return Instance{ implResult.Value() };
+    }
+
+    Instance::Instance(Instance&& other) noexcept
+        : m_Impl(other.m_Impl)
+    {
+        other.m_Impl = nullptr;
+    }
+
+    Instance& Instance::operator=(Instance&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Instance(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+        other.m_Impl = nullptr;
+
+        return *this;
+    }
+
+    Instance::~Instance()
+    {
+        if (m_Impl != nullptr)
+        {
+            delete m_Impl;
+            m_Impl = nullptr;
+            VH_LOG_INFO("Destroying Vulkan Instance");
+        }
+    }
+
+    VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const
+    {
+        return m_Impl->GetSuitablePhysicalDevices(extensions);
+    }
+
+    VkInstance Instance::GetInstance() const
+    {
+        return m_Impl->GetInstance();
     }
 }

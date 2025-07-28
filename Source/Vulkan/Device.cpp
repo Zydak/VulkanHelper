@@ -7,7 +7,57 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<Device, VHResult> Device::New(const Config& config)
+    class Device::Impl
+    {
+    public:
+
+        [[nodiscard]] static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+        ~Impl();
+        Impl(const Impl& other) = delete;
+        Impl& operator=(const Impl& other) = delete;
+        Impl(Impl&& other) noexcept;
+        Impl& operator=(Impl&& other) noexcept;
+
+        [[nodiscard]] inline VkDevice GetDevice() const { return m_Device; }
+        [[nodiscard]] inline VkQueue GetGraphicsQueue() const { return m_Queues.GraphicsQueue; }
+        [[nodiscard]] inline VkQueue GetComputeQueue() const { return m_Queues.ComputeQueue; }
+        [[nodiscard]] inline VkQueue GetPresentQueue() const { return m_Queues.PresentQueue; }
+        [[nodiscard]] inline VkCommandPool GetGraphicsCommandPool() const { return m_CommandPools.GraphicsPool; }
+        [[nodiscard]] inline VkCommandPool GetComputeCommandPool() const { return m_CommandPools.ComputePool; }
+        [[nodiscard]] inline const PhysicalDevice& GetPhysicalDevice() const { return m_PhysicalDevice; }
+    private:
+        struct QueueFamilyIndices
+        {
+            uint32_t GraphicsFamily = UINT32_MAX;
+            uint32_t ComputeFamily = UINT32_MAX;
+            uint32_t PresentFamily = UINT32_MAX;
+        };
+
+        struct Queues
+        {
+            VkQueue GraphicsQueue = NULL;
+            VkQueue ComputeQueue = NULL;
+            VkQueue PresentQueue = NULL;
+        };
+
+        struct CommandPools
+        {
+            VkCommandPool GraphicsPool = NULL;
+            VkCommandPool ComputePool = NULL;
+        };
+
+        Impl(PhysicalDevice physicalDevice, VkDevice device, Queues queues, CommandPools commandPools)
+            : m_PhysicalDevice(physicalDevice), m_Device(device), m_Queues(std::move(queues)), m_CommandPools(std::move(commandPools)) {}
+
+        PhysicalDevice m_PhysicalDevice;
+        VkDevice m_Device = nullptr;
+        Queues m_Queues;
+        CommandPools m_CommandPools;
+        
+        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window);
+    };
+
+    VulkanHelper::Expected<Device::Impl*, VHResult> Device::Impl::New(const Config& config)
     {
         VulkanHelper::Vector<const char*> extensions;
         if (config.Window != nullptr)
@@ -111,10 +161,10 @@ namespace VulkanHelper
             }
         }
 
-        return Device(config.PhysicalDevice, device, std::move(queues), std::move(commandPools));
+        return new Impl(config.PhysicalDevice, device, std::move(queues), std::move(commandPools));
     }
 
-    Device::~Device()
+    Device::Impl::~Impl()
     {
         if (m_Device != nullptr)
         {
@@ -138,7 +188,7 @@ namespace VulkanHelper
         }
     }
 
-    Device::Device(Device&& other) noexcept
+    Device::Impl::Impl(Impl&& other) noexcept
         : m_PhysicalDevice(std::move(other.m_PhysicalDevice)), 
           m_Device(other.m_Device),
           m_Queues(other.m_Queues),
@@ -149,10 +199,12 @@ namespace VulkanHelper
         other.m_CommandPools = {};
     }
 
-    Device& Device::operator=(Device&& other) noexcept
+    Device::Impl& Device::Impl::operator=(Impl&& other) noexcept
     {
         if (this == &other)
             return *this;
+
+        this->~Impl(); // Clean up current state
 
         m_PhysicalDevice = std::move(other.m_PhysicalDevice);
         m_Device = other.m_Device;
@@ -166,7 +218,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    Device::QueueFamilyIndices Device::FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window)
+    Device::Impl::QueueFamilyIndices Device::Impl::FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window)
     {
         QueueFamilyIndices indices;
 
@@ -201,5 +253,84 @@ namespace VulkanHelper
         }
 
         return indices;
+    }
+
+    //
+    //  Forward functions
+    //
+
+    VulkanHelper::Expected<Device, VHResult> Device::New(const Config& config)
+    {
+        auto implResult = Impl::New(config);
+        if (!implResult.HasValue())
+        {
+            return VulkanHelper::Unexpected(implResult.Error());
+        }
+
+        return Device{ implResult.Value() };
+    }
+
+    Device::Device(Device&& other) noexcept
+        : m_Impl(other.m_Impl)
+    {
+        other.m_Impl = nullptr;
+    }
+
+    Device& Device::operator=(Device&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Device(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+        other.m_Impl = nullptr;
+
+        return *this;
+    }
+
+    Device::~Device()
+    {
+        if (m_Impl != nullptr)
+        {
+            delete m_Impl;
+            m_Impl = nullptr;
+            VH_LOG_INFO("Destroying Vulkan Device");
+        }
+    }
+
+    VkDevice Device::GetDevice() const
+    {
+        return m_Impl->GetDevice();
+    }
+
+    VkQueue Device::GetGraphicsQueue() const
+    {
+        return m_Impl->GetGraphicsQueue();
+    }
+
+    VkQueue Device::GetComputeQueue() const
+    {
+        return m_Impl->GetComputeQueue();
+    }
+
+    VkQueue Device::GetPresentQueue() const
+    {
+        return m_Impl->GetPresentQueue();
+    }
+
+    VkCommandPool Device::GetGraphicsCommandPool() const
+    {
+        return m_Impl->GetGraphicsCommandPool();
+    }
+
+    VkCommandPool Device::GetComputeCommandPool() const
+    {
+        return m_Impl->GetComputeCommandPool();
+    }
+
+    const PhysicalDevice& Device::GetPhysicalDevice() const
+    {
+        return m_Impl->GetPhysicalDevice();
     }
 } // namespace VulkanHelper

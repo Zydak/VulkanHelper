@@ -4,13 +4,17 @@
 #include "Device.h"
 #include "Window/Window.h"
 
-typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
-typedef struct VkFence_T* VkFence;
-typedef struct VkSemaphore_T* VkSemaphore;
 typedef struct VkCommandBuffer_T* VkCommandBuffer;
 
 namespace VulkanHelper
 {
+    /*
+     * @class Swapchain
+     * @brief RAII wrapper for a Vulkan swapchain.
+     *
+     * Manages the lifetime of a Vulkan swapchain, including image acquisition and submission.
+     * Provides functionality to create a swapchain, acquire the next image, and submit command buffers.
+    */
     class Swapchain
     {
     public:
@@ -66,38 +70,11 @@ namespace VulkanHelper
         [[nodiscard]] VHResult Submit(VkCommandBuffer commandBuffer);
 
     private:
+        class Impl;
+        Impl* m_Impl;
 
-        Swapchain(
-            Device* device,
-            VkSwapchainKHR swapchain,
-            uint32_t maxFramesInFlight,
-            uint32_t currentFrameIndex,
-            uint32_t imageCount,
-            uint32_t currentImageIndex,
-            VulkanHelper::Vector<VkFence>&& frameFences,
-            VulkanHelper::Vector<VkSemaphore>&& acquireSemaphores,
-            VulkanHelper::Vector<VkSemaphore>&& submitSemaphores)
-            : m_Device(device),
-              m_Swapchain(swapchain),
-              m_MaxFramesInFlight(maxFramesInFlight),
-              m_CurrentFrameIndex(currentFrameIndex),
-              m_ImageCount(imageCount),
-              m_CurrentImageIndex(currentImageIndex),
-              m_FrameFences(std::move(frameFences)),
-              m_AcquireSemapores(std::move(acquireSemaphores)),
-              m_SubmitSemaphores(std::move(submitSemaphores))
+        Swapchain(Impl* impl)
+            : m_Impl(impl)
         {}
-
-        VulkanHelper::Device* m_Device;
-        VkSwapchainKHR m_Swapchain;
-
-        uint32_t m_MaxFramesInFlight;
-        uint32_t m_CurrentFrameIndex;
-        uint32_t m_ImageCount;
-        uint32_t m_CurrentImageIndex = 0;
-
-        VulkanHelper::Vector<VkFence> m_FrameFences;
-        VulkanHelper::Vector<VkSemaphore> m_AcquireSemapores;
-        VulkanHelper::Vector<VkSemaphore> m_SubmitSemaphores;
     };
 }

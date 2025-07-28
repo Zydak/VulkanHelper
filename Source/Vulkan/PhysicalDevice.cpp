@@ -6,7 +6,35 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<PhysicalDevice, VHResult> PhysicalDevice::New(const Config& config)
+    class PhysicalDevice::Impl
+    {
+    public:
+        [[nodiscard]] static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+
+        Impl(const Impl& other);
+        Impl& operator=(const Impl& other);
+
+        Impl(Impl&& other) noexcept;
+        Impl& operator=(Impl&& other) noexcept;
+
+        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const;
+        [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }
+        [[nodiscard]] inline Vendor GetVendor() const { return m_Vendor; }
+        [[nodiscard]] inline const std::string& GetName() const { return m_Name; }
+        [[nodiscard]] inline bool IsDiscrete() const { return m_Discrete; }
+
+    private:
+
+        Impl(VkPhysicalDevice device, Vendor vendor, std::string&& name, bool discrete)
+            : m_Device(device), m_Vendor(vendor), m_Name(std::move(name)), m_Discrete(discrete) {}
+
+        VkPhysicalDevice m_Device;
+        Vendor m_Vendor;
+        std::string m_Name;
+        bool m_Discrete;
+    };
+
+    VulkanHelper::Expected<PhysicalDevice::Impl*, VHResult> PhysicalDevice::Impl::New(const Config& config)
     {
         if (config.Device == nullptr || config.Instance == nullptr)
         {
@@ -45,19 +73,21 @@ namespace VulkanHelper
 
         bool discrete = (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
-        return PhysicalDevice(config.Device, vendor, properties.deviceName, discrete);
+        return new Impl(config.Device, vendor, properties.deviceName, discrete);
     }
 
-    PhysicalDevice::PhysicalDevice(const PhysicalDevice& other)
+    PhysicalDevice::Impl::Impl(const Impl& other)
         : m_Device(other.m_Device), m_Vendor(other.m_Vendor), m_Name(other.m_Name), m_Discrete(other.m_Discrete)
     {
 
     }
 
-    PhysicalDevice& PhysicalDevice::operator=(const PhysicalDevice& other)
+    PhysicalDevice::Impl& PhysicalDevice::Impl::operator=(const Impl& other)
     {
         if (this == &other)
             return *this;
+
+        this->~Impl(); // Clean up current state
 
         m_Device = other.m_Device;
         m_Vendor = other.m_Vendor;
@@ -67,13 +97,13 @@ namespace VulkanHelper
         return *this;
     }
 
-    PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept
+    PhysicalDevice::Impl::Impl(Impl&& other) noexcept
         : m_Device(other.m_Device), m_Vendor(other.m_Vendor), m_Name(std::move(other.m_Name)), m_Discrete(other.m_Discrete)
     {
         other.m_Device = nullptr;
     }
 
-    PhysicalDevice& PhysicalDevice::operator=(PhysicalDevice&& other) noexcept
+    PhysicalDevice::Impl& PhysicalDevice::Impl::operator=(Impl&& other) noexcept
     {
         if (this == &other)
             return *this;
@@ -88,7 +118,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    bool PhysicalDevice::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const
+    bool PhysicalDevice::Impl::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const
     {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(m_Device, nullptr, &extensionCount, nullptr); // Get count of all available extensions
@@ -114,5 +144,91 @@ namespace VulkanHelper
         }
 
         return true;
+    }
+
+    //
+    //  Forward functions
+    //
+
+    VulkanHelper::Expected<PhysicalDevice, VHResult> PhysicalDevice::New(const Config& config)
+    {
+        auto implResult = Impl::New(config);
+        if (!implResult.HasValue())
+        {
+            return VulkanHelper::Unexpected(implResult.Error());
+        }
+
+        return PhysicalDevice{ implResult.Value() };
+    }
+
+    PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept
+        : m_Impl(other.m_Impl)
+    {
+        other.m_Impl = nullptr;
+    }
+
+    PhysicalDevice& PhysicalDevice::operator=(PhysicalDevice&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        this->~PhysicalDevice(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+        other.m_Impl = nullptr;
+
+        return *this;
+    }
+
+    PhysicalDevice::PhysicalDevice(const PhysicalDevice& other)
+        : m_Impl(new Impl(*other.m_Impl)) // Deep copy
+    {
+    }
+
+    PhysicalDevice& PhysicalDevice::operator=(const PhysicalDevice& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~PhysicalDevice(); // Clean up current state
+
+        m_Impl = new Impl(*other.m_Impl); // Deep copy
+
+        return *this;
+    }
+
+    PhysicalDevice::~PhysicalDevice()
+    {
+        if (m_Impl != nullptr)
+        {
+            delete m_Impl;
+            m_Impl = nullptr;
+            VH_LOG_INFO("Destroying Vulkan Physical Device");
+        }
+    }
+
+    bool PhysicalDevice::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const
+    {
+        return m_Impl->IsSuitable(extensions);
+    }
+
+    VkPhysicalDevice PhysicalDevice::GetDevice() const
+    {
+        return m_Impl->GetDevice();
+    }
+
+    PhysicalDevice::Vendor PhysicalDevice::GetVendor() const
+    {
+        return m_Impl->GetVendor();
+    }
+
+    const char* PhysicalDevice::GetName() const
+    {
+        return m_Impl->GetName().c_str();
+    }
+
+    bool PhysicalDevice::IsDiscrete() const
+    {
+        return m_Impl->IsDiscrete();
     }
 } // namespace VulkanHelper

@@ -4,12 +4,16 @@
 #include "Core/Error.h"
 #include "Vulkan/PhysicalDevice.h"
 
-struct VkDebugUtilsMessengerCreateInfoEXT;
 typedef struct VkInstance_T* VkInstance;
-typedef struct VkDebugUtilsMessengerEXT_T* VkDebugUtilsMessengerEXT;
 
 namespace VulkanHelper
 {
+    /**
+     * @class Instance
+     * @brief RAII wrapper for a Vulkan instance.
+     *
+     * Manages the lifetime of a Vulkan instance, providing functionality to create and query physical devices.
+     */
     class Instance
     {
     public:
@@ -51,21 +55,16 @@ namespace VulkanHelper
          *
          * @return VkInstance The Vulkan instance handle managed by this object.
          */
-        [[nodiscard]] inline VkInstance GetInstance() const { return m_Instance; }
+        [[nodiscard]] VkInstance GetInstance() const;
 
         ~Instance();
 
     private:
-        Instance(VkDebugUtilsMessengerEXT messenger, VkInstance instance)
-            : m_DebugMessenger(messenger),
-            m_Instance(instance)
+        class Impl;
+        Impl* m_Impl;
+
+        Instance(Impl* impl)
+            : m_Impl(impl)
         {}
-
-        VkDebugUtilsMessengerEXT m_DebugMessenger;
-        VkInstance m_Instance;
-
-        // Dynamically Loaded functions
-        static void CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkDebugUtilsMessengerEXT* outDebugMessenger);
-        static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT* debugMessenger);
     };
 }

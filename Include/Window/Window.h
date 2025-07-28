@@ -80,7 +80,6 @@ namespace VulkanHelper
 
         ~Window();
 
-        // Deleted copy constructor and copy-assignment to enforce unique ownership.
         Window(const Window& other) = delete;
         Window& operator=(const Window& other) = delete;
 
@@ -135,45 +134,35 @@ namespace VulkanHelper
          *
          * @return Width in pixels.
          */
-        [[nodiscard]] inline uint32_t GetWidth() const { return m_Width; }
+        [[nodiscard]] uint32_t GetWidth() const;
 
         /**
          * @brief Retrieve the current height of the window.
          *
          * @return Height in pixels.
          */
-        [[nodiscard]] inline uint32_t GetHeight() const { return m_Height; }
+        [[nodiscard]] uint32_t GetHeight() const;
 
         /**
          * @brief Retrieve the window's title string.
          *
          * @return The name/title originally specified at creation.
          */
-        [[nodiscard]] inline std::string GetName() const { return m_Name; }
+        [[nodiscard]] std::string GetName() const;
 
         /**
          * @brief Retrieve the window's surface.
          *
          * @return VkSurfaceKHR of the window.
          */
-        [[nodiscard]] inline VkSurfaceKHR GetSurface() const { return m_Surface; }
+        [[nodiscard]] VkSurfaceKHR GetSurface() const;
 
     private:
-        // Constructable only by calling New(...)
-        Window(Instance* instance, GLFWwindow* window, VkSurfaceKHR surface, std::string&& name, uint32_t width, uint32_t height)
-            : m_Instance(instance),
-            m_Window(window),
-            m_Surface(surface),
-            m_Name(std::move(name)),
-            m_Width(width),
-            m_Height(height)
-        {}
+        class Impl;
+        Impl* m_Impl;
 
-        Instance* m_Instance;    ///< Pointer to the Vulkan Instance this window is associated with.
-        GLFWwindow*   m_Window;  ///< Underlying GLFW window handle.
-        VkSurfaceKHR m_Surface;  ///< Vulkan surface handle, if created.
-        std::string   m_Name;    ///< User-specified window title.
-        uint32_t      m_Width;   ///< Current window width in pixels.
-        uint32_t      m_Height;  ///< Current window height in pixels.
+        Window(Impl* impl)
+            : m_Impl(impl)
+        {}
     };
 } // namespace VulkanHelper

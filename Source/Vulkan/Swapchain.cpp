@@ -2,12 +2,61 @@
 #include "Core/Error.h"
 #include "Log/Log.h"
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
 
 namespace VulkanHelper
 {
+    class Swapchain::Impl
+    {
+    public:
+        [[nodiscard]] static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+
+        ~Impl();
+        Impl(const Impl& other) = delete;
+        Impl& operator=(const Impl& other) = delete;
+        Impl(Impl&& other) noexcept;
+        Impl& operator=(Impl&& other) noexcept;
+
+        [[nodiscard]] VHResult AcquireNextImage();
+        [[nodiscard]] VHResult Submit(VkCommandBuffer commandBuffer);
+
+    private:
+
+        Impl(
+            Device* device,
+            VkSwapchainKHR swapchain,
+            uint32_t maxFramesInFlight,
+            uint32_t currentFrameIndex,
+            uint32_t imageCount,
+            uint32_t currentImageIndex,
+            VulkanHelper::Vector<VkFence>&& frameFences,
+            VulkanHelper::Vector<VkSemaphore>&& acquireSemaphores,
+            VulkanHelper::Vector<VkSemaphore>&& submitSemaphores)
+            : m_Device(device),
+              m_Swapchain(swapchain),
+              m_MaxFramesInFlight(maxFramesInFlight),
+              m_CurrentFrameIndex(currentFrameIndex),
+              m_ImageCount(imageCount),
+              m_CurrentImageIndex(currentImageIndex),
+              m_FrameFences(std::move(frameFences)),
+              m_AcquireSemapores(std::move(acquireSemaphores)),
+              m_SubmitSemaphores(std::move(submitSemaphores))
+        {}
+
+        VulkanHelper::Device* m_Device;
+        VkSwapchainKHR m_Swapchain;
+
+        uint32_t m_MaxFramesInFlight;
+        uint32_t m_CurrentFrameIndex;
+        uint32_t m_ImageCount;
+        uint32_t m_CurrentImageIndex = 0;
+
+        VulkanHelper::Vector<VkFence> m_FrameFences;
+        VulkanHelper::Vector<VkSemaphore> m_AcquireSemapores;
+        VulkanHelper::Vector<VkSemaphore> m_SubmitSemaphores;
+    };
+
     // TODO: REALLY beffy function, needs to be split up
-    VulkanHelper::Expected<Swapchain, VHResult> Swapchain::New(const Config& config)
+    VulkanHelper::Expected<Swapchain::Impl*, VHResult> Swapchain::Impl::New(const Config& config)
     {
         if (config.Device == nullptr || config.Window == nullptr)
         {
@@ -174,7 +223,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return Swapchain{
+        return new Swapchain::Impl{
             config.Device,
             swapchain,
             config.MaxFramesInFlight,
@@ -187,7 +236,7 @@ namespace VulkanHelper
         };
     }
 
-    Swapchain::~Swapchain()
+    Swapchain::Impl::~Impl()
     {
         if (m_Swapchain != VK_NULL_HANDLE)
         {
@@ -221,7 +270,7 @@ namespace VulkanHelper
         }
     }
 
-    Swapchain::Swapchain(Swapchain&& other) noexcept
+    Swapchain::Impl::Impl(Impl&& other) noexcept
         : m_Device(other.m_Device),
           m_Swapchain(other.m_Swapchain),
           m_MaxFramesInFlight(other.m_MaxFramesInFlight),
@@ -236,10 +285,12 @@ namespace VulkanHelper
         other.m_Swapchain = VK_NULL_HANDLE;
     }
 
-    Swapchain& Swapchain::operator=(Swapchain&& other) noexcept
+    Swapchain::Impl& Swapchain::Impl::operator=(Impl&& other) noexcept
     {
         if (this == &other)
             return *this;
+
+        this->~Impl(); // Clean up current state
 
         m_Device = other.m_Device;
         m_Swapchain = other.m_Swapchain;
@@ -257,7 +308,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    VHResult Swapchain::AcquireNextImage()
+    VHResult Swapchain::Impl::AcquireNextImage()
     {
         VkFence frameFence = m_FrameFences[m_CurrentFrameIndex];
         vkWaitForFences(m_Device->GetDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
@@ -268,7 +319,7 @@ namespace VulkanHelper
         return (VHResult)vkAcquireNextImageKHR(m_Device->GetDevice(), m_Swapchain, UINT64_MAX, acquireSemaphore, frameFence, &m_CurrentImageIndex);
     }
 
-    VHResult Swapchain::Submit(VkCommandBuffer commandBuffer)
+    VHResult Swapchain::Impl::Submit(VkCommandBuffer commandBuffer)
     {
         VkSemaphore acquireSemaphore = m_AcquireSemapores[m_CurrentFrameIndex];
         VkSemaphore submitSemaphore = m_SubmitSemaphores[m_CurrentImageIndex];
@@ -315,5 +366,59 @@ namespace VulkanHelper
         m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
 
         return VHResult::OK;
+    }
+
+    //
+    // Forward functions
+    //
+    
+    VulkanHelper::Expected<Swapchain, VHResult> Swapchain::New(const Config& config)
+    {
+        auto implResult = Impl::New(config);
+        if (!implResult.HasValue())
+        {
+            return VulkanHelper::Unexpected(implResult.Error());
+        }
+
+        return Swapchain{ implResult.Value() };
+    }
+
+    Swapchain::~Swapchain()
+    {
+        if (m_Impl != nullptr)
+        {
+            delete m_Impl;
+            m_Impl = nullptr;
+            VH_LOG_INFO("Destroying Vulkan Swapchain");
+        }
+    }
+
+    Swapchain::Swapchain(Swapchain&& other) noexcept
+        : m_Impl(other.m_Impl)
+    {
+        other.m_Impl = nullptr;
+    }
+
+    Swapchain& Swapchain::operator=(Swapchain&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Swapchain(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+        other.m_Impl = nullptr;
+
+        return *this;
+    }
+
+    VHResult Swapchain::AcquireNextImage()
+    {
+        return m_Impl->AcquireNextImage();
+    }
+
+    VHResult Swapchain::Submit(VkCommandBuffer commandBuffer)
+    {
+        return m_Impl->Submit(commandBuffer);
     }
 }

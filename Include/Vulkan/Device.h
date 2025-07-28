@@ -12,6 +12,12 @@ typedef struct VkCommandPool_T* VkCommandPool;
 
 namespace VulkanHelper
 {
+    /**
+     * @class Device
+     * @brief RAII wrapper for a Vulkan logical device.
+     *
+     * Manages the lifetime of a Vulkan logical device, including queues and command pools.
+     */
     class Device
     {
     public:
@@ -60,78 +66,55 @@ namespace VulkanHelper
          *
          * @return VkDevice The Vulkan device handle managed by this object.
          */
-        [[nodiscard]] inline VkDevice GetDevice() const { return m_Device; }
+        [[nodiscard]] VkDevice GetDevice() const;
         
         /**
          * @brief Gets the graphics queue handle for this device.
          *
          * @return VkQueue handle of the graphics queue.
          */
-        [[nodiscard]] inline VkQueue GetGraphicsQueue() const { return m_Queues.GraphicsQueue; }
+        [[nodiscard]] VkQueue GetGraphicsQueue() const;
 
         /**
          * @brief Gets the compute queue handle for this device.
          *
          * @return VkQueue handle of to the compute queue.
          */
-        [[nodiscard]] inline VkQueue GetComputeQueue() const { return m_Queues.ComputeQueue; }
+        [[nodiscard]] VkQueue GetComputeQueue() const;
 
         /**
          * @brief Gets the present queue handle for this device.
          *
          * @return VkQueue handle of to the present queue.
          */
-        [[nodiscard]] inline VkQueue GetPresentQueue() const { return m_Queues.PresentQueue; }
+        [[nodiscard]] VkQueue GetPresentQueue() const;
 
         /**
          * @brief Gets the graphics command pool for this device.
          *
          * @return VkCommandPool handle of the graphics command pool.
          */
-        [[nodiscard]] inline VkCommandPool GetGraphicsCommandPool() const { return m_CommandPools.GraphicsPool; }
+        [[nodiscard]] VkCommandPool GetGraphicsCommandPool() const;
         
         /**
          * @brief Gets the compute command pool for this device.
          *
          * @return VkCommandPool handle of the compute command pool.
          */
-        [[nodiscard]] inline VkCommandPool GetComputeCommandPool() const { return m_CommandPools.ComputePool; }
+        [[nodiscard]] VkCommandPool GetComputeCommandPool() const;
 
         /**
          * @brief Gets the physical device associated with this logical device.
          *
          * @return Pointer to the PhysicalDevice object used to create this logical device.
          */
-        [[nodiscard]] inline const PhysicalDevice& GetPhysicalDevice() const { return m_PhysicalDevice; }
+        [[nodiscard]] const PhysicalDevice& GetPhysicalDevice() const;
     private:
-        struct QueueFamilyIndices
-        {
-            uint32_t GraphicsFamily = UINT32_MAX;
-            uint32_t ComputeFamily = UINT32_MAX;
-            uint32_t PresentFamily = UINT32_MAX;
-        };
+        class Impl;
+        Impl* m_Impl;
 
-        struct Queues
-        {
-            VkQueue GraphicsQueue = NULL;
-            VkQueue ComputeQueue = NULL;
-            VkQueue PresentQueue = NULL;
-        };
-
-        struct CommandPools
-        {
-            VkCommandPool GraphicsPool = NULL;
-            VkCommandPool ComputePool = NULL;
-        };
-
-        Device(PhysicalDevice physicalDevice, VkDevice device, Queues queues, CommandPools commandPools)
-            : m_PhysicalDevice(physicalDevice), m_Device(device), m_Queues(std::move(queues)), m_CommandPools(std::move(commandPools)) {}
-
-        PhysicalDevice m_PhysicalDevice;
-        VkDevice m_Device = nullptr;
-        Queues m_Queues;
-        CommandPools m_CommandPools;
-        
-        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window);
+        Device(Impl* impl)
+            : m_Impl(impl)
+        {}
     };
 }

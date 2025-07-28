@@ -9,6 +9,12 @@ typedef struct VkInstance_T* VkInstance;
 
 namespace VulkanHelper
 {
+    /**
+     * @class PhysicalDevice
+     * @brief RAII wrapper for a Vulkan physical device.
+     *
+     * Manages the lifetime of a Vulkan physical device, providing functionality to check suitability.
+     */
     class PhysicalDevice
     {
     public:
@@ -40,6 +46,8 @@ namespace VulkanHelper
          */
         [[nodiscard]] static VulkanHelper::Expected<PhysicalDevice, VHResult> New(const Config& config);
 
+        ~PhysicalDevice();
+
         PhysicalDevice(const PhysicalDevice& other);
         PhysicalDevice& operator=(const PhysicalDevice& other);
 
@@ -61,37 +69,36 @@ namespace VulkanHelper
          *
          * @return VkPhysicalDevice The Vulkan physical device handle managed by this object.
          */
-        [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }
+        [[nodiscard]] VkPhysicalDevice GetDevice() const;
 
         /**
          * @brief Gets the vendor of the physical device.
          *
          * @return Vendor The vendor enum value representing the GPU manufacturer.
          */
-        [[nodiscard]] inline Vendor GetVendor() const { return m_Vendor; }
+        [[nodiscard]] Vendor GetVendor() const;
 
         /**
          * @brief Gets the name of the physical device.
          *
-         * @return const std::string& The name of the GPU as reported by the Vulkan driver.
+         * @return const char* The name of the GPU as reported by the Vulkan driver.
          */
-        [[nodiscard]] inline const std::string& GetName() const { return m_Name; }
+        [[nodiscard]] const char* GetName() const;
 
         /**
          * @brief Checks if the physical device is a discrete GPU.
          *
          * @return true if the device is discrete (dedicated GPU); false if integrated or otherwise.
          */
-        [[nodiscard]] inline bool IsDiscrete() const { return m_Discrete; }
+        [[nodiscard]] bool IsDiscrete() const;
 
     private:
 
-        PhysicalDevice(VkPhysicalDevice device, Vendor vendor, std::string&& name, bool discrete)
-            : m_Device(device), m_Vendor(vendor), m_Name(std::move(name)), m_Discrete(discrete) {}
+        class Impl;
+        Impl* m_Impl;
 
-        VkPhysicalDevice m_Device;
-        Vendor m_Vendor;
-        std::string m_Name;
-        bool m_Discrete;
+        PhysicalDevice(Impl* impl)
+            : m_Impl(impl)
+        {}
     };
 }
