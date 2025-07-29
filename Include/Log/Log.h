@@ -28,7 +28,12 @@ namespace VulkanHelper
          *
          * @return Logger& Reference to the singleton Logger instance.
          */
-        static Logger& GetInstance();
+        static Logger& GetInstance()
+        {
+            static Logger logger;
+
+            return logger;
+        }
 
         /**
          * @brief Logs a formatted message with the specified verbosity and style.
@@ -78,8 +83,15 @@ namespace VulkanHelper
         inline void SetVerbosityFile(Verbosity verbosity) { m_FileVerbosity = verbosity; }
     
     private:
-        Logger();
-        ~Logger();
+        Logger()
+            : m_LogFileOutput(fmt::output_file("VulkanHelper.log", fmt::file::CREATE | fmt::file::WRONLY))
+        {
+            
+        }
+        ~Logger()
+        {
+            m_LogFileOutput.close();
+        }
 
         Logger(const Logger& other) = delete;
         Logger& operator=(const Logger& other) = delete;
@@ -103,5 +115,5 @@ namespace VulkanHelper
 if (!(condition))\
 {\
     VH_LOG_FATAL(__VA_ARGS__);\
-    exit(1);\
+    std::terminate();\
 }

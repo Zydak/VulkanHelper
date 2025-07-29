@@ -7,10 +7,6 @@
 #include "Vulkan/PhysicalDevice.h"
 #include "Window/Window.h"
 
-typedef struct VkDevice_T* VkDevice;
-typedef struct VkQueue_T* VkQueue;
-typedef struct VkCommandPool_T* VkCommandPool;
-
 namespace VulkanHelper
 {
     /**
@@ -46,6 +42,13 @@ namespace VulkanHelper
             const VulkanHelper::Window* Window = nullptr;
         };
 
+        struct QueueFamilyIndices
+        {
+            uint32_t GraphicsFamily = UINT32_MAX;
+            uint32_t ComputeFamily = UINT32_MAX;
+            uint32_t PresentFamily = UINT32_MAX;
+        };
+
         /**
          * @brief Creates a new logical Vulkan device and associated queues/command pools.
          *
@@ -63,53 +66,12 @@ namespace VulkanHelper
         Device& operator=(Device&& other) noexcept;
 
         /**
-         * @brief Retrieves the underlying Vulkan VkDevice handle.
-         *
-         * @return VkDevice The Vulkan device handle managed by this object.
-         */
-        [[nodiscard]] VkDevice GetDevice() const;
-        
-        /**
-         * @brief Gets the graphics queue handle for this device.
-         *
-         * @return VkQueue handle of the graphics queue.
-         */
-        [[nodiscard]] VkQueue GetGraphicsQueue() const;
-
-        /**
-         * @brief Gets the compute queue handle for this device.
-         *
-         * @return VkQueue handle of to the compute queue.
-         */
-        [[nodiscard]] VkQueue GetComputeQueue() const;
-
-        /**
-         * @brief Gets the present queue handle for this device.
-         *
-         * @return VkQueue handle of to the present queue.
-         */
-        [[nodiscard]] VkQueue GetPresentQueue() const;
-
-        /**
-         * @brief Gets the graphics command pool for this device.
-         *
-         * @return VkCommandPool handle of the graphics command pool.
-         */
-        [[nodiscard]] VkCommandPool GetGraphicsCommandPool() const;
-        
-        /**
-         * @brief Gets the compute command pool for this device.
-         *
-         * @return VkCommandPool handle of the compute command pool.
-         */
-        [[nodiscard]] VkCommandPool GetComputeCommandPool() const;
-
-        /**
          * @brief Gets the physical device associated with this logical device.
          *
          * @return Pointer to the PhysicalDevice object used to create this logical device.
          */
         [[nodiscard]] const PhysicalDevice& GetPhysicalDevice() const;
+        [[nodiscard]] QueueFamilyIndices GetQueueFamilyIndices() const;
     private:
         class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
@@ -117,5 +79,8 @@ namespace VulkanHelper
         Device(VulkanHelper::UniquePtr<Impl>&& impl)
             : m_Impl(std::move(impl))
         {}
+
+        friend class CommandPool;
+        friend class Swapchain;
     };
 }

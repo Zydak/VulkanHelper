@@ -1,10 +1,15 @@
+#include "Core/UniquePtr.h"
 #include "Vulkan/Instance.h"
+#include "InstanceImpl.h"
+
 #include "Core/Error.h"
 #include "Log/Log.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan_core.h>
+
+#include "PhysicalDeviceImpl.h"
+#include "Vulkan/PhysicalDevice.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
@@ -31,36 +36,6 @@ static void GLFWErrorCallback(int errorCode, const char* message)
 
 namespace VulkanHelper
 {
-    class Instance::Impl
-    {
-    public:
-        static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
-
-        Impl(const Impl& other) = delete;
-        Impl& operator=(const Impl& other) = delete;
-
-        Impl(Impl&& other) noexcept;
-        Impl& operator=(Impl&& other) noexcept;
-
-        ~Impl();
-
-        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const;
-
-        [[nodiscard]] inline VkInstance GetInstance() const { return m_Instance; }
-    private:
-        Impl(VkDebugUtilsMessengerEXT messenger, VkInstance instance)
-            : m_DebugMessenger(messenger),
-            m_Instance(instance)
-        {}
-
-        VkDebugUtilsMessengerEXT m_DebugMessenger;
-        VkInstance m_Instance;
-
-        // Dynamically Loaded functions
-        static void CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, VkDebugUtilsMessengerEXT* outDebugMessenger);
-        static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT* debugMessenger);
-    };
-
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Instance::Impl>, VHResult> Instance::Impl::New(const Instance::Config& config)
     {
         VH_LOG_INFO("Creating Vulkan Instance");
@@ -212,14 +187,17 @@ namespace VulkanHelper
         suitableDevices.Reserve(deviceCount);
         for (size_t i = 0; i < devices.Size(); i++)
         {
-            auto physicalDevice = PhysicalDevice::New({ m_Instance, devices[i] });
-            if (physicalDevice.HasValue() && physicalDevice.Value().IsSuitable(extensions))
+            auto physicalDeviceImpl = PhysicalDevice::Impl::New({m_Instance, devices[i]});
+            if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value()->IsSuitable(extensions))
             {
-                suitableDevices.EmplaceBack(std::move(physicalDevice.Value()));
+                PhysicalDevice physicalDevice(std::move(physicalDeviceImpl.Value()));
+                suitableDevices.EmplaceBack(std::move(physicalDevice));
             }
             else
             {
-                VH_LOG_WARN("Physical device {} is not suitable for the requested extensions.", physicalDevice->GetName());
+                VkPhysicalDeviceProperties properties;
+                vkGetPhysicalDeviceProperties(devices[i], &properties);
+                VH_LOG_WARN("Physical device {} is not suitable for the requested extensions.", properties.deviceName);
             }
         }
 

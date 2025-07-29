@@ -1,39 +1,13 @@
 #include "Vulkan/PhysicalDevice.h"
+#include "PhysicalDeviceImpl.h"
 
-#include <vulkan/vulkan.h>
 #include "Core/Expected.h"
 #include "Log/Log.h"
 
+#include <vulkan/vulkan.h>
+
 namespace VulkanHelper
 {
-    class PhysicalDevice::Impl
-    {
-    public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
-
-        Impl(const Impl& other);
-        Impl& operator=(const Impl& other);
-
-        Impl(Impl&& other) noexcept;
-        Impl& operator=(Impl&& other) noexcept;
-
-        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const;
-        [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }
-        [[nodiscard]] inline Vendor GetVendor() const { return m_Vendor; }
-        [[nodiscard]] inline const std::string& GetName() const { return m_Name; }
-        [[nodiscard]] inline bool IsDiscrete() const { return m_Discrete; }
-
-    private:
-
-        Impl(VkPhysicalDevice device, Vendor vendor, std::string&& name, bool discrete)
-            : m_Device(device), m_Vendor(vendor), m_Name(std::move(name)), m_Discrete(discrete) {}
-
-        VkPhysicalDevice m_Device;
-        Vendor m_Vendor;
-        std::string m_Name;
-        bool m_Discrete;
-    };
-
     VulkanHelper::Expected<VulkanHelper::UniquePtr<PhysicalDevice::Impl>, VHResult> PhysicalDevice::Impl::New(const Config& config)
     {
         if (config.Device == nullptr || config.Instance == nullptr)
@@ -150,17 +124,6 @@ namespace VulkanHelper
     //  Forward functions
     //
 
-    VulkanHelper::Expected<PhysicalDevice, VHResult> PhysicalDevice::New(const Config& config)
-    {
-        auto implResult = Impl::New(config);
-        if (!implResult.HasValue())
-        {
-            return VulkanHelper::Unexpected(implResult.Error());
-        }
-
-        return PhysicalDevice{ std::move(implResult.Value()) };
-    }
-
     PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept
         : m_Impl(std::move(other.m_Impl))
     {}
@@ -202,11 +165,6 @@ namespace VulkanHelper
     bool PhysicalDevice::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const
     {
         return m_Impl->IsSuitable(extensions);
-    }
-
-    VkPhysicalDevice PhysicalDevice::GetDevice() const
-    {
-        return m_Impl->GetDevice();
     }
 
     PhysicalDevice::Vendor PhysicalDevice::GetVendor() const

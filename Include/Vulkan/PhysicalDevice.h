@@ -1,12 +1,7 @@
 #pragma once
 
-#include "Core/Error.h"
-#include "Core/Expected.h"
 #include "Core/Vector.h"
 #include "Core/UniquePtr.h"
-
-typedef struct VkPhysicalDevice_T* VkPhysicalDevice;
-typedef struct VkInstance_T* VkInstance;
 
 namespace VulkanHelper
 {
@@ -30,23 +25,6 @@ namespace VulkanHelper
 			Unknown
         };
 
-        struct Config
-        {
-            VkInstance Instance = nullptr;
-            VkPhysicalDevice Device = nullptr;
-        };
-
-        /**
-         * @brief Creates a new PhysicalDevice wrapper for a Vulkan physical device.
-         *
-         * This static factory function attempts to wrap a Vulkan VkPhysicalDevice handle with additional metadata and checks.
-         * If successful, it returns a PhysicalDevice object; otherwise, it returns a VHError describing the failure.
-         *
-         * @param config The configuration struct specifying the Vulkan instance and physical device to wrap.
-         * @return std::expected<PhysicalDevice, VHError> An expected containing the created PhysicalDevice on success, or a VHError on failure.
-         */
-        [[nodiscard]] static VulkanHelper::Expected<PhysicalDevice, VHResult> New(const Config& config);
-
         ~PhysicalDevice();
 
         PhysicalDevice(const PhysicalDevice& other);
@@ -64,13 +42,6 @@ namespace VulkanHelper
          * @return true if the device supports all required extensions and is suitable; false otherwise.
          */
         [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const;
-
-        /**
-         * @brief Retrieves the underlying Vulkan VkPhysicalDevice handle.
-         *
-         * @return VkPhysicalDevice The Vulkan physical device handle managed by this object.
-         */
-        [[nodiscard]] VkPhysicalDevice GetDevice() const;
 
         /**
          * @brief Gets the vendor of the physical device.
@@ -94,12 +65,16 @@ namespace VulkanHelper
         [[nodiscard]] bool IsDiscrete() const;
 
     private:
-
         class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         PhysicalDevice(VulkanHelper::UniquePtr<Impl>&& impl)
             : m_Impl(std::move(impl))
         {}
+
+        friend class Window;
+        friend class Swapchain;
+        friend class Device;
+        friend class Instance;
     };
 }

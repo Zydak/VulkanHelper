@@ -1,60 +1,16 @@
 #include "Vulkan/Swapchain.h"
+#include "SwapchainImpl.h"
+
 #include "Core/Error.h"
 #include "Log/Log.h"
+
 #include <vulkan/vulkan.h>
+
+#include "DeviceImpl.h"
+#include "PhysicalDeviceImpl.h"
 
 namespace VulkanHelper
 {
-    class Swapchain::Impl
-    {
-    public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
-
-        ~Impl();
-        Impl(const Impl& other) = delete;
-        Impl& operator=(const Impl& other) = delete;
-        Impl(Impl&& other) noexcept;
-        Impl& operator=(Impl&& other) noexcept;
-
-        [[nodiscard]] VHResult AcquireNextImage();
-        [[nodiscard]] VHResult Submit(VkCommandBuffer commandBuffer);
-
-    private:
-
-        Impl(
-            Device* device,
-            VkSwapchainKHR swapchain,
-            uint32_t maxFramesInFlight,
-            uint32_t currentFrameIndex,
-            uint32_t imageCount,
-            uint32_t currentImageIndex,
-            VulkanHelper::Vector<VkFence>&& frameFences,
-            VulkanHelper::Vector<VkSemaphore>&& acquireSemaphores,
-            VulkanHelper::Vector<VkSemaphore>&& submitSemaphores)
-            : m_Device(device),
-              m_Swapchain(swapchain),
-              m_MaxFramesInFlight(maxFramesInFlight),
-              m_CurrentFrameIndex(currentFrameIndex),
-              m_ImageCount(imageCount),
-              m_CurrentImageIndex(currentImageIndex),
-              m_FrameFences(std::move(frameFences)),
-              m_AcquireSemapores(std::move(acquireSemaphores)),
-              m_SubmitSemaphores(std::move(submitSemaphores))
-        {}
-
-        VulkanHelper::Device* m_Device;
-        VkSwapchainKHR m_Swapchain;
-
-        uint32_t m_MaxFramesInFlight;
-        uint32_t m_CurrentFrameIndex;
-        uint32_t m_ImageCount;
-        uint32_t m_CurrentImageIndex = 0;
-
-        VulkanHelper::Vector<VkFence> m_FrameFences;
-        VulkanHelper::Vector<VkSemaphore> m_AcquireSemapores;
-        VulkanHelper::Vector<VkSemaphore> m_SubmitSemaphores;
-    };
-
     // TODO: REALLY beffy function, needs to be split up
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Swapchain::Impl>, VHResult> Swapchain::Impl::New(const Config& config)
     {
@@ -71,7 +27,7 @@ namespace VulkanHelper
 
         // Get surface capabilities
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &surfaceCapabilities);
+        VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(config.Device->GetPhysicalDevice().m_Impl->GetDevice(), config.Window->GetSurface(), &surfaceCapabilities);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface capabilities");
@@ -80,7 +36,7 @@ namespace VulkanHelper
 
         // Get format info
         uint32_t formatCount;
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &formatCount, nullptr);
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(config.Device->GetPhysicalDevice().m_Impl->GetDevice(), config.Window->GetSurface(), &formatCount, nullptr);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface formats");
@@ -92,7 +48,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
         VulkanHelper::Vector<VkSurfaceFormatKHR> formats(formatCount);
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &formatCount, formats.Data());
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(config.Device->GetPhysicalDevice().m_Impl->GetDevice(), config.Window->GetSurface(), &formatCount, formats.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface formats");
@@ -101,7 +57,7 @@ namespace VulkanHelper
 
         // Get present modes
         uint32_t presentModeCount;
-        res = vkGetPhysicalDeviceSurfacePresentModesKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &presentModeCount, nullptr);
+        res = vkGetPhysicalDeviceSurfacePresentModesKHR(config.Device->GetPhysicalDevice().m_Impl->GetDevice(), config.Window->GetSurface(), &presentModeCount, nullptr);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface present modes");
@@ -113,7 +69,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
         VulkanHelper::Vector<VkPresentModeKHR> presentModes(presentModeCount);
-        res = vkGetPhysicalDeviceSurfacePresentModesKHR(config.Device->GetPhysicalDevice().GetDevice(), config.Window->GetSurface(), &presentModeCount, presentModes.Data());
+        res = vkGetPhysicalDeviceSurfacePresentModesKHR(config.Device->GetPhysicalDevice().m_Impl->GetDevice(), config.Window->GetSurface(), &presentModeCount, presentModes.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface present modes");
@@ -154,11 +110,11 @@ namespace VulkanHelper
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         for (size_t i = 0; i < frameFences.Size(); i++)
         {
-            VkResult res = vkCreateFence(config.Device->GetDevice(), &fenceInfo, nullptr, &frameFences[i]);
+            VkResult res = vkCreateFence(config.Device->m_Impl->GetDevice(), &fenceInfo, nullptr, &frameFences[i]);
             if (res != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create fence for swapchain implementation");
-                for (size_t i = 0; i < frameFences.Size(); i++) vkDestroyFence(config.Device->GetDevice(), frameFences[i], nullptr);
+                for (size_t i = 0; i < frameFences.Size(); i++) vkDestroyFence(config.Device->m_Impl->GetDevice(), frameFences[i], nullptr);
                 return VulkanHelper::Unexpected(VHResult(res));
             }
         }
@@ -166,21 +122,21 @@ namespace VulkanHelper
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         for (size_t i = 0; i < acquireSemaphores.Size(); i++)
         {
-            VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &acquireSemaphores[i]);
+            VkResult res = vkCreateSemaphore(config.Device->m_Impl->GetDevice(), &semaphoreInfo, nullptr, &acquireSemaphores[i]);
             if (res != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create acquire semaphore for swapchain implementation");
-                for (size_t i = 0; i < acquireSemaphores.Size(); i++) vkDestroySemaphore(config.Device->GetDevice(), acquireSemaphores[i], nullptr);
+                for (size_t i = 0; i < acquireSemaphores.Size(); i++) vkDestroySemaphore(config.Device->m_Impl->GetDevice(), acquireSemaphores[i], nullptr);
                 return VulkanHelper::Unexpected(VHResult(res));
             }
         }
         for (size_t i = 0; i < submitSemaphores.Size(); i++)
         {
-            VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &submitSemaphores[i]);
+            VkResult res = vkCreateSemaphore(config.Device->m_Impl->GetDevice(), &semaphoreInfo, nullptr, &submitSemaphores[i]);
             if (res != VK_SUCCESS)
             {
                 VH_LOG_ERROR("Failed to create acquire semaphore for swapchain implementation");
-                for (size_t i = 0; i < submitSemaphores.Size(); i++) vkDestroySemaphore(config.Device->GetDevice(), submitSemaphores[i], nullptr);
+                for (size_t i = 0; i < submitSemaphores.Size(); i++) vkDestroySemaphore(config.Device->m_Impl->GetDevice(), submitSemaphores[i], nullptr);
                 return VulkanHelper::Unexpected(VHResult(res));
             }
         }
@@ -205,26 +161,26 @@ namespace VulkanHelper
         swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE; // No previous swapchain
 
         VkSwapchainKHR swapchain;
-        res = vkCreateSwapchainKHR(config.Device->GetDevice(), &swapchainCreateInfo, nullptr, &swapchain);
+        res = vkCreateSwapchainKHR(config.Device->m_Impl->GetDevice(), &swapchainCreateInfo, nullptr, &swapchain);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create swapchain implementation");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        vkGetSwapchainImagesKHR(config.Device->GetDevice(), swapchain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(config.Device->m_Impl->GetDevice(), swapchain, &imageCount, nullptr);
         VH_LOG_INFO("Swapchain Implementation created successfully with {} images", imageCount);
         VulkanHelper::Vector<VkImage> swapchainImages(imageCount);
-        res = vkGetSwapchainImagesKHR(config.Device->GetDevice(), swapchain, &imageCount, swapchainImages.Data());
+        res = vkGetSwapchainImagesKHR(config.Device->m_Impl->GetDevice(), swapchain, &imageCount, swapchainImages.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get swapchain images");
-            vkDestroySwapchainKHR(config.Device->GetDevice(), swapchain, nullptr);
+            vkDestroySwapchainKHR(config.Device->m_Impl->GetDevice(), swapchain, nullptr);
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
         return VulkanHelper::UniquePtr(new Swapchain::Impl{
-            config.Device,
+            config.Device->m_Impl.Get(),
             swapchain,
             config.MaxFramesInFlight,
             0, // Start at frame 0
@@ -340,7 +296,9 @@ namespace VulkanHelper
         submitInfo.pSignalSemaphores = &submitSemaphore;
 
         VkFence frameFence = m_FrameFences[m_CurrentFrameIndex];
-        VkResult res = vkQueueSubmit(m_Device->GetGraphicsQueue(), 1, &submitInfo, frameFence);
+        VkQueue graphicsQueue;
+        vkGetDeviceQueue(m_Device->GetDevice(), m_Device->GetQueueFamilyIndices().GraphicsFamily, 0, &graphicsQueue);
+        VkResult res = vkQueueSubmit(graphicsQueue, 1, &submitInfo, frameFence);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to submit command buffer to queue");
@@ -356,7 +314,9 @@ namespace VulkanHelper
         presentInfo.pSwapchains = &m_Swapchain;
         presentInfo.pImageIndices = &m_CurrentImageIndex;
 
-        res = vkQueuePresentKHR(m_Device->GetPresentQueue(), &presentInfo);
+        VkQueue presentQueue;
+        vkGetDeviceQueue(m_Device->GetDevice(), m_Device->GetQueueFamilyIndices().PresentFamily, 0, &presentQueue);
+        res = vkQueuePresentKHR(presentQueue, &presentInfo);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to present swapchain image");

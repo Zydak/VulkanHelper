@@ -32,6 +32,7 @@ namespace VulkanHelper
         ~UniquePtr()
         {
             delete m_Ptr;
+            m_Ptr = nullptr;
         }
 
         /**

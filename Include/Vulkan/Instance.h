@@ -67,5 +67,7 @@ namespace VulkanHelper
         Instance(VulkanHelper::UniquePtr<Impl>&& impl)
             : m_Impl(std::move(impl))
         {}
+
+        friend class Window;
     };
 }

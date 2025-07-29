@@ -1,54 +1,17 @@
 #include "Window/Window.h"
+#include "WindowImpl.h"
 
 #include "Core/Error.h"
 #include "Log/Log.h"
+
 #include <vulkan/vulkan.h>
 #include "GLFW/glfw3.h"
 
+#include "../Vulkan/PhysicalDeviceImpl.h"
+#include "../Vulkan/InstanceImpl.h"
+
 namespace VulkanHelper
 {
-    class Window::Impl
-    {
-    public:
-        static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
-
-        ~Impl();
-
-        Impl(const Impl& other) = delete;
-        Impl& operator=(const Impl& other) = delete;
-
-        Impl(Impl&& other) noexcept;
-        Impl& operator=(Impl&& other) noexcept;
-
-        static void PollEvents();
-        [[nodiscard]] bool WantsToClose() const;
-        void Close();
-
-        [[nodiscard]] bool IsPhysicalDeviceCompatible(const PhysicalDevice& device) const;
-        [[nodiscard]] inline uint32_t GetWidth() const { return m_Width; }
-        [[nodiscard]] inline uint32_t GetHeight() const { return m_Height; }
-        [[nodiscard]] inline std::string GetName() const { return m_Name; }
-        [[nodiscard]] inline VkSurfaceKHR GetSurface() const { return m_Surface; }
-
-    private:
-        // Constructable only by calling New(...)
-        Impl(Instance* instance, GLFWwindow* window, VkSurfaceKHR surface, std::string&& name, uint32_t width, uint32_t height)
-            : m_Instance(instance),
-            m_Window(window),
-            m_Surface(surface),
-            m_Name(std::move(name)),
-            m_Width(width),
-            m_Height(height)
-        {}
-
-        Instance*       m_Instance;
-        GLFWwindow*     m_Window;
-        VkSurfaceKHR    m_Surface;
-        std::string     m_Name;
-        uint32_t        m_Width;
-        uint32_t        m_Height;
-    };
-
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Window::Impl>, VHResult> Window::Impl::New(const Config& config)
     {
         VH_LOG_INFO("Initializing Window Implementation");
@@ -68,7 +31,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
-        return VulkanHelper::UniquePtr(new Impl(config.Instance, window, surface, std::move(name), config.Width, config.Height));
+        return VulkanHelper::UniquePtr(new Impl(config.Instance->m_Impl.Get(), window, surface, std::move(name), config.Width, config.Height));
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
@@ -135,18 +98,18 @@ namespace VulkanHelper
     {
         // Check queue family support for presentation
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device.GetDevice(), &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(device.m_Impl->GetDevice(), &queueFamilyCount, nullptr);
         if (queueFamilyCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any queue families!");
             return false;
         }
         VulkanHelper::Vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device.GetDevice(), &queueFamilyCount, queueFamilies.Data());
+        vkGetPhysicalDeviceQueueFamilyProperties(device.m_Impl->GetDevice(), &queueFamilyCount, queueFamilies.Data());
         bool supportsPresentation = false;
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {
-            if (glfwGetPhysicalDevicePresentationSupport(m_Instance->GetInstance(), device.GetDevice(), i) == GLFW_TRUE)
+            if (glfwGetPhysicalDevicePresentationSupport(m_Instance->GetInstance(), device.m_Impl->GetDevice(), i) == GLFW_TRUE)
             {
                 supportsPresentation = true; // At least one queue family supports presentation
                 break;
@@ -159,10 +122,10 @@ namespace VulkanHelper
         }
 
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetDevice(), m_Surface, &surfaceCapabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.m_Impl->GetDevice(), m_Surface, &surfaceCapabilities);
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device.GetDevice(), m_Surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device.m_Impl->GetDevice(), m_Surface, &formatCount, nullptr);
         if (formatCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any surface formats!");
@@ -170,7 +133,7 @@ namespace VulkanHelper
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device.GetDevice(), m_Surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device.m_Impl->GetDevice(), m_Surface, &presentModeCount, nullptr);
         if (presentModeCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any present modes!");

@@ -3,6 +3,7 @@
 #include "Vulkan/Instance.h"
 #include "Log/Log.h"
 #include "Vulkan/Device.h"
+#include "Vulkan/CommandPool.h"
 
 int main()
 {
@@ -49,6 +50,9 @@ int main()
         .Window = &window,
         .MaxFramesInFlight = 2
     }).Value();
+
+    VulkanHelper::CommandPool pool = VulkanHelper::CommandPool::New({.Device = &device, .QueueFamilyIndex = device.GetQueueFamilyIndices().GraphicsFamily}).Value();
+    VulkanHelper::CommandBuffer buffer = pool.AllocateCommandBuffer({}).Value();
 
     while (!window.WantsToClose())
     {
