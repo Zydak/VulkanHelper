@@ -190,8 +190,8 @@ namespace VulkanHelper
             auto physicalDeviceImpl = PhysicalDevice::Impl::New({m_Instance, devices[i]});
             if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value()->IsSuitable(extensions))
             {
-                PhysicalDevice physicalDevice(std::move(physicalDeviceImpl.Value()));
-                suitableDevices.EmplaceBack(std::move(physicalDevice));
+                PhysicalDevice physicalDevice(VulkanHelper::Move(physicalDeviceImpl.Value()));
+                suitableDevices.EmplaceBack(VulkanHelper::Move(physicalDevice));
             }
             else
             {
@@ -230,11 +230,11 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Instance{ std::move(implResult.Value()) };
+        return Instance{ VulkanHelper::Move(implResult.Value()) };
     }
 
     Instance::Instance(Instance&& other) noexcept
-        : m_Impl(std::move(other.m_Impl))
+        : m_Impl(VulkanHelper::Move(other.m_Impl))
     {
         other.m_Impl = nullptr;
     }
@@ -246,7 +246,7 @@ namespace VulkanHelper
 
         this->~Instance(); // Clean up current state
 
-        m_Impl = std::move(other.m_Impl);
+        m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
     }

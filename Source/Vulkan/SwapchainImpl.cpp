@@ -8,6 +8,7 @@
 
 #include "DeviceImpl.h"
 #include "PhysicalDeviceImpl.h"
+#include "FenceImpl.h"
 
 namespace VulkanHelper
 {
@@ -101,22 +102,23 @@ namespace VulkanHelper
         }
 
         // Create fences and semaphores for synchronization
-        VulkanHelper::Vector<VkFence> frameFences(config.MaxFramesInFlight, VK_NULL_HANDLE);
+        VulkanHelper::Vector<Fence> frameFences;
         VulkanHelper::Vector<VkSemaphore> acquireSemaphores(config.MaxFramesInFlight, VK_NULL_HANDLE);
         VulkanHelper::Vector<VkSemaphore> submitSemaphores(imageCount, VK_NULL_HANDLE);
 
         VkFenceCreateInfo fenceInfo{};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        for (size_t i = 0; i < frameFences.Size(); i++)
+        for (size_t i = 0; i < config.MaxFramesInFlight; i++)
         {
-            VkResult res = vkCreateFence(config.Device->m_Impl->GetDevice(), &fenceInfo, nullptr, &frameFences[i]);
-            if (res != VK_SUCCESS)
+            auto fence = Fence::New({config.Device, true});
+            if (!fence.HasValue())
             {
                 VH_LOG_ERROR("Failed to create fence for swapchain implementation");
-                for (size_t i = 0; i < frameFences.Size(); i++) vkDestroyFence(config.Device->m_Impl->GetDevice(), frameFences[i], nullptr);
-                return VulkanHelper::Unexpected(VHResult(res));
+                return VulkanHelper::Unexpected(fence.Error());
             }
+            auto fence1 = std::move(fence.Value());
+            frameFences.PushBack(VulkanHelper::Move(fence1));
         }
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -186,9 +188,9 @@ namespace VulkanHelper
             0, // Start at frame 0
             imageCount,
             0, // Start at image 0
-            std::move(frameFences),
-            std::move(acquireSemaphores),
-            std::move(submitSemaphores)
+            VulkanHelper::Move(frameFences),
+            VulkanHelper::Move(acquireSemaphores),
+            VulkanHelper::Move(submitSemaphores)
         });
     }
 
@@ -199,14 +201,6 @@ namespace VulkanHelper
             vkDestroySwapchainKHR(m_Device->GetDevice(), m_Swapchain, nullptr);
             m_Swapchain = VK_NULL_HANDLE;
             VH_LOG_INFO("Destroying Vulkan Swapchain Implementation");
-        }
-        for (size_t i = 0; i < m_FrameFences.Size(); i++)
-        {
-            if (m_FrameFences[i] != VK_NULL_HANDLE)
-            {
-                vkDestroyFence(m_Device->GetDevice(), m_FrameFences[i] , nullptr);
-                m_FrameFences[i]  = VK_NULL_HANDLE;
-            }
         }
         for (size_t i = 0; i < m_AcquireSemapores.Size(); i++)
         {
@@ -233,9 +227,9 @@ namespace VulkanHelper
           m_CurrentFrameIndex(other.m_CurrentFrameIndex),
           m_ImageCount(other.m_ImageCount),
           m_CurrentImageIndex(other.m_CurrentImageIndex),
-          m_FrameFences(std::move(other.m_FrameFences)),
-          m_AcquireSemapores(std::move(other.m_AcquireSemapores)),
-          m_SubmitSemaphores(std::move(other.m_SubmitSemaphores))
+          m_FrameFences(VulkanHelper::Move(other.m_FrameFences)),
+          m_AcquireSemapores(VulkanHelper::Move(other.m_AcquireSemapores)),
+          m_SubmitSemaphores(VulkanHelper::Move(other.m_SubmitSemaphores))
     {
         other.m_Device = nullptr;
         other.m_Swapchain = VK_NULL_HANDLE;
@@ -254,9 +248,9 @@ namespace VulkanHelper
         m_CurrentFrameIndex = other.m_CurrentFrameIndex;
         m_ImageCount = other.m_ImageCount;
         m_CurrentImageIndex = other.m_CurrentImageIndex;
-        m_FrameFences = std::move(other.m_FrameFences);
-        m_AcquireSemapores = std::move(other.m_AcquireSemapores);
-        m_SubmitSemaphores = std::move(other.m_SubmitSemaphores);
+        m_FrameFences = VulkanHelper::Move(other.m_FrameFences);
+        m_AcquireSemapores = VulkanHelper::Move(other.m_AcquireSemapores);
+        m_SubmitSemaphores = VulkanHelper::Move(other.m_SubmitSemaphores);
 
         other.m_Device = nullptr;
         other.m_Swapchain = VK_NULL_HANDLE;
@@ -266,7 +260,7 @@ namespace VulkanHelper
 
     VHResult Swapchain::Impl::AcquireNextImage()
     {
-        VkFence frameFence = m_FrameFences[m_CurrentFrameIndex];
+        VkFence frameFence = m_FrameFences[m_CurrentFrameIndex].m_Impl->GetFenceHandle();
         vkWaitForFences(m_Device->GetDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
         vkResetFences(m_Device->GetDevice(), 1, &frameFence);
 
@@ -295,7 +289,7 @@ namespace VulkanHelper
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &submitSemaphore;
 
-        VkFence frameFence = m_FrameFences[m_CurrentFrameIndex];
+        VkFence frameFence = m_FrameFences[m_CurrentFrameIndex].m_Impl->GetFenceHandle();
         VkQueue graphicsQueue;
         vkGetDeviceQueue(m_Device->GetDevice(), m_Device->GetQueueFamilyIndices().GraphicsFamily, 0, &graphicsQueue);
         VkResult res = vkQueueSubmit(graphicsQueue, 1, &submitInfo, frameFence);
@@ -340,7 +334,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Swapchain{ std::move(implResult.Value()) };
+        return Swapchain{ VulkanHelper::Move(implResult.Value()) };
     }
 
     Swapchain::~Swapchain()
@@ -349,7 +343,7 @@ namespace VulkanHelper
     }
 
     Swapchain::Swapchain(Swapchain&& other) noexcept
-        : m_Impl(std::move(other.m_Impl))
+        : m_Impl(VulkanHelper::Move(other.m_Impl))
     {}
 
     Swapchain& Swapchain::operator=(Swapchain&& other) noexcept
@@ -359,7 +353,7 @@ namespace VulkanHelper
 
         this->~Swapchain(); // Clean up current state
 
-        m_Impl = std::move(other.m_Impl);
+        m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
     }

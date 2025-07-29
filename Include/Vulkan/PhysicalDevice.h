@@ -2,6 +2,7 @@
 
 #include "Core/Vector.h"
 #include "Core/UniquePtr.h"
+#include "Core/Move.h"
 
 namespace VulkanHelper
 {
@@ -69,7 +70,7 @@ namespace VulkanHelper
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         PhysicalDevice(VulkanHelper::UniquePtr<Impl>&& impl)
-            : m_Impl(std::move(impl))
+            : m_Impl(VulkanHelper::Move(impl))
         {}
 
         friend class Window;

@@ -3,12 +3,14 @@
 #include "Core/Expected.h"
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
-#include "Vulkan/PhysicalDevice.h"
+#include "Core/Vector.h"
 
 typedef struct VkInstance_T* VkInstance;
 
 namespace VulkanHelper
 {
+    class PhysicalDevice;
+
     /**
      * @class Instance
      * @brief RAII wrapper for a Vulkan instance.
@@ -47,7 +49,7 @@ namespace VulkanHelper
          * Only devices that meet the requirements are returned in the result vector.
          *
          * @param extensions A vector of required Vulkan extension names.
-         * @return std::vector<PhysicalDevice> A vector of suitable PhysicalDevice objects.
+         * @return VulkanHelper::Vector<PhysicalDevice> A vector of suitable PhysicalDevice objects.
          */
         VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const;
 
@@ -65,7 +67,7 @@ namespace VulkanHelper
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Instance(VulkanHelper::UniquePtr<Impl>&& impl)
-            : m_Impl(std::move(impl))
+            : m_Impl(VulkanHelper::Move(impl))
         {}
 
         friend class Window;

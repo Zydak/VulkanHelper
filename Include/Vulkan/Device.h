@@ -5,10 +5,11 @@
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
 #include "Vulkan/PhysicalDevice.h"
-#include "Window/Window.h"
 
 namespace VulkanHelper
 {
+    class Window;
+    
     /**
      * @class Device
      * @brief RAII wrapper for a Vulkan logical device.
@@ -77,10 +78,11 @@ namespace VulkanHelper
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Device(VulkanHelper::UniquePtr<Impl>&& impl)
-            : m_Impl(std::move(impl))
+            : m_Impl(VulkanHelper::Move(impl))
         {}
 
         friend class CommandPool;
         friend class Swapchain;
+        friend class Fence;
     };
 }

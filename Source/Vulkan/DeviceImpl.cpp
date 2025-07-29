@@ -3,6 +3,7 @@
 
 #include "Log/Log.h"
 #include "Vulkan/CommandPool.h"
+#include "Window/Window.h"
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -79,7 +80,7 @@ namespace VulkanHelper
         }
         VH_LOG_INFO("Vulkan Device Implementation created successfully");
 
-        return UniquePtr<Impl>(new Impl(config.PhysicalDevice, device, std::move(indices)));
+        return UniquePtr<Impl>(new Impl(config.PhysicalDevice, device, VulkanHelper::Move(indices)));
     }
 
     Device::Impl::~Impl()
@@ -93,9 +94,9 @@ namespace VulkanHelper
     }
 
     Device::Impl::Impl(Impl&& other) noexcept
-        : m_PhysicalDevice(std::move(other.m_PhysicalDevice)), 
+        : m_PhysicalDevice(VulkanHelper::Move(other.m_PhysicalDevice)), 
           m_Device(other.m_Device),
-          m_QueueFamilyIndices(std::move(other.m_QueueFamilyIndices))
+          m_QueueFamilyIndices(VulkanHelper::Move(other.m_QueueFamilyIndices))
     {
         other.m_Device = nullptr;
     }
@@ -107,9 +108,9 @@ namespace VulkanHelper
 
         this->~Impl(); // Clean up current state
 
-        m_PhysicalDevice = std::move(other.m_PhysicalDevice);
+        m_PhysicalDevice = VulkanHelper::Move(other.m_PhysicalDevice);
         m_Device = other.m_Device;
-        m_QueueFamilyIndices = std::move(other.m_QueueFamilyIndices);
+        m_QueueFamilyIndices = VulkanHelper::Move(other.m_QueueFamilyIndices);
 
         other.m_Device = nullptr;
 
@@ -167,11 +168,11 @@ namespace VulkanHelper
 
         VH_LOG_INFO("Creating Vulkan Device");
 
-        return Device{ std::move(implResult.Value()) };
+        return Device{ VulkanHelper::Move(implResult.Value()) };
     }
 
     Device::Device(Device&& other) noexcept
-        : m_Impl(std::move(other.m_Impl))
+        : m_Impl(VulkanHelper::Move(other.m_Impl))
     {}
 
     Device& Device::operator=(Device&& other) noexcept
@@ -181,7 +182,7 @@ namespace VulkanHelper
 
         this->~Device(); // Clean up current state
 
-        m_Impl = std::move(other.m_Impl);
+        m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
     }

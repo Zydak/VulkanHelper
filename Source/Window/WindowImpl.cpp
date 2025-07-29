@@ -31,14 +31,14 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
-        return VulkanHelper::UniquePtr(new Impl(config.Instance->m_Impl.Get(), window, surface, std::move(name), config.Width, config.Height));
+        return VulkanHelper::UniquePtr(new Impl(config.Instance->m_Impl.Get(), window, surface, VulkanHelper::Move(name), config.Width, config.Height));
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
         : m_Instance(other.m_Instance),
         m_Window(other.m_Window),
         m_Surface(other.m_Surface),
-        m_Name(std::move(other.m_Name)),
+        m_Name(VulkanHelper::Move(other.m_Name)),
         m_Width(other.m_Width),
         m_Height(other.m_Height)
     {
@@ -58,7 +58,7 @@ namespace VulkanHelper
         other.m_Window = nullptr;
         m_Surface = other.m_Surface;
         other.m_Surface = nullptr;
-        m_Name = std::move(other.m_Name);
+        m_Name = VulkanHelper::Move(other.m_Name);
         m_Width = other.m_Width;
         m_Height = other.m_Height;
         
@@ -157,11 +157,11 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Window{ std::move(implResult.Value()) };
+        return Window{ VulkanHelper::Move(implResult.Value()) };
     }
 
     Window::Window(Window&& other) noexcept
-        : m_Impl(std::move(other.m_Impl))
+        : m_Impl(VulkanHelper::Move(other.m_Impl))
     {}
 
     Window& Window::operator=(Window&& other) noexcept
@@ -171,7 +171,7 @@ namespace VulkanHelper
 
         this->~Window(); // Clean up current state
 
-        m_Impl = std::move(other.m_Impl);
+        m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
     }
@@ -181,9 +181,9 @@ namespace VulkanHelper
         VH_LOG_INFO("Destroying Window");
     }
 
-    std::string Window::GetName() const
+    const char* Window::GetName() const
     {
-        return m_Impl->GetName();
+        return m_Impl->GetName().c_str();
     }
 
     VkSurfaceKHR Window::GetSurface() const

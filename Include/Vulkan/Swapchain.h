@@ -74,7 +74,7 @@ namespace VulkanHelper
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Swapchain(VulkanHelper::UniquePtr<Impl> impl)
-            : m_Impl(std::move(impl))
+            : m_Impl(VulkanHelper::Move(impl))
         {}
     };
 }

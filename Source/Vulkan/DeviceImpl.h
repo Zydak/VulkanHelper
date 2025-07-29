@@ -21,7 +21,7 @@ namespace VulkanHelper
     private:
 
         Impl(PhysicalDevice physicalDevice, VkDevice device, QueueFamilyIndices&& indices)
-            : m_PhysicalDevice(physicalDevice), m_Device(device), m_QueueFamilyIndices(std::move(indices))
+            : m_PhysicalDevice(physicalDevice), m_Device(device), m_QueueFamilyIndices(VulkanHelper::Move(indices))
             {}
 
         PhysicalDevice m_PhysicalDevice;

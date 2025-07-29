@@ -1,5 +1,6 @@
 #pragma once
 #include "Vulkan/CommandPool.h"
+#include "Vulkan/Device.h"
 
 typedef struct VkQueue_T* VkQueue;
 typedef struct VkCommandPool_T* VkCommandPool;

@@ -127,7 +127,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return CommandPool{ std::move(implResult.Value()) };
+        return CommandPool{ VulkanHelper::Move(implResult.Value()) };
     }
 
     VulkanHelper::Expected<CommandBuffer, VHResult> CommandPool::AllocateCommandBuffer(const CommandBuffer::Config& config) const
@@ -136,7 +136,7 @@ namespace VulkanHelper
     }
 
     CommandPool::CommandPool(CommandPool&& other) noexcept
-        : m_Impl(std::move(other.m_Impl))
+        : m_Impl(VulkanHelper::Move(other.m_Impl))
     {
 
     }
@@ -148,7 +148,7 @@ namespace VulkanHelper
 
         this->~CommandPool(); // Clean up current state
 
-        m_Impl = std::move(other.m_Impl);
+        m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
     }

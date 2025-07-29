@@ -72,7 +72,7 @@ namespace VulkanHelper
     }
 
     PhysicalDevice::Impl::Impl(Impl&& other) noexcept
-        : m_Device(other.m_Device), m_Vendor(other.m_Vendor), m_Name(std::move(other.m_Name)), m_Discrete(other.m_Discrete)
+        : m_Device(other.m_Device), m_Vendor(other.m_Vendor), m_Name(VulkanHelper::Move(other.m_Name)), m_Discrete(other.m_Discrete)
     {
         other.m_Device = nullptr;
     }
@@ -84,7 +84,7 @@ namespace VulkanHelper
 
         m_Device = other.m_Device;
         m_Vendor = other.m_Vendor;
-        m_Name = std::move(other.m_Name);
+        m_Name = VulkanHelper::Move(other.m_Name);
         m_Discrete = other.m_Discrete;
 
         other.m_Device = nullptr;
@@ -125,7 +125,7 @@ namespace VulkanHelper
     //
 
     PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept
-        : m_Impl(std::move(other.m_Impl))
+        : m_Impl(VulkanHelper::Move(other.m_Impl))
     {}
 
     PhysicalDevice& PhysicalDevice::operator=(PhysicalDevice&& other) noexcept
@@ -135,7 +135,7 @@ namespace VulkanHelper
 
         this->~PhysicalDevice(); // Clean up current state
 
-        m_Impl = std::move(other.m_Impl);
+        m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
     }

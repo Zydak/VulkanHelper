@@ -1,14 +1,18 @@
 #pragma once
 
 #include "Core/Error.h"
-#include "Vulkan/PhysicalDevice.h"
-#include "Vulkan/Instance.h"
+#include "Core/UniquePtr.h"
+#include "Core/Move.h"
+#include "Core/Expected.h"
 
 struct GLFWwindow;
 typedef struct VkSurfaceKHR_T* VkSurfaceKHR;
 
 namespace VulkanHelper
 {
+    class PhysicalDevice;
+    class Instance;
+
     /**
      * @class Window
      * @brief RAII wrapper for a GLFWwindow.
@@ -73,8 +77,8 @@ namespace VulkanHelper
          * If successful, it returns a Window object; otherwise, it returns a VHError.
          *
          * @param config Configuration parameters for the new window.
-         * @return On success, returns std::expected containing a Window.
-         *         On failure, returns std::expected containing a VHError::Fail
+         * @return On success, returns VulkanHelper::Expected containing a Window.
+         *         On failure, returns stdVulkanHelper::Expected containing a VHError::Fail
          */
         static VulkanHelper::Expected<Window, VHResult> New(const Config& config);
 
@@ -148,7 +152,7 @@ namespace VulkanHelper
          *
          * @return The name/title originally specified at creation.
          */
-        [[nodiscard]] std::string GetName() const;
+        [[nodiscard]] const char* GetName() const;
 
         /**
          * @brief Retrieve the window's surface.
@@ -162,7 +166,7 @@ namespace VulkanHelper
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Window(VulkanHelper::UniquePtr<Impl> impl)
-            : m_Impl(std::move(impl))
+            : m_Impl(VulkanHelper::Move(impl))
         {}
     };
 } // namespace VulkanHelper

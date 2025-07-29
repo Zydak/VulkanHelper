@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Log/Log.h"
+#include "Move.h"
 
 namespace VulkanHelper
 {
@@ -229,7 +230,7 @@ namespace VulkanHelper
             if (m_Size >= m_Capacity)
                 ChangeCapacity(m_Capacity * GrowFactor);
 
-            ConstructAt(m_Size, std::move(value));
+            ConstructAt(m_Size, VulkanHelper::Move(value));
             m_Size++;
         }
 
@@ -363,7 +364,7 @@ namespace VulkanHelper
                 {
                     if constexpr (std::is_move_constructible_v<T>)
                     {
-                        new((T*)m_Data + i) T(std::move(*(((T*)oldData) + i))); // Move existing elements to new buffer
+                        new((T*)m_Data + i) T(VulkanHelper::Move(*(((T*)oldData) + i))); // Move existing elements to new buffer
                     }
                     else
                     {
@@ -380,7 +381,7 @@ namespace VulkanHelper
         template<typename ... Args>
         void ConstructAt(size_t index, Args&&... args)
         {
-            new((T*)m_Data + index) T(args...); // Placement new to construct T in the allocated memory
+            new ((T*)m_Data + index) T(std::forward<Args>(args)...); // Placement new to construct T in the allocated memory
         }
 
         void* m_Data;      ///< Pointer to the allocated memory buffer.

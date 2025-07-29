@@ -4,6 +4,8 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
+#include "Vulkan/Instance.h"
+
 namespace VulkanHelper
 {
     class Window::Impl
@@ -35,7 +37,7 @@ namespace VulkanHelper
             : m_Instance(instance),
             m_Window(window),
             m_Surface(surface),
-            m_Name(std::move(name)),
+            m_Name(VulkanHelper::Move(name)),
             m_Width(width),
             m_Height(height)
         {}

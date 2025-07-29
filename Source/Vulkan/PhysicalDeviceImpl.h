@@ -35,7 +35,7 @@ namespace VulkanHelper
     private:
 
         Impl(VkPhysicalDevice device, Vendor vendor, std::string&& name, bool discrete)
-            : m_Device(device), m_Vendor(vendor), m_Name(std::move(name)), m_Discrete(discrete) {}
+            : m_Device(device), m_Vendor(vendor), m_Name(VulkanHelper::Move(name)), m_Discrete(discrete) {}
 
         VkPhysicalDevice m_Device;
         Vendor m_Vendor;

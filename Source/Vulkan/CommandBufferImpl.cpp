@@ -40,7 +40,7 @@ namespace VulkanHelper
     //
 
     CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
-        : m_Impl(std::move(other.m_Impl))
+        : m_Impl(VulkanHelper::Move(other.m_Impl))
     {
 
     }
@@ -52,7 +52,7 @@ namespace VulkanHelper
 
         this->~CommandBuffer(); // Clean up current state
 
-        m_Impl = std::move(other.m_Impl);
+        m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
     }

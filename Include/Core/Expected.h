@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Log/Log.h"
+#include "Move.h"
 
 namespace VulkanHelper
 {
@@ -10,7 +11,7 @@ namespace VulkanHelper
     public:
         E m_Error;
         explicit Unexpected(const E& e) : m_Error(e) {}
-        explicit Unexpected(E&& e) : m_Error(std::move(e)) {}
+        explicit Unexpected(E&& e) : m_Error(VulkanHelper::Move(e)) {}
 
         const E& GetError() const { return m_Error; }
         E& GetError() { return m_Error; }
@@ -48,7 +49,7 @@ namespace VulkanHelper
          * @brief Constructs an Expected by moving a value.
          * @param value The value to move into the Expected.
          */
-        Expected(T&& value) : m_Value(std::move(value)), m_HasValue(true) {}
+        Expected(T&& value) : m_Value(VulkanHelper::Move(value)), m_HasValue(true) {}
 
         /**
          * @brief Constructs an Expected containing an error.
@@ -60,7 +61,7 @@ namespace VulkanHelper
          * @brief Constructs an Expected containing an error by moving.
          * @param error The Unexpected error to store (moved).
          */
-        Expected(Unexpected<E>&& error) : m_Error(std::move(error.GetError())), m_HasValue(false) {}
+        Expected(Unexpected<E>&& error) : m_Error(VulkanHelper::Move(error.GetError())), m_HasValue(false) {}
 
         /**
          * @brief Copy constructor. Copies value or error from another Expected.
@@ -80,9 +81,9 @@ namespace VulkanHelper
          */
         Expected(Expected&& other) : m_HasValue(other.m_HasValue) {
             if (m_HasValue) {
-                new(&m_Value) T(std::move(other.m_Value));
+                new(&m_Value) T(VulkanHelper::Move(other.m_Value));
             } else {
-                new(&m_Error) E(std::move(other.m_Error));
+                new(&m_Error) E(VulkanHelper::Move(other.m_Error));
             }
         }
 
@@ -126,9 +127,9 @@ namespace VulkanHelper
                 this->~Expected();
                 m_HasValue = other.m_HasValue;
                 if (m_HasValue) {
-                    new(&m_Value) T(std::move(other.m_Value));
+                    new(&m_Value) T(VulkanHelper::Move(other.m_Value));
                 } else {
-                    new(&m_Error) E(std::move(other.m_Error));
+                    new(&m_Error) E(VulkanHelper::Move(other.m_Error));
                 }
             }
             return *this;
@@ -173,7 +174,7 @@ namespace VulkanHelper
          */
         T&& Value() && {
             VH_ASSERT(m_HasValue, "Expected contains error. Cannot access value");
-            return std::move(m_Value);
+            return VulkanHelper::Move(m_Value);
         }
 
         // Access error
@@ -204,7 +205,7 @@ namespace VulkanHelper
          */
         E&& Error() && {
             VH_ASSERT(!m_HasValue, "Expected contains value. Cannot access error");
-            return std::move(m_Error);
+            return VulkanHelper::Move(m_Error);
         }
 
         // Dereference operators
@@ -224,7 +225,7 @@ namespace VulkanHelper
          * @brief Dereference operator to access the contained value (rvalue).
          * @return Rvalue reference to the contained value.
          */
-        T&& operator*() && { return std::move(Value()); }
+        T&& operator*() && { return VulkanHelper::Move(Value()); }
 
         /**
          * @brief Arrow operator to access the contained value's members.
