@@ -71,10 +71,10 @@ namespace VulkanHelper
 
     private:
         class Impl;
-        Impl* m_Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
 
-        Swapchain(Impl* impl)
-            : m_Impl(impl)
+        Swapchain(VulkanHelper::UniquePtr<Impl> impl)
+            : m_Impl(std::move(impl))
         {}
     };
 }

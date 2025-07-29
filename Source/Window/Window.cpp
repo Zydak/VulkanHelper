@@ -10,7 +10,7 @@ namespace VulkanHelper
     class Window::Impl
     {
     public:
-        static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+        static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
 
         ~Impl();
 
@@ -49,9 +49,9 @@ namespace VulkanHelper
         uint32_t        m_Height;
     };
 
-    VulkanHelper::Expected<Window::Impl*, VHResult> Window::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Window::Impl>, VHResult> Window::Impl::New(const Config& config)
     {
-        VH_LOG_INFO("Initializing Window");
+        VH_LOG_INFO("Initializing Window Implementation");
 
         // TODO: Icon, for now there's no image loading
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -68,7 +68,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
-        return new Impl(config.Instance, window, surface, std::move(name), config.Width, config.Height);
+        return VulkanHelper::UniquePtr(new Impl(config.Instance, window, surface, std::move(name), config.Width, config.Height));
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
@@ -107,7 +107,7 @@ namespace VulkanHelper
         if (m_Window != nullptr)
         {
             glfwDestroyWindow(m_Window);
-            VH_LOG_INFO("Destroying Window");
+            VH_LOG_INFO("Destroying Window Implementation");
         }
         if (m_Surface != VK_NULL_HANDLE)
         {
@@ -194,14 +194,12 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Window{ implResult.Value() };
+        return Window{ std::move(implResult.Value()) };
     }
 
     Window::Window(Window&& other) noexcept
-        : m_Impl(other.m_Impl)
-    {
-        other.m_Impl = nullptr;
-    }
+        : m_Impl(std::move(other.m_Impl))
+    {}
 
     Window& Window::operator=(Window&& other) noexcept
     {
@@ -210,20 +208,14 @@ namespace VulkanHelper
 
         this->~Window(); // Clean up current state
 
-        m_Impl = other.m_Impl;
-        other.m_Impl = nullptr;
+        m_Impl = std::move(other.m_Impl);
 
         return *this;
     }
 
     Window::~Window()
     {
-        if (m_Impl != nullptr)
-        {
-            delete m_Impl;
-            m_Impl = nullptr;
-            VH_LOG_INFO("Destroying Window");
-        }
+        VH_LOG_INFO("Destroying Window");
     }
 
     std::string Window::GetName() const

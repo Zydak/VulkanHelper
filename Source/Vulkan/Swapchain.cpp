@@ -8,7 +8,7 @@ namespace VulkanHelper
     class Swapchain::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -56,7 +56,7 @@ namespace VulkanHelper
     };
 
     // TODO: REALLY beffy function, needs to be split up
-    VulkanHelper::Expected<Swapchain::Impl*, VHResult> Swapchain::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Swapchain::Impl>, VHResult> Swapchain::Impl::New(const Config& config)
     {
         if (config.Device == nullptr || config.Window == nullptr)
         {
@@ -65,7 +65,7 @@ namespace VulkanHelper
         }
         if (config.MaxFramesInFlight == 0)
         {
-            VH_LOG_ERROR("MaxFramesInFlight must be greater than 0.");
+            VH_LOG_ERROR("Invalid Swapchain configuration: MaxFramesInFlight must be greater than 0.");
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
@@ -157,7 +157,7 @@ namespace VulkanHelper
             VkResult res = vkCreateFence(config.Device->GetDevice(), &fenceInfo, nullptr, &frameFences[i]);
             if (res != VK_SUCCESS)
             {
-                VH_LOG_ERROR("Failed to create fence for swapchain");
+                VH_LOG_ERROR("Failed to create fence for swapchain implementation");
                 for (size_t i = 0; i < frameFences.Size(); i++) vkDestroyFence(config.Device->GetDevice(), frameFences[i], nullptr);
                 return VulkanHelper::Unexpected(VHResult(res));
             }
@@ -169,7 +169,7 @@ namespace VulkanHelper
             VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &acquireSemaphores[i]);
             if (res != VK_SUCCESS)
             {
-                VH_LOG_ERROR("Failed to create acquire semaphore for swapchain");
+                VH_LOG_ERROR("Failed to create acquire semaphore for swapchain implementation");
                 for (size_t i = 0; i < acquireSemaphores.Size(); i++) vkDestroySemaphore(config.Device->GetDevice(), acquireSemaphores[i], nullptr);
                 return VulkanHelper::Unexpected(VHResult(res));
             }
@@ -179,7 +179,7 @@ namespace VulkanHelper
             VkResult res = vkCreateSemaphore(config.Device->GetDevice(), &semaphoreInfo, nullptr, &submitSemaphores[i]);
             if (res != VK_SUCCESS)
             {
-                VH_LOG_ERROR("Failed to create acquire semaphore for swapchain");
+                VH_LOG_ERROR("Failed to create acquire semaphore for swapchain implementation");
                 for (size_t i = 0; i < submitSemaphores.Size(); i++) vkDestroySemaphore(config.Device->GetDevice(), submitSemaphores[i], nullptr);
                 return VulkanHelper::Unexpected(VHResult(res));
             }
@@ -208,12 +208,12 @@ namespace VulkanHelper
         res = vkCreateSwapchainKHR(config.Device->GetDevice(), &swapchainCreateInfo, nullptr, &swapchain);
         if (res != VK_SUCCESS)
         {
-            VH_LOG_ERROR("Failed to create swapchain");
+            VH_LOG_ERROR("Failed to create swapchain implementation");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
         vkGetSwapchainImagesKHR(config.Device->GetDevice(), swapchain, &imageCount, nullptr);
-        VH_LOG_INFO("Swapchain created successfully with {} images", imageCount);
+        VH_LOG_INFO("Swapchain Implementation created successfully with {} images", imageCount);
         VulkanHelper::Vector<VkImage> swapchainImages(imageCount);
         res = vkGetSwapchainImagesKHR(config.Device->GetDevice(), swapchain, &imageCount, swapchainImages.Data());
         if (res != VK_SUCCESS)
@@ -223,7 +223,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return new Swapchain::Impl{
+        return VulkanHelper::UniquePtr(new Swapchain::Impl{
             config.Device,
             swapchain,
             config.MaxFramesInFlight,
@@ -233,7 +233,7 @@ namespace VulkanHelper
             std::move(frameFences),
             std::move(acquireSemaphores),
             std::move(submitSemaphores)
-        };
+        });
     }
 
     Swapchain::Impl::~Impl()
@@ -242,7 +242,7 @@ namespace VulkanHelper
         {
             vkDestroySwapchainKHR(m_Device->GetDevice(), m_Swapchain, nullptr);
             m_Swapchain = VK_NULL_HANDLE;
-            VH_LOG_INFO("Destroying Vulkan Swapchain");
+            VH_LOG_INFO("Destroying Vulkan Swapchain Implementation");
         }
         for (size_t i = 0; i < m_FrameFences.Size(); i++)
         {
@@ -380,24 +380,17 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Swapchain{ implResult.Value() };
+        return Swapchain{ std::move(implResult.Value()) };
     }
 
     Swapchain::~Swapchain()
     {
-        if (m_Impl != nullptr)
-        {
-            delete m_Impl;
-            m_Impl = nullptr;
-            VH_LOG_INFO("Destroying Vulkan Swapchain");
-        }
+        VH_LOG_INFO("Destroying Vulkan Swapchain");
     }
 
     Swapchain::Swapchain(Swapchain&& other) noexcept
-        : m_Impl(other.m_Impl)
-    {
-        other.m_Impl = nullptr;
-    }
+        : m_Impl(std::move(other.m_Impl))
+    {}
 
     Swapchain& Swapchain::operator=(Swapchain&& other) noexcept
     {
@@ -406,8 +399,7 @@ namespace VulkanHelper
 
         this->~Swapchain(); // Clean up current state
 
-        m_Impl = other.m_Impl;
-        other.m_Impl = nullptr;
+        m_Impl = std::move(other.m_Impl);
 
         return *this;
     }

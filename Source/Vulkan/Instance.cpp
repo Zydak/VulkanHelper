@@ -34,7 +34,7 @@ namespace VulkanHelper
     class Instance::Impl
     {
     public:
-        static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+        static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -61,7 +61,7 @@ namespace VulkanHelper
         static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT* debugMessenger);
     };
 
-    VulkanHelper::Expected<Instance::Impl*, VHResult> Instance::Impl::New(const Instance::Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Instance::Impl>, VHResult> Instance::Impl::New(const Instance::Config& config)
     {
         VH_LOG_INFO("Creating Vulkan Instance");
 
@@ -152,7 +152,7 @@ namespace VulkanHelper
         Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
 
-        return new Impl(messenger, instance);
+        return UniquePtr<Impl>(new Impl(messenger, instance));
     }
 
     Instance::Impl::Impl(Impl&& other) noexcept
@@ -252,11 +252,11 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Instance{ implResult.Value() };
+        return Instance{ std::move(implResult.Value()) };
     }
 
     Instance::Instance(Instance&& other) noexcept
-        : m_Impl(other.m_Impl)
+        : m_Impl(std::move(other.m_Impl))
     {
         other.m_Impl = nullptr;
     }
@@ -268,20 +268,14 @@ namespace VulkanHelper
 
         this->~Instance(); // Clean up current state
 
-        m_Impl = other.m_Impl;
-        other.m_Impl = nullptr;
+        m_Impl = std::move(other.m_Impl);
 
         return *this;
     }
 
     Instance::~Instance()
     {
-        if (m_Impl != nullptr)
-        {
-            delete m_Impl;
-            m_Impl = nullptr;
-            VH_LOG_INFO("Destroying Vulkan Instance");
-        }
+        VH_LOG_INFO("Destroying Vulkan Instance");
     }
 
     VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const

@@ -159,10 +159,10 @@ namespace VulkanHelper
 
     private:
         class Impl;
-        Impl* m_Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
 
-        Window(Impl* impl)
-            : m_Impl(impl)
+        Window(VulkanHelper::UniquePtr<Impl> impl)
+            : m_Impl(std::move(impl))
         {}
     };
 } // namespace VulkanHelper

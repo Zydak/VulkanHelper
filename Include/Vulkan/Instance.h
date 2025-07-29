@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Error.h"
+#include "Core/UniquePtr.h"
 #include "Vulkan/PhysicalDevice.h"
 
 typedef struct VkInstance_T* VkInstance;
@@ -61,10 +62,10 @@ namespace VulkanHelper
 
     private:
         class Impl;
-        Impl* m_Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
 
-        Instance(Impl* impl)
-            : m_Impl(impl)
+        Instance(VulkanHelper::UniquePtr<Impl>&& impl)
+            : m_Impl(std::move(impl))
         {}
     };
 }

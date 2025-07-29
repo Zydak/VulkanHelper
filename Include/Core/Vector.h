@@ -67,6 +67,9 @@ namespace VulkanHelper
         {
             Clear();
             free(m_Data);
+            m_Data = nullptr;
+            m_Size = 0;
+            m_Capacity = 0;
         }
 
         /**
@@ -352,13 +355,24 @@ namespace VulkanHelper
                 return;
             
             void* oldData = m_Data;
-            m_Data = malloc(sizeof(T) * newCapacity);
+            m_Data = std::aligned_alloc(alignof(T), sizeof(T) * newCapacity);
 
             if (m_Size > 0)
             {
-                memcpy(m_Data, oldData, sizeof(T) * m_Size);
+                for (size_t i = 0; i < m_Size; i++)
+                {
+                    if constexpr (std::is_move_constructible_v<T>)
+                    {
+                        new((T*)m_Data + i) T(std::move(*(((T*)oldData) + i))); // Move existing elements to new buffer
+                    }
+                    else
+                    {
+                        static_assert(std::is_copy_constructible_v<T>, "T must be copy or move constructible");
+                        new((T*)m_Data + i) T(*(((T*)oldData) + i)); // Copy existing elements to new buffer
+                    }
+                }
+                free(oldData);
             }
-            free(oldData);
 
             m_Capacity = newCapacity;
         }

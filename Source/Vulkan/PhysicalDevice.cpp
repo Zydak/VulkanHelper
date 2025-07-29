@@ -9,7 +9,7 @@ namespace VulkanHelper
     class PhysicalDevice::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
 
         Impl(const Impl& other);
         Impl& operator=(const Impl& other);
@@ -34,7 +34,7 @@ namespace VulkanHelper
         bool m_Discrete;
     };
 
-    VulkanHelper::Expected<PhysicalDevice::Impl*, VHResult> PhysicalDevice::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<PhysicalDevice::Impl>, VHResult> PhysicalDevice::Impl::New(const Config& config)
     {
         if (config.Device == nullptr || config.Instance == nullptr)
         {
@@ -73,7 +73,7 @@ namespace VulkanHelper
 
         bool discrete = (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
-        return new Impl(config.Device, vendor, properties.deviceName, discrete);
+        return VulkanHelper::UniquePtr(new Impl(config.Device, vendor, properties.deviceName, discrete));
     }
 
     PhysicalDevice::Impl::Impl(const Impl& other)
@@ -158,14 +158,12 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return PhysicalDevice{ implResult.Value() };
+        return PhysicalDevice{ std::move(implResult.Value()) };
     }
 
     PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept
-        : m_Impl(other.m_Impl)
-    {
-        other.m_Impl = nullptr;
-    }
+        : m_Impl(std::move(other.m_Impl))
+    {}
 
     PhysicalDevice& PhysicalDevice::operator=(PhysicalDevice&& other) noexcept
     {
@@ -174,8 +172,7 @@ namespace VulkanHelper
 
         this->~PhysicalDevice(); // Clean up current state
 
-        m_Impl = other.m_Impl;
-        other.m_Impl = nullptr;
+        m_Impl = std::move(other.m_Impl);
 
         return *this;
     }
@@ -199,12 +196,7 @@ namespace VulkanHelper
 
     PhysicalDevice::~PhysicalDevice()
     {
-        if (m_Impl != nullptr)
-        {
-            delete m_Impl;
-            m_Impl = nullptr;
-            VH_LOG_INFO("Destroying Vulkan Physical Device");
-        }
+        
     }
 
     bool PhysicalDevice::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const

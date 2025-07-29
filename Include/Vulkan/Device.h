@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 
 #include "Core/Error.h"
+#include "Core/UniquePtr.h"
 #include "Vulkan/PhysicalDevice.h"
 #include "Window/Window.h"
 
@@ -111,10 +112,10 @@ namespace VulkanHelper
         [[nodiscard]] const PhysicalDevice& GetPhysicalDevice() const;
     private:
         class Impl;
-        Impl* m_Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
 
-        Device(Impl* impl)
-            : m_Impl(impl)
+        Device(VulkanHelper::UniquePtr<Impl>&& impl)
+            : m_Impl(std::move(impl))
         {}
     };
 }

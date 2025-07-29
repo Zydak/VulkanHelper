@@ -11,7 +11,7 @@ namespace VulkanHelper
     {
     public:
 
-        [[nodiscard]] static VulkanHelper::Expected<Impl*, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
         ~Impl();
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -57,7 +57,7 @@ namespace VulkanHelper
         [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window);
     };
 
-    VulkanHelper::Expected<Device::Impl*, VHResult> Device::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(const Config& config)
     {
         VulkanHelper::Vector<const char*> extensions;
         if (config.Window != nullptr)
@@ -123,7 +123,7 @@ namespace VulkanHelper
             VH_LOG_ERROR("Failed to create Vulkan device");
             return VulkanHelper::Unexpected(VHResult(res));
         }
-        VH_LOG_INFO("Vulkan Device created successfully");
+        VH_LOG_INFO("Vulkan Device Implementation created successfully");
 
         Queues queues;
         if (indices.GraphicsFamily != UINT32_MAX)
@@ -161,7 +161,7 @@ namespace VulkanHelper
             }
         }
 
-        return new Impl(config.PhysicalDevice, device, std::move(queues), std::move(commandPools));
+        return UniquePtr<Impl>(new Impl(config.PhysicalDevice, device, std::move(queues), std::move(commandPools)));
     }
 
     Device::Impl::~Impl()
@@ -182,7 +182,7 @@ namespace VulkanHelper
             }
             vkDestroyDevice(m_Device, nullptr);
             m_Device = nullptr;
-            VH_LOG_INFO("Destroying Vulkan Device");
+            VH_LOG_INFO("Destroying Vulkan Device Implementation");
 
             m_Queues = {};
         }
@@ -267,14 +267,14 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Device{ implResult.Value() };
+        VH_LOG_INFO("Creating Vulkan Device");
+
+        return Device{ std::move(implResult.Value()) };
     }
 
     Device::Device(Device&& other) noexcept
-        : m_Impl(other.m_Impl)
-    {
-        other.m_Impl = nullptr;
-    }
+        : m_Impl(std::move(other.m_Impl))
+    {}
 
     Device& Device::operator=(Device&& other) noexcept
     {
@@ -283,20 +283,14 @@ namespace VulkanHelper
 
         this->~Device(); // Clean up current state
 
-        m_Impl = other.m_Impl;
-        other.m_Impl = nullptr;
+        m_Impl = std::move(other.m_Impl);
 
         return *this;
     }
 
     Device::~Device()
     {
-        if (m_Impl != nullptr)
-        {
-            delete m_Impl;
-            m_Impl = nullptr;
-            VH_LOG_INFO("Destroying Vulkan Device");
-        }
+        VH_LOG_INFO("Destroying Vulkan Device");
     }
 
     VkDevice Device::GetDevice() const
