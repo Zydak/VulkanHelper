@@ -14,7 +14,7 @@ namespace VulkanHelper
 {
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Window::Impl>, VHResult> Window::Impl::New(const Config& config)
     {
-        VH_LOG_INFO("Initializing Window Implementation");
+        VH_LOG_INFO("Creating Window Implementation");
 
         // TODO: Icon, for now there's no image loading
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -67,15 +67,15 @@ namespace VulkanHelper
 
     Window::Impl::~Impl()
     {
-        if (m_Window != nullptr)
-        {
-            glfwDestroyWindow(m_Window);
-            VH_LOG_INFO("Destroying Window Implementation");
-        }
         if (m_Surface != VK_NULL_HANDLE)
         {
-            vkDestroySurfaceKHR(m_Instance->GetInstance(), m_Surface, nullptr);
             VH_LOG_INFO("Destroying Vulkan Surface");
+            vkDestroySurfaceKHR(m_Instance->GetInstance(), m_Surface, nullptr);
+        }
+        if (m_Window != nullptr)
+        {
+            VH_LOG_INFO("Destroying Window Implementation");
+            glfwDestroyWindow(m_Window);
         }
     }
 
@@ -178,12 +178,18 @@ namespace VulkanHelper
 
     Window::~Window()
     {
-        VH_LOG_INFO("Destroying Window");
+
+    }
+
+    Window::Window(VulkanHelper::UniquePtr<Impl>&& impl)
+        : m_Impl(VulkanHelper::Move(impl))
+    {
+
     }
 
     const char* Window::GetName() const
     {
-        return m_Impl->GetName().c_str();
+        return m_Impl->GetName();
     }
 
     VkSurfaceKHR Window::GetSurface() const

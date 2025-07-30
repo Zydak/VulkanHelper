@@ -1,13 +1,16 @@
 #pragma once
 
 #include "Core/Error.h"
-#include "Device.h"
-#include "Window/Window.h"
-
-typedef struct VkCommandBuffer_T* VkCommandBuffer;
+#include "Core/Expected.h"
+#include "Core/UniquePtr.h"
+#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
+    class Device;
+    class Window;
+    class CommandBuffer;
+
     /*
      * @class Swapchain
      * @brief RAII wrapper for a Vulkan swapchain.
@@ -66,15 +69,29 @@ namespace VulkanHelper
         Swapchain(Swapchain&& other) noexcept;
         Swapchain& operator=(Swapchain&& other) noexcept;
 
+        /**
+        * @brief Acquires the next available image from the swapchain for rendering.
+        *
+        * @return VHResult indicating success or failure.
+        */
         [[nodiscard]] VHResult AcquireNextImage();
-        [[nodiscard]] VHResult Submit(VkCommandBuffer commandBuffer);
+
+        /**
+        * @brief Submits a command buffer for execution and presentation to the swapchain.
+        *
+        * @param commandBuffer The command buffer to submit for execution and presentation.
+        * @return VHResult indicating success or failure.
+        */
+        [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);
 
     private:
         class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
-        Swapchain(VulkanHelper::UniquePtr<Impl> impl)
-            : m_Impl(VulkanHelper::Move(impl))
-        {}
+        Swapchain(VulkanHelper::UniquePtr<Impl>&& impl);
+
+        #undef SWAPCHAIN_CLASS
+        DECLARE_FRIENDS();
+        #define SWAPCHAIN_CLASS Swapchain
     };
 }

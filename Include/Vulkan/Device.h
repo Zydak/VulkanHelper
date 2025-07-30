@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Core/Expected.h"
-
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
 #include "Vulkan/PhysicalDevice.h"
+#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
@@ -72,17 +72,22 @@ namespace VulkanHelper
          * @return Pointer to the PhysicalDevice object used to create this logical device.
          */
         [[nodiscard]] const PhysicalDevice& GetPhysicalDevice() const;
+
+        /**
+         * @brief Gets the cached indices of the queue families.
+         *
+         * @return QueueFamilyIndices struct containing the indices.
+         */
         [[nodiscard]] QueueFamilyIndices GetQueueFamilyIndices() const;
+
     private:
         class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
-        Device(VulkanHelper::UniquePtr<Impl>&& impl)
-            : m_Impl(VulkanHelper::Move(impl))
-        {}
-
-        friend class CommandPool;
-        friend class Swapchain;
-        friend class Fence;
+        Device(VulkanHelper::UniquePtr<Impl>&& impl);
+        
+        #undef DEVICE_CLASS
+        DECLARE_FRIENDS();
+        #define DEVICE_CLASS Device
     };
 }

@@ -2,8 +2,8 @@
 
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
-#include "Core/Move.h"
 #include "Core/Expected.h"
+#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
@@ -80,18 +80,19 @@ namespace VulkanHelper
         * @brief Resets the fence to the unsignaled state.
         */
         void Reset();
+        
     private:
         class Impl;
         UniquePtr<Impl> m_Impl;
-
+        
         /**
         * @brief Private constructor used by the factory function.
         * @param impl Implementation pointer.
         */
-        Fence(UniquePtr<Impl>&& impl)
-            : m_Impl(VulkanHelper::Move(impl))
-        {}
+        Fence(UniquePtr<Impl>&& impl);
 
-        friend class Swapchain;
+        #undef FENCE_CLASS
+        DECLARE_FRIENDS();
+        #define FENCE_CLASS Fence
     };
 }

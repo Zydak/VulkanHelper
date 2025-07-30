@@ -162,6 +162,12 @@ namespace VulkanHelper
         
     }
 
+    PhysicalDevice::PhysicalDevice(VulkanHelper::UniquePtr<Impl>&& impl)
+        : m_Impl(VulkanHelper::Move(impl))
+    {
+        
+    }
+
     bool PhysicalDevice::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const
     {
         return m_Impl->IsSuitable(extensions);

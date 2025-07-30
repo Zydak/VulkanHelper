@@ -28,7 +28,7 @@ namespace VulkanHelper
         [[nodiscard]] bool IsPhysicalDeviceCompatible(const PhysicalDevice& device) const;
         [[nodiscard]] inline uint32_t GetWidth() const { return m_Width; }
         [[nodiscard]] inline uint32_t GetHeight() const { return m_Height; }
-        [[nodiscard]] inline std::string GetName() const { return m_Name; }
+        [[nodiscard]] inline const char* GetName() const { return m_Name.c_str(); }
         [[nodiscard]] inline VkSurfaceKHR GetSurface() const { return m_Surface; }
 
     private:

@@ -13,6 +13,8 @@ namespace VulkanHelper
 {
     VulkanHelper::Expected<VulkanHelper::UniquePtr<CommandPool::Impl>, VHResult> CommandPool::Impl::New(const Config& config)
     {
+        VH_LOG_INFO("Creating Vulkan CommandPool Implementation");
+
         if (config.Device == nullptr)
         {
             VH_LOG_ERROR("Invalid CommandPool configuration: Device is null.");
@@ -48,12 +50,11 @@ namespace VulkanHelper
     {
         if (m_CommandPool != nullptr)
         {
+            VH_LOG_INFO("Destroying Vulkan Command Pool Implementation");
             vkDestroyCommandPool(m_Device->GetDevice(), m_CommandPool, nullptr);
             m_CommandPool = nullptr;
-            VH_LOG_INFO("Destroying Vulkan Command Pool Implementation");
+            m_Device = nullptr;
         }
-
-        m_Device = nullptr;
     }
 
     CommandPool::Impl::Impl(CommandPool::Impl&& other) noexcept
@@ -84,6 +85,7 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<CommandBuffer, VHResult> CommandPool::Impl::AllocateCommandBuffer(const CommandBuffer::Config& config)
     {
+        VH_LOG_INFO("Allocating Command Buffer");
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = m_CommandPool;
@@ -109,6 +111,7 @@ namespace VulkanHelper
             return VHResult::WRONG_ARGUMENTS;
         }
 
+        VH_LOG_INFO("Freeing Command Buffer");
         vkFreeCommandBuffers(m_Device->GetDevice(), m_CommandPool, 1, &commandBuffer->m_CommandBuffer);
         commandBuffer->m_CommandBuffer = VK_NULL_HANDLE;
         commandBuffer->m_CommandPool = nullptr;
@@ -155,6 +158,12 @@ namespace VulkanHelper
 
     CommandPool::~CommandPool()
     {
-        VH_LOG_INFO("Destroying command pool");
+
+    }
+
+    CommandPool::CommandPool(VulkanHelper::UniquePtr<Impl>&& impl)
+        : m_Impl(VulkanHelper::Move(impl))
+    {
+        
     }
 }

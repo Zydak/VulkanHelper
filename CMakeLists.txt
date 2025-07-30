@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 
+add_compile_options(-Wno-builtin-macro-redefined)
+
 project(VulkanHelper)
 
 add_subdirectory("Libraries")

@@ -1,9 +1,11 @@
 #pragma once
 #include "Vulkan/Swapchain.h"
 #include "Vulkan/Fence.h"
+#include "Vulkan/Semaphore.h"
+#include "Vulkan/Device.h"
+#include "Vulkan/CommandBuffer.h"
 
 typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
-typedef struct VkSemaphore_T* VkSemaphore;
 
 namespace VulkanHelper
 {
@@ -19,7 +21,7 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] VHResult AcquireNextImage();
-        [[nodiscard]] VHResult Submit(VkCommandBuffer commandBuffer);
+        [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);
 
     private:
 
@@ -31,8 +33,8 @@ namespace VulkanHelper
             uint32_t imageCount,
             uint32_t currentImageIndex,
             VulkanHelper::Vector<Fence>&& frameFences,
-            VulkanHelper::Vector<VkSemaphore>&& acquireSemaphores,
-            VulkanHelper::Vector<VkSemaphore>&& submitSemaphores)
+            VulkanHelper::Vector<Semaphore>&& acquireSemaphores,
+            VulkanHelper::Vector<Semaphore>&& submitSemaphores)
             : m_Device(device),
               m_Swapchain(swapchain),
               m_MaxFramesInFlight(maxFramesInFlight),
@@ -40,7 +42,7 @@ namespace VulkanHelper
               m_ImageCount(imageCount),
               m_CurrentImageIndex(currentImageIndex),
               m_FrameFences(VulkanHelper::Move(frameFences)),
-              m_AcquireSemapores(VulkanHelper::Move(acquireSemaphores)),
+              m_AcquireSemaphores(VulkanHelper::Move(acquireSemaphores)),
               m_SubmitSemaphores(VulkanHelper::Move(submitSemaphores))
         {}
 
@@ -53,7 +55,7 @@ namespace VulkanHelper
         uint32_t m_CurrentImageIndex = 0;
 
         VulkanHelper::Vector<Fence> m_FrameFences;
-        VulkanHelper::Vector<VkSemaphore> m_AcquireSemapores;
-        VulkanHelper::Vector<VkSemaphore> m_SubmitSemaphores;
+        VulkanHelper::Vector<Semaphore> m_AcquireSemaphores;
+        VulkanHelper::Vector<Semaphore> m_SubmitSemaphores;
     };
 }

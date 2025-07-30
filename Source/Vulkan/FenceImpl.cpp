@@ -9,6 +9,8 @@ namespace VulkanHelper
 {
     Expected<UniquePtr<Fence::Impl>, VHResult> Fence::Impl::New(const Config& config)
     {
+        VH_LOG_INFO("Creating Vulkan Fence Implementation");
+
         if (config.Device == nullptr)
         {
             VH_LOG_ERROR("Invalid Fence configuration: Device is null.");
@@ -56,6 +58,7 @@ namespace VulkanHelper
     {
         if (m_Fence != nullptr)
         {
+            VH_LOG_INFO("Destroying Vulkan Fence Implementation");
             vkDestroyFence(m_Device->GetDevice(), m_Fence , nullptr);
             m_Fence = nullptr;
             m_Device = nullptr;
@@ -108,6 +111,12 @@ namespace VulkanHelper
     Fence::~Fence()
     {
 
+    }
+
+    Fence::Fence(VulkanHelper::UniquePtr<Impl>&& impl)
+        : m_Impl(VulkanHelper::Move(impl))
+    {
+        
     }
 
     void Fence::Wait()

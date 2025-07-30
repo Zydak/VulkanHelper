@@ -3,6 +3,7 @@
 #include "Core/UniquePtr.h"
 #include "Core/Error.h"
 #include "Core/Expected.h"
+#include "Core/Macros.h"
 
 #include "Vulkan/CommandBuffer.h"
 
@@ -104,10 +105,10 @@ namespace VulkanHelper
         * @brief Private constructor used by the factory function.
         * @param impl Implementation pointer.
         */
-        CommandPool(VulkanHelper::UniquePtr<Impl>&& impl)
-            : m_Impl(VulkanHelper::Move(impl))
-        {}
+        CommandPool(VulkanHelper::UniquePtr<Impl>&& impl);
 
-        friend class CommandBuffer; // Allow CommandBuffer::Impl to access implementation directly
+        #undef COMMAND_POOL_CLASS
+        DECLARE_FRIENDS();
+        #define COMMAND_POOL_CLASS CommandPool
     };
 }

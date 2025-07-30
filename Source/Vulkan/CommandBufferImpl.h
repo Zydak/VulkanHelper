@@ -1,5 +1,7 @@
 #pragma once
 #include "Vulkan/CommandPool.h"
+#include "Vulkan/Semaphore.h"
+#include "Vulkan/Fence.h"
 
 typedef struct VkCommandBuffer_T* VkCommandBuffer;
 
@@ -16,12 +18,19 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodisacrd]] VHResult Begin();
+        [[nodiscard]] VHResult Begin(UsageFlags usageFlags);
         [[nodiscard]] VHResult End();
+
+        [[nodiscard]] VHResult SubmitAndWait();
+        [[nodiscard]] VHResult Submit(WaitStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence);
+
+        [[nodiscard]] inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffer; }
     private:
         Impl(VulkanHelper::CommandPool::Impl* pool, VkCommandBuffer commandBuffer)
             : m_CommandPool(pool), m_CommandBuffer(commandBuffer)
-        {}
+        {
+
+        }
 
         VulkanHelper::CommandPool::Impl* m_CommandPool;
         VkCommandBuffer m_CommandBuffer;

@@ -14,6 +14,8 @@ namespace VulkanHelper
 {
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(const Config& config)
     {
+        VH_LOG_INFO("Creating Vulkan Device Implementation");
+
         VulkanHelper::Vector<const char*> extensions;
         if (config.Window != nullptr)
         {
@@ -78,7 +80,6 @@ namespace VulkanHelper
             VH_LOG_ERROR("Failed to create Vulkan device");
             return VulkanHelper::Unexpected(VHResult(res));
         }
-        VH_LOG_INFO("Vulkan Device Implementation created successfully");
 
         return UniquePtr<Impl>(new Impl(config.PhysicalDevice, device, VulkanHelper::Move(indices)));
     }
@@ -166,8 +167,6 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        VH_LOG_INFO("Creating Vulkan Device");
-
         return Device{ VulkanHelper::Move(implResult.Value()) };
     }
 
@@ -189,7 +188,13 @@ namespace VulkanHelper
 
     Device::~Device()
     {
-        VH_LOG_INFO("Destroying Vulkan Device");
+
+    }
+
+    Device::Device(VulkanHelper::UniquePtr<Impl>&& impl)
+        : m_Impl(VulkanHelper::Move(impl))
+    {
+        
     }
 
     const PhysicalDevice& Device::GetPhysicalDevice() const

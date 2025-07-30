@@ -38,7 +38,7 @@ namespace VulkanHelper
 {
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Instance::Impl>, VHResult> Instance::Impl::New(const Instance::Config& config)
     {
-        VH_LOG_INFO("Creating Vulkan Instance");
+        VH_LOG_INFO("Creating Vulkan Instance Implementation");
 
         static bool GLFWInitialized = false;
         if (GLFWInitialized == false && config.AddGLFWExtensions)
@@ -157,7 +157,7 @@ namespace VulkanHelper
     {
         if (m_Instance != nullptr)
         {
-            VH_LOG_INFO("Destroying Vulkan Instance");
+            VH_LOG_INFO("Destroying Vulkan Instance Implementation");
             if (m_DebugMessenger != nullptr)
             {
                 Impl::DestroyDebugUtilsMessengerEXT(m_Instance, &m_DebugMessenger);
@@ -253,7 +253,13 @@ namespace VulkanHelper
 
     Instance::~Instance()
     {
-        VH_LOG_INFO("Destroying Vulkan Instance");
+
+    }
+
+    Instance::Instance(VulkanHelper::UniquePtr<Impl>&& impl)
+        : m_Impl(VulkanHelper::Move(impl))
+    {
+        
     }
 
     VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const

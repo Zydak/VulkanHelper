@@ -1,3 +1,5 @@
+#include "Core/Error.h"
+#include "Vulkan/CommandBuffer.h"
 #include "Vulkan/Swapchain.h"
 #include "Window/Window.h"
 #include "Vulkan/Instance.h"
@@ -48,15 +50,24 @@ int main()
     VulkanHelper::Swapchain swapchain = VulkanHelper::Swapchain::New({
         .Device = &device,
         .Window = &window,
-        .MaxFramesInFlight = 2
+        .MaxFramesInFlight = 1
     }).Value();
 
     VulkanHelper::CommandPool pool = VulkanHelper::CommandPool::New({.Device = &device, .QueueFamilyIndex = device.GetQueueFamilyIndices().GraphicsFamily}).Value();
     VulkanHelper::CommandBuffer buffer = pool.AllocateCommandBuffer({}).Value();
-
+    
     while (!window.WantsToClose())
     {
         VulkanHelper::Window::PollEvents();
+        (void)swapchain.AcquireNextImage();
+
+        VH_ASSERT(buffer.Begin(VulkanHelper::CommandBuffer::UsageFlags::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Couldn't start recording");
+
+        // Record
+
+        VH_ASSERT(buffer.End() == VulkanHelper::VHResult::OK, "Couldn't end recording");
+
+        (void)swapchain.Submit(buffer);
     }
 
     return 0;

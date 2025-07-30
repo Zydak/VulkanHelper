@@ -1,8 +1,8 @@
 function(suppress_warnings target)
     if (MSVC)
-        target_compile_options(${target} INTERFACE /w)
+        target_compile_options(${target} PRIVATE /w)
     else()
-        target_compile_options(${target} INTERFACE -w)
+        target_compile_options(${target} PRIVATE -w)
     endif()
 endfunction()
 
