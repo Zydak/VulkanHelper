@@ -25,6 +25,9 @@ namespace VulkanHelper
         [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);
         [[nodiscard]] Image* GetCurrentSwapchainImage();
 
+        [[nodiscard]] inline uint32_t GetCurrentFrameIndex() const { return m_CurrentFrameIndex; }
+        [[nodiscard]] inline uint32_t GetFramesInFlight() const { return m_FramesInFlight; }
+
     private:
 
         Impl(
@@ -41,7 +44,7 @@ namespace VulkanHelper
         )
             : m_Device(device),
               m_Swapchain(swapchain),
-              m_MaxFramesInFlight(maxFramesInFlight),
+              m_FramesInFlight(maxFramesInFlight),
               m_CurrentFrameIndex(currentFrameIndex),
               m_ImageCount(imageCount),
               m_CurrentImageIndex(currentImageIndex),
@@ -54,7 +57,7 @@ namespace VulkanHelper
         VulkanHelper::Device::Impl* m_Device;
         VkSwapchainKHR m_Swapchain;
 
-        uint32_t m_MaxFramesInFlight;
+        uint32_t m_FramesInFlight;
         uint32_t m_CurrentFrameIndex;
         uint32_t m_ImageCount;
         uint32_t m_CurrentImageIndex;

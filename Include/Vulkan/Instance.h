@@ -49,10 +49,10 @@ namespace VulkanHelper
          * This function enumerates all available Vulkan physical devices and checks if they support the required extensions.
          * Only devices that meet the requirements are returned in the result vector.
          *
-         * @param extensions A vector of required Vulkan extension names.
+         * @param deviceExtensions A vector of required Vulkan Device Extension names.
          * @return VulkanHelper::Vector<PhysicalDevice> A vector of suitable PhysicalDevice objects.
          */
-        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const;
+        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
 
         /**
          * @brief Retrieves the underlying Vulkan VkInstance handle.

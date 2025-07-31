@@ -1,4 +1,4 @@
-#include "Vulkan/Enums.h"
+#include "Core/Enums.h"
 #include "Vulkan/Swapchain.h"
 #include "SwapchainImpl.h"
 
@@ -231,7 +231,7 @@ namespace VulkanHelper
     Swapchain::Impl::Impl(Impl&& other) noexcept
         : m_Device(other.m_Device),
           m_Swapchain(other.m_Swapchain),
-          m_MaxFramesInFlight(other.m_MaxFramesInFlight),
+          m_FramesInFlight(other.m_FramesInFlight),
           m_CurrentFrameIndex(other.m_CurrentFrameIndex),
           m_ImageCount(other.m_ImageCount),
           m_CurrentImageIndex(other.m_CurrentImageIndex),
@@ -252,7 +252,7 @@ namespace VulkanHelper
 
         m_Device = other.m_Device;
         m_Swapchain = other.m_Swapchain;
-        m_MaxFramesInFlight = other.m_MaxFramesInFlight;
+        m_FramesInFlight = other.m_FramesInFlight;
         m_CurrentFrameIndex = other.m_CurrentFrameIndex;
         m_ImageCount = other.m_ImageCount;
         m_CurrentImageIndex = other.m_CurrentImageIndex;
@@ -306,7 +306,7 @@ namespace VulkanHelper
             return res;
         }
 
-        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
+        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_FramesInFlight;
 
         return VHResult::OK;
     }
@@ -371,5 +371,15 @@ namespace VulkanHelper
     Image* Swapchain::GetCurrentSwapchainImage() const
     {
         return m_Impl->GetCurrentSwapchainImage();
+    }
+
+    uint32_t Swapchain::GetCurrentFrameIndex() const
+    {
+        return m_Impl->GetCurrentFrameIndex();
+    }
+
+    uint32_t Swapchain::GetFramesInFlightCount() const
+    {
+        return m_Impl->GetFramesInFlight();
     }
 }

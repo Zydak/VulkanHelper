@@ -86,6 +86,8 @@ namespace VulkanHelper
         [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);
 
         [[nodiscard]] Image* GetCurrentSwapchainImage() const;
+        [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
+        [[nodiscard]] uint32_t GetFramesInFlightCount() const;
 
     private:
         class Impl;

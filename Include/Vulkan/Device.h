@@ -34,13 +34,13 @@ namespace VulkanHelper
              * This must be a valid and suitable physical device selected by the application.
              */
             VulkanHelper::PhysicalDevice PhysicalDevice;
+
             /**
-             * @brief Optional pointer to a Window for presentation support.
+             * @brief Vector containing pointers to windows
              *
-             * If non-null, the device will be created with presentation capabilities for the given window's surface.
-             * If null, presentation support is not requested.
+             * If vector is not empty, it queries support for presenting queue that supports all listed windows.
              */
-            const VulkanHelper::Window* Window = nullptr;
+            VulkanHelper::Vector<VulkanHelper::Window*> Windows;
         };
 
         struct QueueFamilyIndices

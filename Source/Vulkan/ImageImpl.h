@@ -1,5 +1,5 @@
 #pragma once
-#include "Vulkan/Enums.h"
+#include "Core/Enums.h"
 #include "Vulkan/Image.h"
 #include "Vulkan/Swapchain.h"
 

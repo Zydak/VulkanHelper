@@ -170,7 +170,7 @@ namespace VulkanHelper
         }
     }
 
-    VulkanHelper::Vector<PhysicalDevice> Instance::Impl::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const
+    VulkanHelper::Vector<PhysicalDevice> Instance::Impl::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
@@ -189,7 +189,7 @@ namespace VulkanHelper
         for (size_t i = 0; i < devices.Size(); i++)
         {
             auto physicalDeviceImpl = PhysicalDevice::Impl::New({m_Instance, devices[i]});
-            if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value()->IsSuitable(extensions))
+            if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value()->IsSuitable(deviceExtensions))
             {
                 PhysicalDevice physicalDevice(VulkanHelper::Move(physicalDeviceImpl.Value()));
                 suitableDevices.EmplaceBack(VulkanHelper::Move(physicalDevice));
@@ -263,9 +263,9 @@ namespace VulkanHelper
         
     }
 
-    VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const
+    VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const
     {
-        return m_Impl->GetSuitablePhysicalDevices(extensions);
+        return m_Impl->GetSuitablePhysicalDevices(deviceExtensions);
     }
 
     VkInstance Instance::GetInstance() const

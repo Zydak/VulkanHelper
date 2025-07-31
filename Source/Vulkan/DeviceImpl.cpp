@@ -1,3 +1,4 @@
+#include "Core/Error.h"
 #include "Vulkan/Device.h"
 #include "DeviceImpl.h"
 
@@ -18,19 +19,25 @@ namespace VulkanHelper
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
         VulkanHelper::Vector<const char*> extensions;
-        if (config.Window != nullptr)
+        if (!config.Windows.Empty())
         {
             extensions.EmplaceBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         }
 
         if (!config.PhysicalDevice.IsSuitable(extensions))
         {
-            VH_LOG_ERROR("Physical device is not suitable for the required extensions! Pick a different device.");
+            VH_LOG_ERROR("Physical device is not suitable for the required device extensions! Pick a different device.");
             return VulkanHelper::Unexpected(VHResult::EXTENSION_NOT_PRESENT);
         }
         
         // Create Queue Families
-        QueueFamilyIndices indices = FindQueueFamilies(config.PhysicalDevice, config.Window);
+        QueueFamilyIndices indices = FindQueueFamilies(config.PhysicalDevice, config.Windows);
+        if (!config.Windows.Empty() && indices.PresentFamily == UINT32_MAX)
+        {
+            VH_LOG_ERROR("Presentation requested but not supported!");
+            return Unexpected(VHResult::INITIALIZATION_FAILED);
+        }
+
         VulkanHelper::Vector<uint32_t> queueFamilyIndices;
 
         // Upload only unique queue families, sometimes the same family can be used for multiple operations 
@@ -119,7 +126,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    Device::QueueFamilyIndices Device::Impl::FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window)
+    Device::QueueFamilyIndices Device::Impl::FindQueueFamilies(const PhysicalDevice& physicalDevice, const VulkanHelper::Vector<Window*>& windows)
     {
         QueueFamilyIndices indices;
 
@@ -143,11 +150,18 @@ namespace VulkanHelper
             if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT && !(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
                 indices.ComputeFamily = i;
 
-            // if window provided check for presentation support
-            if (window != nullptr)
+            if (!windows.Empty())
             {
                 VkBool32 presentSupport = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.m_Impl->GetDevice(), i, window->GetSurface(), &presentSupport);
+                for (size_t j = 0; j < windows.Size(); j++)
+                {
+                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.m_Impl->GetDevice(), i, windows[j]->GetSurface(), &presentSupport);
+                    
+                    // If even one listed window's surface isn't supported, break the loop and mark presentation support as false
+                    if (presentSupport == false)
+                        break;
+                }
+
                 if (presentSupport)
                     indices.PresentFamily = i;
             }

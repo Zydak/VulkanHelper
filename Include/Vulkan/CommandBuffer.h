@@ -4,7 +4,7 @@
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/Macros.h"
-#include "Vulkan/Enums.h"
+#include "Core/Enums.h"
 
 namespace VulkanHelper
 {

@@ -36,7 +36,7 @@ namespace VulkanHelper
          * Allocates memory for the specified number of elements and default-constructs them.
          * @param initialSize The initial number of elements in the vector.
          */
-        Vector(size_t initialSize)
+        explicit Vector(size_t initialSize)
             : m_Data(nullptr), m_Size(0), m_Capacity(0)
         {
             if (initialSize > 0)
@@ -52,7 +52,7 @@ namespace VulkanHelper
          * @param initialSize The initial number of elements in the vector.
          * @param value The value to copy-construct each element with.
          */
-        Vector(size_t initialSize, const T& value)
+        explicit Vector(size_t initialSize, const T& value)
             : m_Data(nullptr), m_Size(0), m_Capacity(0)
         {
             if (initialSize > 0)
@@ -77,7 +77,7 @@ namespace VulkanHelper
          * @brief Copy constructor. Creates a deep copy of another vector.
          * @param other The vector to copy from.
          */
-        Vector(const Vector& other)
+        explicit Vector(const Vector& other)
             : m_Data(nullptr), m_Size(other.m_Size), m_Capacity(other.m_Capacity)
         {
             if (other.m_Size > 0)
@@ -219,18 +219,18 @@ namespace VulkanHelper
         }
 
         /**
-         * @brief Moves the given value to the end of the vector.
+         * @brief Appends the given value to the end of the vector.
          *
          * If the current size equals the capacity, the capacity is doubled.
          *
-         * @param value The value to append (moved).
+         * @param value The value to append.
          */
         void PushBack(T&& value)
         {
             if (m_Size >= m_Capacity)
                 ChangeCapacity(m_Capacity * GrowFactor);
 
-            ConstructAt(m_Size, VulkanHelper::Move(value));
+            ConstructAt(m_Size, std::move(value));
             m_Size++;
         }
 
@@ -247,7 +247,7 @@ namespace VulkanHelper
         {
             if (m_Size >= m_Capacity)
                 ChangeCapacity(m_Capacity * GrowFactor);
-            ConstructAt(m_Size, args...);
+            ConstructAt(m_Size, std::forward<Args>(args)...);
             m_Size++;
         }
 
@@ -381,7 +381,7 @@ namespace VulkanHelper
         template<typename ... Args>
         void ConstructAt(size_t index, Args&&... args)
         {
-            new ((T*)m_Data + index) T(std::forward<Args>(args)...); // Placement new to construct T in the allocated memory
+            new ((T*)m_Data + index) T(std::move(args)...); // Placement new to construct T in the allocated memory
         }
 
         void* m_Data;      ///< Pointer to the allocated memory buffer.

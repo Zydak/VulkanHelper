@@ -3,7 +3,7 @@
 #include "Core/Macros.h"
 #include "Core/UniquePtr.h"
 #include "Core/Error.h"
-#include "Vulkan/Enums.h"
+#include "Core/Enums.h"
 
 namespace VulkanHelper
 {

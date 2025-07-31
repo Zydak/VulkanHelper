@@ -5,6 +5,7 @@
 #include "Log/Log.h"
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace VulkanHelper
 {
@@ -92,19 +93,19 @@ namespace VulkanHelper
         return *this;
     }
 
-    bool PhysicalDevice::Impl::IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const
+    bool PhysicalDevice::Impl::IsSuitable(const VulkanHelper::Vector<const char*>& deviceExtensions) const
     {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(m_Device, nullptr, &extensionCount, nullptr); // Get count of all available extensions
         VulkanHelper::Vector<VkExtensionProperties> availableExtensions(extensionCount);
         vkEnumerateDeviceExtensionProperties(m_Device, nullptr, &extensionCount, availableExtensions.Data()); // Get all available extensions
 
-        for (size_t i = 0; i < extensions.Size(); i++)
+        for (size_t i = 0; i < deviceExtensions.Size(); i++)
         {
             bool found = false;
             for (size_t j = 0; j < availableExtensions.Size(); j++)
             {
-                if (strcmp(extensions[i], availableExtensions[j].extensionName) == 0)
+                if (strcmp(deviceExtensions[i], availableExtensions[j].extensionName) == 0)
                 {
                     found = true;
                     break;
@@ -112,7 +113,7 @@ namespace VulkanHelper
             }
             if (!found)
             {
-                VH_LOG_WARN("Physical device {} does not support extension: {}", m_Name, extensions[i]);
+                VH_LOG_WARN("Physical device {} does not support extension: {}", m_Name, deviceExtensions[i]);
                 return false;
             }
         }

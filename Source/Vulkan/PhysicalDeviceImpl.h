@@ -26,7 +26,7 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const;
+        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
         [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }
         [[nodiscard]] inline Vendor GetVendor() const { return m_Vendor; }
         [[nodiscard]] inline const std::string& GetName() const { return m_Name; }

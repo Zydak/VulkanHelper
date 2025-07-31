@@ -29,6 +29,6 @@ namespace VulkanHelper
         VkDevice m_Device = nullptr;
         QueueFamilyIndices m_QueueFamilyIndices = {};
         
-        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, const Window* window);
+        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, const VulkanHelper::Vector<Window*>& windows);
     };
 }

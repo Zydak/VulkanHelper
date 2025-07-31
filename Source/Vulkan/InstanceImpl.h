@@ -20,7 +20,7 @@ namespace VulkanHelper
 
         ~Impl();
 
-        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& extensions) const;
+        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
 
         [[nodiscard]] inline VkInstance GetInstance() const { return m_Instance; }
     private:
