@@ -3,7 +3,6 @@
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/UniquePtr.h"
-#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
@@ -40,14 +39,11 @@ namespace VulkanHelper
 
         ~Semaphore();
 
-    private:
         class Impl;
-        UniquePtr<Impl> m_Impl;
+    private:
+        friend class Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Semaphore(UniquePtr<Impl>&& impl);
-
-        #undef SEMAPHORE_CLASS
-        DECLARE_FRIENDS();
-        #define SEMAPHORE_CLASS Semaphore
     };
 }

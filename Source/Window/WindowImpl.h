@@ -21,6 +21,8 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
+        [[nodiscard]] inline static Impl* GetImplementation(Window* publicInterface) { return publicInterface->m_Impl.Get(); }
+
         static void PollEvents();
         [[nodiscard]] bool WantsToClose() const;
         void Close();

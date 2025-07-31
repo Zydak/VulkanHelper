@@ -3,7 +3,6 @@
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
 #include "Core/Expected.h"
-#include "Core/Macros.h"
 
 struct GLFWwindow;
 typedef struct VkSurfaceKHR_T* VkSurfaceKHR;
@@ -161,15 +160,11 @@ namespace VulkanHelper
          */
         [[nodiscard]] VkSurfaceKHR GetSurface() const;
 
-        private:
-
         class Impl;
+    private:
+        friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Window(VulkanHelper::UniquePtr<Impl>&& impl);
-
-        #undef WINDOW_CLASS
-        DECLARE_FRIENDS();
-        #define WINDOW_CLASS Window
     };
 } // namespace VulkanHelper

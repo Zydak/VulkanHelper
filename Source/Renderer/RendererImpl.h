@@ -10,11 +10,6 @@ namespace VulkanHelper
     class Renderer::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Config& config);
-        
-        [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
-        [[nodiscard]] VHResult EndFrame();
-
         ~Impl();
 
         Impl(const Impl& other) = delete;
@@ -22,6 +17,14 @@ namespace VulkanHelper
 
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
+
+        [[nodiscard]] inline static Impl* GetImplementation(const Renderer* publicInterface) { return publicInterface->m_Impl.Get(); }
+
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Config& config);
+        
+        [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
+        [[nodiscard]] VHResult EndFrame();
+
 
     private:
         Device* m_Device;

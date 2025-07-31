@@ -19,6 +19,8 @@ namespace VulkanHelper
 
         ~Impl();
 
+        [[nodiscard]] inline static Impl* GetImplementation(const Semaphore* publicInterface) { return publicInterface->m_Impl.Get(); }
+
         [[nodiscard]] inline VkSemaphore GetSemaphore() const { return m_Semaphore; } 
     private:
         Impl(Device::Impl* device, VkSemaphore semaphore)

@@ -3,7 +3,6 @@
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/UniquePtr.h"
-#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
@@ -89,14 +88,11 @@ namespace VulkanHelper
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
         [[nodiscard]] uint32_t GetFramesInFlightCount() const;
 
-    private:
         class Impl;
+    private:
+        friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Swapchain(VulkanHelper::UniquePtr<Impl>&& impl);
-
-        #undef SWAPCHAIN_CLASS
-        DECLARE_FRIENDS();
-        #define SWAPCHAIN_CLASS Swapchain
     };
 }

@@ -15,20 +15,22 @@ namespace VulkanHelper
             VH_LOG_ERROR("Invalid Fence configuration: Device is null.");
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
+        
+        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
 
         VkFenceCreateInfo fenceInfo{};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
         VkFence fence;
-        VkResult res = vkCreateFence(config.Device->m_Impl->GetDevice(), &fenceInfo, nullptr, &fence);
+        VkResult res = vkCreateFence(deviceImpl->GetDevice(), &fenceInfo, nullptr, &fence);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create fence for swapchain implementation");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return UniquePtr(new Impl(config.Device->m_Impl.Get(), fence));
+        return UniquePtr(new Impl(deviceImpl, fence));
     }
 
     Fence::Impl::Impl(Impl&& other) noexcept

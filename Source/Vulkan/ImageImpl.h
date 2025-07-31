@@ -20,6 +20,8 @@ namespace VulkanHelper
 
         ~Impl();
 
+        [[nodiscard]] inline static Impl* GetImplementation(const Image* publicInterface) { return publicInterface->m_Impl.Get(); }
+
         void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount);
     private:
 

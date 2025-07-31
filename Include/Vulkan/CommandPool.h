@@ -97,8 +97,9 @@ namespace VulkanHelper
         */
         [[nodiscard]] VulkanHelper::Expected<CommandBuffer, VHResult> AllocateCommandBuffer(const CommandBuffer::Config& config) const;
 
-    private:
         class Impl;
+    private:
+        friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         /**
@@ -106,10 +107,6 @@ namespace VulkanHelper
         * @param impl Implementation pointer.
         */
         CommandPool(VulkanHelper::UniquePtr<Impl>&& impl);
-
-        #undef COMMAND_POOL_CLASS
-        DECLARE_FRIENDS();
-        #define COMMAND_POOL_CLASS CommandPool
     };
 
     DEFINE_BITWISE_OPERATORS(CommandPool::Flags)

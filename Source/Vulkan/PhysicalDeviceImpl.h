@@ -26,6 +26,8 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
+        [[nodiscard]] inline static Impl* GetImplementation(const PhysicalDevice* publicInterface) { return publicInterface->m_Impl.Get(); }
+
         [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
         [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }
         [[nodiscard]] inline Vendor GetVendor() const { return m_Vendor; }

@@ -19,6 +19,8 @@ namespace VulkanHelper
 
         ~Impl();
 
+        [[nodiscard]] inline static Impl* GetImplementation(const Fence* publicInterface) { return publicInterface->m_Impl.Get(); }
+
         void Wait();
         void Reset();
 

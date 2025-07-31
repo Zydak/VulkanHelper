@@ -133,7 +133,9 @@ namespace VulkanHelper
         VkPipelineStageFlags srcStageMask = srcStage;
         VkPipelineStageFlags dstStageMask = dstStage;
 
-        vkCmdPipelineBarrier(commandBuffer.m_Impl->GetCommandBuffer(), srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        CommandBuffer::Impl* cmdBufImpl = CommandBuffer::Impl::GetImplementation(&commandBuffer);
+
+        vkCmdPipelineBarrier(cmdBufImpl->GetCommandBuffer(), srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
         m_Layout = newLayout;
     }

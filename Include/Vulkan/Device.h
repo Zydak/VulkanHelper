@@ -4,7 +4,6 @@
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
 #include "Vulkan/PhysicalDevice.h"
-#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
@@ -85,14 +84,11 @@ namespace VulkanHelper
          */
         void WaitUntilIdle() const;
 
-    private:
         class Impl;
+    private:
+        friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Device(VulkanHelper::UniquePtr<Impl>&& impl);
-        
-        #undef DEVICE_CLASS
-        DECLARE_FRIENDS();
-        #define DEVICE_CLASS Device
     };
 }

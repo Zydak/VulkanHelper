@@ -3,7 +3,6 @@
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
 #include "Core/Expected.h"
-#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
@@ -81,18 +80,15 @@ namespace VulkanHelper
         */
         void Reset();
         
-    private:
         class Impl;
-        UniquePtr<Impl> m_Impl;
+    private:
+        friend class Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
         
         /**
         * @brief Private constructor used by the factory function.
         * @param impl Implementation pointer.
         */
         Fence(UniquePtr<Impl>&& impl);
-
-        #undef FENCE_CLASS
-        DECLARE_FRIENDS();
-        #define FENCE_CLASS Fence
     };
 }

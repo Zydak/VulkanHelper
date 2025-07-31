@@ -81,8 +81,9 @@ namespace VulkanHelper
         createInfo.ppEnabledLayerNames = nullptr;
         #endif
 
+        PhysicalDevice::Impl* physicalDeviceImpl = PhysicalDevice::Impl::GetImplementation(&config.PhysicalDevice);
         VkDevice device;
-        VkResult res = vkCreateDevice(config.PhysicalDevice.m_Impl->GetDevice(), &createInfo, nullptr, &device);
+        VkResult res = vkCreateDevice(physicalDeviceImpl->GetDevice(), &createInfo, nullptr, &device);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create Vulkan device");
@@ -130,8 +131,10 @@ namespace VulkanHelper
     {
         QueueFamilyIndices indices;
 
+        PhysicalDevice::Impl* physicalDeviceImpl = PhysicalDevice::Impl::GetImplementation(&physicalDevice);
+
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.m_Impl->GetDevice(), &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDeviceImpl->GetDevice(), &queueFamilyCount, nullptr);
         if (queueFamilyCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any queue families!");
@@ -139,7 +142,7 @@ namespace VulkanHelper
         }
 
         VulkanHelper::Vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.m_Impl->GetDevice(), &queueFamilyCount, queueFamilies.Data());
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDeviceImpl->GetDevice(), &queueFamilyCount, queueFamilies.Data());
 
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {
@@ -155,7 +158,7 @@ namespace VulkanHelper
                 VkBool32 presentSupport = false;
                 for (size_t j = 0; j < windows.Size(); j++)
                 {
-                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.m_Impl->GetDevice(), i, windows[j]->GetSurface(), &presentSupport);
+                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDeviceImpl->GetDevice(), i, windows[j]->GetSurface(), &presentSupport);
                     
                     // If even one listed window's surface isn't supported, break the loop and mark presentation support as false
                     if (presentSupport == false)

@@ -96,15 +96,14 @@ namespace VulkanHelper
 
         void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount);
 
-    private:
         class Impl;
-        UniquePtr<Impl> m_Impl;
+    private:
+        friend class Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Image(UniquePtr<Impl> && impl);
 
-        #undef IMAGE_CLASS
-        DECLARE_FRIENDS();
-        #define IMAGE_CLASS Image
+        friend class Swapchain; // Allow Swapchain to construct Image instances
     };
 
     DEFINE_BITWISE_OPERATORS(Image::Usage)

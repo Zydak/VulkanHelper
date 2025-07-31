@@ -80,8 +80,9 @@ namespace VulkanHelper
         VkPipelineStageFlags waitStageVk = VK_PIPELINE_STAGE_NONE;
         if (waitSemaphore != nullptr)
         {
+            Semaphore::Impl* waitSemaphoreImpl = Semaphore::Impl::GetImplementation(waitSemaphore);
             submitInfo.waitSemaphoreCount = 1;
-            VkSemaphore waitSemaphoreVk = waitSemaphore->m_Impl->GetSemaphore();
+            VkSemaphore waitSemaphoreVk = waitSemaphoreImpl->GetSemaphore();
             submitInfo.pWaitSemaphores = &waitSemaphoreVk;
 
             waitStageVk = (VkPipelineStageFlags)waitStage;
@@ -90,14 +91,16 @@ namespace VulkanHelper
 
         if (signalSemaphore != nullptr)
         {
+            Semaphore::Impl* signalSemaphoreImpl = Semaphore::Impl::GetImplementation(signalSemaphore);
             submitInfo.signalSemaphoreCount = 1;
-            VkSemaphore signalSemaphoreVk = signalSemaphore->m_Impl->GetSemaphore();
+            VkSemaphore signalSemaphoreVk = signalSemaphoreImpl->GetSemaphore();
             submitInfo.pSignalSemaphores = &signalSemaphoreVk;
         }
 
         VkFence fenceVk = VK_NULL_HANDLE;
         {
-            fenceVk = fence->m_Impl->GetFenceHandle();
+            Fence::Impl* fenceImpl = Fence::Impl::GetImplementation(fence);
+            fenceVk = fenceImpl->GetFenceHandle();
         }
 
         VkQueue queue = m_CommandPool->m_Queue;

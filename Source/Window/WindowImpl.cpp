@@ -31,7 +31,8 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
-        return VulkanHelper::UniquePtr(new Impl(config.Instance->m_Impl.Get(), window, surface, VulkanHelper::Move(name), config.Width, config.Height));
+        Instance::Impl* instanceImpl = Instance::Impl::GetImplementation(config.Instance);
+        return VulkanHelper::UniquePtr(new Impl(instanceImpl, window, surface, VulkanHelper::Move(name), config.Width, config.Height));
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
@@ -96,20 +97,21 @@ namespace VulkanHelper
 
     bool Window::Impl::IsPhysicalDeviceCompatible(const PhysicalDevice& device) const
     {
+        PhysicalDevice::Impl* physicalDeviceImpl = PhysicalDevice::Impl::GetImplementation(&device);
         // Check queue family support for presentation
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device.m_Impl->GetDevice(), &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDeviceImpl->GetDevice(), &queueFamilyCount, nullptr);
         if (queueFamilyCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any queue families!");
             return false;
         }
         VulkanHelper::Vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device.m_Impl->GetDevice(), &queueFamilyCount, queueFamilies.Data());
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDeviceImpl->GetDevice(), &queueFamilyCount, queueFamilies.Data());
         bool supportsPresentation = false;
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {
-            if (glfwGetPhysicalDevicePresentationSupport(m_Instance->GetInstance(), device.m_Impl->GetDevice(), i) == GLFW_TRUE)
+            if (glfwGetPhysicalDevicePresentationSupport(m_Instance->GetInstance(), physicalDeviceImpl->GetDevice(), i) == GLFW_TRUE)
             {
                 supportsPresentation = true; // At least one queue family supports presentation
                 break;
@@ -122,10 +124,10 @@ namespace VulkanHelper
         }
 
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.m_Impl->GetDevice(), m_Surface, &surfaceCapabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDeviceImpl->GetDevice(), m_Surface, &surfaceCapabilities);
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device.m_Impl->GetDevice(), m_Surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDeviceImpl->GetDevice(), m_Surface, &formatCount, nullptr);
         if (formatCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any surface formats!");
@@ -133,7 +135,7 @@ namespace VulkanHelper
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device.m_Impl->GetDevice(), m_Surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDeviceImpl->GetDevice(), m_Surface, &presentModeCount, nullptr);
         if (presentModeCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any present modes!");

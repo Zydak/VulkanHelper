@@ -6,6 +6,8 @@
 #include "Vulkan/Device.h"
 #include "Vulkan/CommandBuffer.h"
 
+#include "DeviceImpl.h"
+
 typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
 
 namespace VulkanHelper
@@ -20,6 +22,8 @@ namespace VulkanHelper
         Impl& operator=(const Impl& other) = delete;
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
+
+        [[nodiscard]] inline static Impl* GetImplementation(const Swapchain* publicInterface) { return publicInterface->m_Impl.Get(); }
 
         [[nodiscard]] VHResult AcquireNextImage();
         [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);

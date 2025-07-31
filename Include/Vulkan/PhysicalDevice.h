@@ -2,7 +2,6 @@
 
 #include "Core/Vector.h"
 #include "Core/UniquePtr.h"
-#include "Core/Macros.h"
 
 namespace VulkanHelper
 {
@@ -65,14 +64,13 @@ namespace VulkanHelper
          */
         [[nodiscard]] bool IsDiscrete() const;
 
-    private:
         class Impl;
+    private:
+        friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         PhysicalDevice(VulkanHelper::UniquePtr<Impl>&& impl);
 
-        #undef PHYSICAL_DEVICE_CLASS
-        DECLARE_FRIENDS();
-        #define PHYSICAL_DEVICE_CLASS PhysicalDevice
+        friend class Instance; // Allow Instance to construct PhysicalDevice
     };
 }

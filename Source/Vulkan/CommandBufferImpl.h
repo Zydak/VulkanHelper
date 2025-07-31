@@ -18,6 +18,8 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
+        [[nodiscard]] inline static Impl* GetImplementation(const CommandBuffer* publicInterface) { return publicInterface->m_Impl.Get(); }
+
         [[nodiscard]] VHResult Begin(Usage usageFlags);
         [[nodiscard]] VHResult End();
 

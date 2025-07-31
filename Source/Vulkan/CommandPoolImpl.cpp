@@ -20,6 +20,8 @@ namespace VulkanHelper
             VH_LOG_ERROR("Invalid CommandPool configuration: Device is null.");
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
+        
+        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
 
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -27,7 +29,7 @@ namespace VulkanHelper
         poolInfo.flags = VkCommandPoolCreateFlags(config.Flags);
 
         VkCommandPool commandPool;
-        VkResult res = vkCreateCommandPool(config.Device->m_Impl->GetDevice(), &poolInfo, nullptr, &commandPool);
+        VkResult res = vkCreateCommandPool(deviceImpl->GetDevice(), &poolInfo, nullptr, &commandPool);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create command pool implementation");
@@ -35,15 +37,15 @@ namespace VulkanHelper
         }
 
         VkQueue queue;
-        vkGetDeviceQueue(config.Device->m_Impl->GetDevice(), config.QueueFamilyIndex, 0, &queue);
+        vkGetDeviceQueue(deviceImpl->GetDevice(), config.QueueFamilyIndex, 0, &queue);
         if (queue == VK_NULL_HANDLE)
         {
             VH_LOG_ERROR("Failed to get queue for command pool implementation, is the queue index correct? Queue index: {}", config.QueueFamilyIndex);
-            vkDestroyCommandPool(config.Device->m_Impl->GetDevice(), commandPool, nullptr);
+            vkDestroyCommandPool(deviceImpl->GetDevice(), commandPool, nullptr);
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return VulkanHelper::UniquePtr<Impl>(new Impl(config.Device->m_Impl.Get(), commandPool, queue, config.Flags, config.QueueFamilyIndex));
+        return VulkanHelper::UniquePtr<Impl>(new Impl(deviceImpl, commandPool, queue, config.Flags, config.QueueFamilyIndex));
     }
 
     CommandPool::Impl::~Impl()

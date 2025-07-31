@@ -34,8 +34,9 @@ namespace VulkanHelper
         [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
         [[nodiscard]] VHResult EndFrame();
 
-    private:
         class Impl;
+    private:
+        friend Impl;
         UniquePtr<Impl> m_Impl;
 
         Renderer(UniquePtr<Impl>&& impl);

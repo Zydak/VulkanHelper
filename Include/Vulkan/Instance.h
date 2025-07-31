@@ -4,7 +4,6 @@
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
 #include "Core/Vector.h"
-#include "Core/Macros.h"
 
 typedef struct VkInstance_T* VkInstance;
 
@@ -63,14 +62,11 @@ namespace VulkanHelper
 
         ~Instance();
 
-    private:
         class Impl;
+    private:
+        friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
         Instance(VulkanHelper::UniquePtr<Impl>&& impl);
-
-        #undef INSTANCE_CLASS
-        DECLARE_FRIENDS();
-        #define INSTANCE_CLASS Instance
     };
 }

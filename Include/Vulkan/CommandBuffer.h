@@ -2,7 +2,6 @@
 
 #include "Core/UniquePtr.h"
 #include "Core/Error.h"
-#include "Core/Expected.h"
 #include "Core/Macros.h"
 #include "Core/Enums.h"
 
@@ -105,10 +104,10 @@ namespace VulkanHelper
         */
         [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence);
 
-    private:
-
         class Impl;
-        UniquePtr<Impl> m_Impl;
+    private:
+        friend class Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl;
 
         /**
         * @brief Private constructor used by the factory function.
@@ -116,20 +115,7 @@ namespace VulkanHelper
         */
         CommandBuffer(UniquePtr<Impl>&& impl);
 
-        /**
-        * @brief Creates a new CommandBuffer instance with the specified configuration.
-        *
-        * This static factory function attempts to create a CommandBuffer according to the provided configuration.
-        * If successful, it returns a CommandBuffer object; otherwise, it returns a VHResult describing the failure.
-        *
-        * @param config The configuration struct specifying command buffer creation options.
-        * @return VulkanHelper::Expected<CommandBuffer, VHResult> An expected containing the created CommandBuffer on success, or a VHResult on failure.
-        */
-        [[nodiscard]] VulkanHelper::Expected<CommandBuffer, VHResult> New(const Config& config);
-
-        #undef COMMAND_BUFFER_CLASS
-        DECLARE_FRIENDS();
-        #define COMMAND_BUFFER_CLASS CommandBuffer
+        friend class CommandPool;
     };
 
     DEFINE_BITWISE_OPERATORS(CommandBuffer::Usage)
