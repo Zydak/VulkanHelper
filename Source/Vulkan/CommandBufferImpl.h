@@ -18,11 +18,11 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] VHResult Begin(UsageFlags usageFlags);
+        [[nodiscard]] VHResult Begin(Usage usageFlags);
         [[nodiscard]] VHResult End();
 
         [[nodiscard]] VHResult SubmitAndWait();
-        [[nodiscard]] VHResult Submit(WaitStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence);
+        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence);
 
         [[nodiscard]] inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffer; }
     private:

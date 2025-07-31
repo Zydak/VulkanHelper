@@ -1,3 +1,4 @@
+#include "Vulkan/Enums.h"
 #include "Vulkan/Swapchain.h"
 #include "SwapchainImpl.h"
 
@@ -11,6 +12,7 @@
 #include "PhysicalDeviceImpl.h"
 #include "FenceImpl.h"
 #include "SemaphoreImpl.h"
+#include "ImageImpl.h"
 #include "Window/Window.h"
 
 namespace VulkanHelper
@@ -182,6 +184,26 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
+        VulkanHelper::Vector<Image> images;
+        for (size_t i = 0; i < swapchainImages.Size(); i++)
+        {
+            UniquePtr<Image::Impl> imageImpl( new Image::Impl(
+                config.Device,
+                (Format)chosenFormat.format,
+                Image::Layout::UNDEFINED,
+                MemoryProperties::UNDEFINED,
+                Image::Aspect::COLOR_BIT,
+                config.Window->GetWidth(),
+                config.Window->GetHeight(),
+                1,
+                1,
+                swapchainImages[i]
+            ));
+
+            Image image(VulkanHelper::Move(imageImpl));
+            images.PushBack(VulkanHelper::Move(image));
+        }
+
         return VulkanHelper::UniquePtr(new Swapchain::Impl{
             config.Device->m_Impl.Get(),
             swapchain,
@@ -189,6 +211,7 @@ namespace VulkanHelper
             0, // Start at frame 0
             imageCount,
             0, // Start at image 0
+            VulkanHelper::Move(images),
             VulkanHelper::Move(frameFences),
             VulkanHelper::Move(acquireSemaphores),
             VulkanHelper::Move(submitSemaphores)
@@ -257,15 +280,12 @@ namespace VulkanHelper
     VHResult Swapchain::Impl::Submit(CommandBuffer& commandBuffer)
     {
         Semaphore* acquireSemaphore = &m_AcquireSemaphores[m_CurrentFrameIndex];
-        VkSemaphore acquireSemaphoreVk = acquireSemaphore->m_Impl->GetSemaphore();
         Semaphore* submitSemaphore = &m_SubmitSemaphores[m_CurrentImageIndex];
         VkSemaphore submitSemaphoreVk = submitSemaphore->m_Impl->GetSemaphore();
 
-        VkFence frameFence = m_FrameFences[m_CurrentFrameIndex].m_Impl->GetFenceHandle();
-        VHResult res = commandBuffer.Submit(CommandBuffer::WaitStages::COLOR_ATTACHMENT_OUTPUT_BIT, acquireSemaphore, submitSemaphore, &m_FrameFences[m_CurrentFrameIndex]);
+        VHResult res = commandBuffer.Submit(PipelineStages::COLOR_ATTACHMENT_OUTPUT_BIT, acquireSemaphore, submitSemaphore, &m_FrameFences[m_CurrentFrameIndex]);
         if (res != VHResult::OK)
         {
-            VH_LOG_ERROR("Failed to submit command buffer to queue");
             return res;
         }
 
@@ -283,13 +303,17 @@ namespace VulkanHelper
         res = (VHResult)vkQueuePresentKHR(presentQueue, &presentInfo);
         if (res != VHResult::OK)
         {
-            VH_LOG_ERROR("Failed to present swapchain image");
             return res;
         }
 
         m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxFramesInFlight;
 
         return VHResult::OK;
+    }
+
+    Image* Swapchain::Impl::GetCurrentSwapchainImage()
+    {
+        return &m_Images[m_CurrentImageIndex];
     }
 
     //
@@ -342,5 +366,10 @@ namespace VulkanHelper
     VHResult Swapchain::Submit(CommandBuffer& commandBuffer)
     {
         return m_Impl->Submit(commandBuffer);
+    }
+
+    Image* Swapchain::GetCurrentSwapchainImage() const
+    {
+        return m_Impl->GetCurrentSwapchainImage();
     }
 }

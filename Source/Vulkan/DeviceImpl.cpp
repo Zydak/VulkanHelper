@@ -7,6 +7,7 @@
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_core.h>
 
 #include "PhysicalDeviceImpl.h"
 
@@ -155,6 +156,11 @@ namespace VulkanHelper
         return indices;
     }
 
+    void Device::Impl::WaitUntilIdle() const
+    {
+        vkDeviceWaitIdle(m_Device);
+    }
+
     //
     //  Forward functions
     //
@@ -205,5 +211,10 @@ namespace VulkanHelper
     Device::QueueFamilyIndices Device::GetQueueFamilyIndices() const
     {
         return m_Impl->GetQueueFamilyIndices();
+    }
+
+    void Device::WaitUntilIdle() const
+    {
+        m_Impl->WaitUntilIdle();
     }
 } // namespace VulkanHelper

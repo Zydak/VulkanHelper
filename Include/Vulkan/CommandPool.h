@@ -111,4 +111,6 @@ namespace VulkanHelper
         DECLARE_FRIENDS();
         #define COMMAND_POOL_CLASS CommandPool
     };
+
+    DEFINE_BITWISE_OPERATORS(CommandPool::Flags)
 }

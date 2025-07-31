@@ -18,6 +18,7 @@ namespace VulkanHelper
         [[nodiscard]] inline VkDevice GetDevice() const { return m_Device; }
         [[nodiscard]] inline const PhysicalDevice& GetPhysicalDevice() const { return m_PhysicalDevice; }
         [[nodiscard]] inline QueueFamilyIndices GetQueueFamilyIndices() const { return m_QueueFamilyIndices; }
+        void WaitUntilIdle() const;
     private:
 
         Impl(PhysicalDevice physicalDevice, VkDevice device, QueueFamilyIndices&& indices)

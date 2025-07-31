@@ -6,6 +6,7 @@
 #include "Log/Log.h"
 #include "Vulkan/Device.h"
 #include "Vulkan/CommandPool.h"
+#include "Vulkan/Image.h"
 
 int main()
 {
@@ -59,16 +60,18 @@ int main()
     while (!window.WantsToClose())
     {
         VulkanHelper::Window::PollEvents();
-        (void)swapchain.AcquireNextImage();
+        VH_ASSERT(swapchain.AcquireNextImage() == VulkanHelper::VHResult::OK, "Couldn't Acquire new image");
 
-        VH_ASSERT(buffer.Begin(VulkanHelper::CommandBuffer::UsageFlags::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Couldn't start recording");
+        VH_ASSERT(buffer.Begin(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Couldn't start recording");
 
-        // Record
+        swapchain.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::PRESENT_SRC_KHR, buffer, 0, 1);
 
         VH_ASSERT(buffer.End() == VulkanHelper::VHResult::OK, "Couldn't end recording");
 
-        (void)swapchain.Submit(buffer);
+        VH_ASSERT(swapchain.Submit(buffer) == VulkanHelper::VHResult::OK, "Couldn't Submit to swapchain");
     }
+
+    device.WaitUntilIdle();
 
     return 0;
 }

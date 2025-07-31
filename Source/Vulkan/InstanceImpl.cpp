@@ -7,12 +7,13 @@
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_core.h>
 
 #include "PhysicalDeviceImpl.h"
 #include "Vulkan/PhysicalDevice.h"
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
-	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
 	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 	{
@@ -108,7 +109,7 @@ namespace VulkanHelper
             instanceCreateInfo.pNext = &debugLayersCreateInfo;
 
             extensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            instanceCreateInfo.enabledExtensionCount = extensions.Size();
+            instanceCreateInfo.enabledExtensionCount = (uint32_t)extensions.Size();
             instanceCreateInfo.ppEnabledExtensionNames = extensions.Data();
         #endif
 

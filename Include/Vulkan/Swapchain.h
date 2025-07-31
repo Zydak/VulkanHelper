@@ -10,6 +10,7 @@ namespace VulkanHelper
     class Device;
     class Window;
     class CommandBuffer;
+    class Image;
 
     /*
      * @class Swapchain
@@ -83,6 +84,8 @@ namespace VulkanHelper
         * @return VHResult indicating success or failure.
         */
         [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);
+
+        [[nodiscard]] Image* GetCurrentSwapchainImage() const;
 
     private:
         class Impl;

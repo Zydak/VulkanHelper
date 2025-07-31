@@ -80,6 +80,11 @@ namespace VulkanHelper
          */
         [[nodiscard]] QueueFamilyIndices GetQueueFamilyIndices() const;
 
+        /**
+         * @brief Blocks until all operations have finished.
+         */
+        void WaitUntilIdle() const;
+
     private:
         class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;

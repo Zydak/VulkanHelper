@@ -42,7 +42,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    VHResult CommandBuffer::Impl::Begin(UsageFlags usageFlags)
+    VHResult CommandBuffer::Impl::Begin(Usage usageFlags)
     {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -58,7 +58,7 @@ namespace VulkanHelper
 
     VHResult CommandBuffer::Impl::SubmitAndWait()
     {
-        VHResult res = Submit(WaitStages::NONE, nullptr, nullptr, nullptr);
+        VHResult res = Submit(PipelineStages::NONE, nullptr, nullptr, nullptr);
         if (res != VHResult::OK)
             return res;
 
@@ -70,7 +70,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult CommandBuffer::Impl::Submit(WaitStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence)
+    VHResult CommandBuffer::Impl::Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence)
     {
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -141,7 +141,7 @@ namespace VulkanHelper
         
     }
 
-    VHResult CommandBuffer::Begin(UsageFlags usageFlags)
+    VHResult CommandBuffer::Begin(Usage usageFlags)
     {
         return m_Impl->Begin(usageFlags);
     }
@@ -156,7 +156,7 @@ namespace VulkanHelper
         return m_Impl->SubmitAndWait();
     }
 
-    VHResult CommandBuffer::Submit(WaitStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence)
+    VHResult CommandBuffer::Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence)
     {
         return m_Impl->Submit(waitStage, waitSemaphore, signalSemaphore, fence);
     }

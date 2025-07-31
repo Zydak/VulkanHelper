@@ -22,7 +22,7 @@ namespace VulkanHelper
 
         std::string name = std::string(config.Name);
 
-        GLFWwindow* window = glfwCreateWindow(config.Width, config.Height, name.c_str(), NULL, NULL);
+        GLFWwindow* window = glfwCreateWindow((int)config.Width, (int)config.Height, name.c_str(), NULL, NULL);
         if (window == nullptr)
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
 
