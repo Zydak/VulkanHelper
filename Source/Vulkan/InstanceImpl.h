@@ -22,7 +22,7 @@ namespace VulkanHelper
 
         [[nodiscard]] inline static Impl* GetImplementation(const Instance* publicInterface) { return publicInterface->m_Impl.Get(); }
 
-        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
+        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices() const;
 
         [[nodiscard]] inline VkInstance GetInstance() const { return m_Instance; }
     private:

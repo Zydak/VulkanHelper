@@ -76,8 +76,7 @@ namespace VulkanHelper
         if (m_ImageView != nullptr)
         {
             VH_LOG_INFO("Destroying ImageView Implementation");
-            Device::Impl* deviceImpl = m_Image->GetDevice();
-            vkDestroyImageView(deviceImpl->GetDevice(), m_ImageView, nullptr);
+            vkDestroyImageView(m_Image->GetDevice()->GetDevice(), m_ImageView, nullptr);
         }
     }
 

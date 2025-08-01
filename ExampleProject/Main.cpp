@@ -10,8 +10,7 @@ int main()
 {
     VulkanHelper::Instance instance = VulkanHelper::Instance::New({true}).Value();
     VulkanHelper::Vector<const char*> extensions;
-    extensions.PushBack("VK_KHR_dynamic_rendering");
-    auto physicalDevices = instance.GetSuitablePhysicalDevices({});
+    auto physicalDevices = instance.GetSuitablePhysicalDevices();
     if (physicalDevices.Empty())
     {
         VH_LOG_FATAL("No suitable physical devices found!");

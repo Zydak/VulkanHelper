@@ -28,6 +28,12 @@ FetchContent_Declare(
     GIT_TAG 1.0.1
 )
 
+FetchContent_Declare(
+    slang
+    GIT_REPOSITORY https://github.com/shader-slang/slang.git
+    GIT_TAG v2025.13.2
+)
+
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 
@@ -36,3 +42,15 @@ suppress_warnings(fmt)
 
 FetchContent_MakeAvailable(glm)
 suppress_warnings(glm)
+
+set(SLANG_ENABLE_TESTS OFF CACHE STRING "")
+set(SLANG_ENABLE_EXAMPLES OFF CACHE STRING "")
+set(SLANG_ENABLE_GFX OFF CACHE STRING "")
+set(SLANG_ENABLE_CUDA OFF CACHE STRING "")
+set(SLANG_ENABLE_OPTIX OFF CACHE STRING "")
+set(SLANG_ENABLE_NVAPI OFF CACHE STRING "")
+set(SLANG_ENABLE_AFTERMATH OFF CACHE STRING "")
+set(SLANG_ENABLE_XLIB OFF CACHE STRING "")
+set(SLANG_LIB_TYPE STATIC CACHE STRING "")
+FetchContent_MakeAvailable(slang)
+suppress_warnings(slang)

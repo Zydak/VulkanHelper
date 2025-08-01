@@ -51,7 +51,7 @@ namespace VulkanHelper
          * @param deviceExtensions A vector of required Vulkan Device Extension names.
          * @return VulkanHelper::Vector<PhysicalDevice> A vector of suitable PhysicalDevice objects.
          */
-        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
+        VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices() const;
 
         /**
          * @brief Retrieves the underlying Vulkan VkInstance handle.

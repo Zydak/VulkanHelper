@@ -174,10 +174,13 @@ namespace VulkanHelper
         }
     }
 
-    VulkanHelper::Vector<PhysicalDevice> Instance::Impl::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const
+    VulkanHelper::Vector<PhysicalDevice> Instance::Impl::GetSuitablePhysicalDevices() const
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+
+        VulkanHelper::Vector<const char*> deviceExtensions;
+        deviceExtensions.PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 
         if (deviceCount == 0)
         {
@@ -267,9 +270,9 @@ namespace VulkanHelper
         
     }
 
-    VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices(const VulkanHelper::Vector<const char*>& deviceExtensions) const
+    VulkanHelper::Vector<PhysicalDevice> Instance::GetSuitablePhysicalDevices() const
     {
-        return m_Impl->GetSuitablePhysicalDevices(deviceExtensions);
+        return m_Impl->GetSuitablePhysicalDevices();
     }
 
     VkInstance Instance::GetInstance() const
