@@ -223,7 +223,7 @@ namespace VulkanHelper
          *
          * If the current size equals the capacity, the capacity is doubled.
          *
-         * @param value The value to append.
+         * @param value The value to append. (moved)
          */
         void PushBack(T&& value)
         {

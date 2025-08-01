@@ -12,6 +12,8 @@
 #include "PhysicalDeviceImpl.h"
 #include "Vulkan/PhysicalDevice.h"
 
+#include "FunctionLoader.h"
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
@@ -122,6 +124,8 @@ namespace VulkanHelper
         VkResult res = vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
+
+        FunctionLoader::SetInstance(instance);
         
         #if !defined(NDEBUG)
         VkDebugUtilsMessengerEXT messenger;

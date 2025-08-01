@@ -190,4 +190,14 @@ namespace VulkanHelper
     {
         m_Impl->TransitionImageLayout(newLayout, commandBuffer, baseLayer, layerCount);
     }
+
+    [[nodiscard]] Format Image::GetFormat() const { return m_Impl->GetFormat(); }
+    [[nodiscard]] Image::Layout Image::GetLayout() const { return m_Impl->GetLayout(); }
+    [[nodiscard]] MemoryProperties Image::GetMemoryProperties() const { return m_Impl->GetMemoryProperties(); }
+    [[nodiscard]] Image::Aspect Image::GetAspect() const { return m_Impl->GetAspect(); }
+        
+    [[nodiscard]] uint32_t Image::GetWidth() const { return m_Impl->GetWidth(); }
+    [[nodiscard]] uint32_t Image::GetHeight() const { return m_Impl->GetHeight(); }
+    [[nodiscard]] uint32_t Image::GetLayerCount() const { return m_Impl->GetLayerCount(); }
+    [[nodiscard]] uint32_t Image::GetMipCount() const { return m_Impl->GetMipCount(); }
 }

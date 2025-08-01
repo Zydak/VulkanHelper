@@ -19,6 +19,17 @@ namespace VulkanHelper
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
         VulkanHelper::Vector<const char*> extensions;
+        extensions.PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+
+        VkPhysicalDeviceFeatures2 features{};
+        features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+
+        VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures{};
+        dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+        dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
+        features.pNext = &dynamicRenderingFeatures;
+
         if (!config.Windows.Empty())
         {
             extensions.EmplaceBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -70,7 +81,7 @@ namespace VulkanHelper
         createInfo.pEnabledFeatures = nullptr;
         createInfo.enabledExtensionCount = (uint32_t)extensions.Size();
         createInfo.ppEnabledExtensionNames = extensions.Data();
-        createInfo.pNext = nullptr;
+        createInfo.pNext = &features;
 
         #if !defined(NDEBUG)
         const char* validationLayer = "VK_LAYER_KHRONOS_validation";

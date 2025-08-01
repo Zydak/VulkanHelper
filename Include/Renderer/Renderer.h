@@ -4,13 +4,16 @@
 #include "Core/Error.h"
 #include "Core/Expected.h"
 
+#include "Window/Window.h"
 #include "Vulkan/CommandBuffer.h"
+#include "Vulkan/Device.h"
+#include "Vulkan/Image.h"
+#include "Vulkan/ImageView.h"
+
+#include <glm/glm.hpp>
 
 namespace VulkanHelper
 {
-    class Window;
-    class Device;
-
     class Renderer
     {
     public:
@@ -33,6 +36,18 @@ namespace VulkanHelper
 
         [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
         [[nodiscard]] VHResult EndFrame();
+
+        void BeginRendering(
+            CommandBuffer& commandBuffer,
+            const VulkanHelper::Vector<ImageView*>& targetImagesColor,
+            const ImageView* targetImageDepth,
+            glm::uvec2 scissorsStart = {0u, 0u},
+            glm::uvec2 scissorsEnd = {0u, 0u}
+        );
+        void EndRendering(CommandBuffer& commandBuffer);
+
+        [[nodiscard]] Image* GetCurrentSwapchainImage() const;
+        [[nodiscard]] ImageView* GetCurrentSwapchainImageView() const;
 
         class Impl;
     private:

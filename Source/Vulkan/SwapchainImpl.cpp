@@ -189,10 +189,11 @@ namespace VulkanHelper
         }
 
         VulkanHelper::Vector<Image> images;
+        VulkanHelper::Vector<ImageView> imageViews;
         for (size_t i = 0; i < swapchainImages.Size(); i++)
         {
             UniquePtr<Image::Impl> imageImpl( new Image::Impl(
-                config.Device,
+                deviceImpl,
                 (Format)chosenFormat.format,
                 Image::Layout::UNDEFINED,
                 MemoryProperties::UNDEFINED,
@@ -206,6 +207,16 @@ namespace VulkanHelper
 
             Image image(VulkanHelper::Move(imageImpl));
             images.PushBack(VulkanHelper::Move(image));
+
+            auto imageView = ImageView::New({&images[i], ImageView::ViewType::VIEW_2D});
+            if (!imageView.HasValue())
+            {
+                VH_LOG_ERROR("Failed to create image views");
+                vkDestroySwapchainKHR(deviceImpl->GetDevice(), swapchain, nullptr);
+                return VulkanHelper::Unexpected(imageView.Error());
+            }
+
+            imageViews.PushBack(Move(imageView.Value()));
         }
 
         return VulkanHelper::UniquePtr(new Swapchain::Impl{
@@ -216,6 +227,7 @@ namespace VulkanHelper
             imageCount,
             0, // Start at image 0
             VulkanHelper::Move(images),
+            VulkanHelper::Move(imageViews),
             VulkanHelper::Move(frameFences),
             VulkanHelper::Move(acquireSemaphores),
             VulkanHelper::Move(submitSemaphores)
@@ -318,11 +330,6 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    Image* Swapchain::Impl::GetCurrentSwapchainImage()
-    {
-        return &m_Images[m_CurrentImageIndex];
-    }
-
     //
     // Forward functions
     //
@@ -378,6 +385,11 @@ namespace VulkanHelper
     Image* Swapchain::GetCurrentSwapchainImage() const
     {
         return m_Impl->GetCurrentSwapchainImage();
+    }
+
+    ImageView* Swapchain::GetCurrentSwapchainImageView() const
+    {
+        return m_Impl->GetCurrentSwapchainImageView();
     }
 
     uint32_t Swapchain::GetCurrentFrameIndex() const

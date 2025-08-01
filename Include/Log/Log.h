@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fmt/base.h"
+#include <fmt/base.h>
 #include <fmt/os.h>
 #include <fmt/format.h>
 #include <fmt/color.h>

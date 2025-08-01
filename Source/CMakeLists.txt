@@ -11,11 +11,17 @@ target_link_libraries(
     Vulkan::Vulkan
     glfw
 )
+
 target_link_libraries(
     VulkanHelper
     PUBLIC
     fmt
 )
+
+# Mark headers as SYSTEM so I don't get those stupid ass warnings
+target_include_directories(VulkanHelper SYSTEM PUBLIC ${glm_SOURCE_DIR})
+get_target_property(FMT_INCLUDE_DIRS fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(VulkanHelper SYSTEM PUBLIC ${FMT_INCLUDE_DIRS})
 
 target_include_directories(VulkanHelper PUBLIC ${PROJECT_SOURCE_DIR}/Include)
 

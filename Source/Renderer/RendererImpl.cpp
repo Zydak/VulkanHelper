@@ -5,7 +5,11 @@
 #include "Vulkan/CommandBuffer.h"
 #include "Vulkan/Device.h"
 
-#include "../Vulkan/ImageImpl.h"
+#include "../Vulkan/ImageViewImpl.h"
+#include "../Vulkan/CommandBufferImpl.h"
+#include "../Vulkan/FunctionLoader.h"
+
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {
@@ -104,6 +108,109 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
+    void Renderer::Impl::BeginRendering(
+            CommandBuffer& commandBuffer,
+            const VulkanHelper::Vector<ImageView*>& targetImagesColor,
+            const ImageView* targetImageDepth,
+            glm::uvec2 scissorsStart,
+            glm::uvec2 scissorsEnd
+    )
+    {
+        // Make sure that all images are the same size
+        if (!targetImagesColor.Empty())
+        {
+            glm::uvec2 prevIndexSize = { targetImagesColor[0]->GetWidth(), targetImagesColor[0]->GetHeight() };
+            for (size_t i = 1; i < targetImagesColor.Size(); i++)
+            {
+                glm::uvec2 currentIndexSize = { targetImagesColor[i]->GetWidth(), targetImagesColor[i]->GetHeight() };
+                VH_ASSERT(prevIndexSize.x == currentIndexSize.x && prevIndexSize.y == currentIndexSize.y, "Target Images must be the same size!");
+                prevIndexSize = currentIndexSize;
+            }
+
+            if (targetImageDepth != nullptr)
+            {
+                glm::uvec2 depthSize = { targetImageDepth->GetWidth(), targetImageDepth->GetHeight() };
+                VH_ASSERT(prevIndexSize.x == depthSize.x && prevIndexSize.y == depthSize.y, "Depth image must be the same size as color images!");
+            }
+        }
+
+        glm::uvec2 renderSize = {0u, 0u};
+        if (!targetImagesColor.Empty())
+            renderSize = { targetImagesColor[0]->GetWidth(), targetImagesColor[0]->GetHeight() };
+        else
+            renderSize = { targetImageDepth->GetWidth(), targetImageDepth->GetHeight() };
+
+        if (scissorsEnd.x == 0 && scissorsEnd.y == 0)
+        {
+            scissorsEnd = {renderSize.x, renderSize.y};
+        }
+        VH_ASSERT(scissorsStart.x < scissorsEnd.x && scissorsStart.y < scissorsEnd.y, "ScissorsStart must be smaller than ScissorsEnd!");
+
+        VkViewport viewport;
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)renderSize.x;
+        viewport.height = (float)renderSize.y;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{
+            {(int)scissorsStart.x, (int)scissorsStart.y},
+            {scissorsEnd.x, scissorsEnd.y}
+        };
+
+        VkCommandBuffer commandBufferHandle = CommandBuffer::Impl::GetImplementation(&commandBuffer)->GetCommandBuffer();
+
+	    vkCmdSetViewport(commandBufferHandle, 0, 1, &viewport);
+	    vkCmdSetScissor(commandBufferHandle, 0, 1, &scissor);
+
+        VulkanHelper::Vector<VkRenderingAttachmentInfo> colorAttachments;
+        for (size_t i = 0; i < targetImagesColor.Size(); i++)
+        {
+            VkRenderingAttachmentInfo info{};
+            info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            info.clearValue = { {{0.1f, 0.1f, 0.1f, 1.0f}} };
+
+            ImageView::Impl* targetImageImpl = ImageView::Impl::GetImplementation(targetImagesColor[i]);
+            info.imageView = targetImageImpl->GetImageView();
+
+            colorAttachments.PushBack(Move(info));
+        }
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        if (targetImageDepth != nullptr)
+        {
+            depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depthAttachment.clearValue = { {{1.0f, 0}} };
+
+            ImageView::Impl* targetImageImpl = ImageView::Impl::GetImplementation(targetImageDepth);
+            depthAttachment.imageView = targetImageImpl->GetImageView();
+        }
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.colorAttachmentCount = (uint32_t)colorAttachments.Size();
+        renderingInfo.pColorAttachments = colorAttachments.Data();
+        renderingInfo.pDepthAttachment = targetImageDepth == nullptr ? nullptr : &depthAttachment;
+        renderingInfo.pStencilAttachment = nullptr;
+        renderingInfo.layerCount = 1;
+        renderingInfo.renderArea = { {0, 0}, { renderSize.x, renderSize.y } };
+
+	    VulkanHelper::FunctionLoader::vkCmdBeginRendering(commandBufferHandle, &renderingInfo);
+    }
+
+    void Renderer::Impl::EndRendering(CommandBuffer& commandBuffer)
+    {
+        VkCommandBuffer commandBufferHandle = CommandBuffer::Impl::GetImplementation(&commandBuffer)->GetCommandBuffer();
+	    VulkanHelper::FunctionLoader::vkCmdEndRendering(commandBufferHandle);
+    }
+
     //
     //  Forward Functions
     //
@@ -154,5 +261,31 @@ namespace VulkanHelper
     VHResult Renderer::EndFrame()
     {
         return m_Impl->EndFrame();
+    }
+
+    void Renderer::BeginRendering(
+        CommandBuffer& commandBuffer,
+        const VulkanHelper::Vector<ImageView*>& targetImagesColor,
+        const ImageView* targetImageDepth,
+        glm::uvec2 scissorsStart,
+        glm::uvec2 scissorsEnd
+    )
+    {
+        m_Impl->BeginRendering(commandBuffer, targetImagesColor, targetImageDepth, scissorsStart, scissorsEnd);
+    }
+
+    void Renderer::EndRendering(CommandBuffer& commandBuffer)
+    {
+        m_Impl->EndRendering(commandBuffer);
+    }
+
+    Image* Renderer::GetCurrentSwapchainImage() const
+    {
+        return m_Impl->GetCurrentSwapchainImage();
+    }
+
+    ImageView* Renderer::GetCurrentSwapchainImageView() const
+    {
+        return m_Impl->GetCurrentSwapchainImageView();
     }
 }

@@ -4,6 +4,8 @@
 #include "Renderer/Renderer.h"
 #include "Vulkan/Swapchain.h"
 #include "Vulkan/CommandPool.h"
+#include "Vulkan/ImageView.h"
+#include <glm/glm.hpp>
 
 namespace VulkanHelper
 {
@@ -25,6 +27,17 @@ namespace VulkanHelper
         [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
         [[nodiscard]] VHResult EndFrame();
 
+        void BeginRendering(
+            CommandBuffer& commandBuffer,
+            const VulkanHelper::Vector<ImageView*>& targetImagesColor,
+            const ImageView* targetImageDepth,
+            glm::uvec2 scissorsStart = {0u, 0u},
+            glm::uvec2 scissorsEnd = {0u, 0u}
+        );
+        void EndRendering(CommandBuffer& commandBuffer);
+
+        [[nodiscard]] inline Image* GetCurrentSwapchainImage() const { return m_Swapchain.GetCurrentSwapchainImage(); }
+        [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() const { return m_Swapchain.GetCurrentSwapchainImageView(); }
 
     private:
         Device* m_Device;

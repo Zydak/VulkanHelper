@@ -96,6 +96,16 @@ namespace VulkanHelper
 
         void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount);
 
+        [[nodiscard]] Format GetFormat() const;
+        [[nodiscard]] Layout GetLayout() const;
+        [[nodiscard]] MemoryProperties GetMemoryProperties() const;
+        [[nodiscard]] Aspect GetAspect() const;
+        
+        [[nodiscard]] uint32_t GetWidth() const;
+        [[nodiscard]] uint32_t GetHeight() const;
+        [[nodiscard]] uint32_t GetLayerCount() const;
+        [[nodiscard]] uint32_t GetMipCount() const;
+
         class Impl;
     private:
         friend class Impl;

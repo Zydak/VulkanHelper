@@ -3,6 +3,8 @@
 #include "Vulkan/Image.h"
 #include "Vulkan/Swapchain.h"
 
+#include "DeviceImpl.h"
+
 typedef struct VkImage_T* VkImage;
 
 namespace VulkanHelper
@@ -22,10 +24,25 @@ namespace VulkanHelper
 
         [[nodiscard]] inline static Impl* GetImplementation(const Image* publicInterface) { return publicInterface->m_Impl.Get(); }
 
+        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+
+        [[nodiscard]] inline Format GetFormat() const { return m_Format; }
+        [[nodiscard]] inline Layout GetLayout() const { return m_Layout; }
+        [[nodiscard]] inline MemoryProperties GetMemoryProperties() const { return m_MemoryProperties; }
+        [[nodiscard]] inline Aspect GetAspect() const { return m_Aspect; }
+        
+        [[nodiscard]] inline uint32_t GetWidth() const { return m_Width; }
+        [[nodiscard]] inline uint32_t GetHeight() const { return m_Height; }
+        [[nodiscard]] inline uint32_t GetLayerCount() const { return m_LayerCount; }
+        [[nodiscard]] inline uint32_t GetMipCount() const { return m_MipCount; }
+
+        [[nodiscard]] inline VkImage GetImage() const { return m_Image; }
+
         void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount);
     private:
 
-        Device* m_Device;
+        Device::Impl* m_Device;
+
         Format m_Format;
         Layout m_Layout;
         MemoryProperties m_MemoryProperties;
@@ -38,7 +55,7 @@ namespace VulkanHelper
 
         VkImage m_Image;
 
-        Impl(Device* device,
+        Impl(Device::Impl* device,
             Format format,
             Layout layout,
             MemoryProperties memoryProp,

@@ -9,6 +9,8 @@
 int main()
 {
     VulkanHelper::Instance instance = VulkanHelper::Instance::New({true}).Value();
+    VulkanHelper::Vector<const char*> extensions;
+    extensions.PushBack("VK_KHR_dynamic_rendering");
     auto physicalDevices = instance.GetSuitablePhysicalDevices({});
     if (physicalDevices.Empty())
     {
@@ -51,6 +53,12 @@ int main()
         VulkanHelper::Window::PollEvents();
         VulkanHelper::CommandBuffer* commandBuffer = renderer.BeginFrame().Value();
         (void)commandBuffer;
+
+        VulkanHelper::Vector<VulkanHelper::ImageView*> views;
+        views.PushBack(renderer.GetCurrentSwapchainImageView());
+        renderer.BeginRendering(*commandBuffer, views, nullptr);
+
+        renderer.EndRendering(*commandBuffer);
 
         VH_ASSERT(renderer.EndFrame() == VulkanHelper::VHResult::OK, "Failed to end frame");
     }

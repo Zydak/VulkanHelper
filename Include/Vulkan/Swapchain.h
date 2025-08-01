@@ -4,13 +4,13 @@
 #include "Core/Expected.h"
 #include "Core/UniquePtr.h"
 
+#include "Device.h"
+#include "Image.h"
+#include "ImageView.h"
+#include "Window/Window.h"
+
 namespace VulkanHelper
 {
-    class Device;
-    class Window;
-    class CommandBuffer;
-    class Image;
-
     /*
      * @class Swapchain
      * @brief RAII wrapper for a Vulkan swapchain.
@@ -85,6 +85,7 @@ namespace VulkanHelper
         [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);
 
         [[nodiscard]] Image* GetCurrentSwapchainImage() const;
+        [[nodiscard]] ImageView* GetCurrentSwapchainImageView() const;
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
         [[nodiscard]] uint32_t GetFramesInFlightCount() const;
 

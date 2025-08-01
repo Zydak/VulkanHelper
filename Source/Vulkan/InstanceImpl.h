@@ -10,7 +10,7 @@ namespace VulkanHelper
     class Instance::Impl
     {
     public:
-        static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
