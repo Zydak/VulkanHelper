@@ -14,6 +14,7 @@
 
 #include "FunctionLoader.h"
 
+#if !defined(NDEBUG)
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
@@ -31,6 +32,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityF
 	}
 	return VK_FALSE;
 }
+#endif
 
 static void GLFWErrorCallback(int errorCode, const char* message)
 {
@@ -111,9 +113,9 @@ namespace VulkanHelper
             instanceCreateInfo.pNext = &debugLayersCreateInfo;
 
             extensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            instanceCreateInfo.enabledExtensionCount = (uint32_t)extensions.Size();
-            instanceCreateInfo.ppEnabledExtensionNames = extensions.Data();
         #endif
+        instanceCreateInfo.enabledExtensionCount = (uint32_t)extensions.Size();
+        instanceCreateInfo.ppEnabledExtensionNames = extensions.Data();
 
         for (size_t i = 0; i < extensions.Size(); i++)
         {
@@ -127,8 +129,8 @@ namespace VulkanHelper
 
         FunctionLoader::SetInstance(instance);
         
+        VkDebugUtilsMessengerEXT messenger = nullptr;
         #if !defined(NDEBUG)
-        VkDebugUtilsMessengerEXT messenger;
         Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
 

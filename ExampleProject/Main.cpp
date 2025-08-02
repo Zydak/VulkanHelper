@@ -6,8 +6,13 @@
 #include "Vulkan/Image.h"
 #include "Renderer/Renderer.h"
 
+#include "Vulkan/Shader.h"
+
+#include <filesystem>
+
 int main()
 {
+    VH_LOG_INFO("Current working directory: {}", std::filesystem::current_path().c_str());
     VulkanHelper::Instance instance = VulkanHelper::Instance::New({true}).Value();
     VulkanHelper::Vector<const char*> extensions;
     auto physicalDevices = instance.GetSuitablePhysicalDevices();
@@ -46,6 +51,11 @@ int main()
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, std::move(windows)}).Value();
 
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
+
+    VulkanHelper::Shader::InitializeSession("ExampleProject/Shaders/");
+
+    (void)VulkanHelper::Shader::New({&device, "TriangleVertex.slang"});
+    (void)VulkanHelper::Shader::New({&device, "TriangleFragment.slang"});
     
     while (!window.WantsToClose())
     {

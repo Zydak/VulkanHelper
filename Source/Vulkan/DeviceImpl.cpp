@@ -28,7 +28,12 @@ namespace VulkanHelper
         dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
         dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
 
+        VkPhysicalDeviceVulkan11Features device11Features{};
+        device11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+        device11Features.shaderDrawParameters = true;
+
         features.pNext = &dynamicRenderingFeatures;
+        dynamicRenderingFeatures.pNext = &device11Features;
 
         if (!config.Windows.Empty())
         {
