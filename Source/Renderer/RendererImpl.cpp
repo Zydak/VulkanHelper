@@ -276,6 +276,8 @@ namespace VulkanHelper
 
     void Renderer::EndRendering(CommandBuffer& commandBuffer)
     {
+        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(&commandBuffer);
+        vkCmdDraw(cmdImpl->GetCommandBuffer(), 3, 1, 0, 0);
         m_Impl->EndRendering(commandBuffer);
     }
 
@@ -287,5 +289,10 @@ namespace VulkanHelper
     ImageView* Renderer::GetCurrentSwapchainImageView() const
     {
         return m_Impl->GetCurrentSwapchainImageView();
+    }
+
+    Format Renderer::GetSwapchainImageFormat() const
+    {
+        return m_Impl->GetSwapchainImageFormat();
     }
 }

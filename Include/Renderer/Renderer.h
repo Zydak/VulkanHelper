@@ -48,6 +48,7 @@ namespace VulkanHelper
 
         [[nodiscard]] Image* GetCurrentSwapchainImage() const;
         [[nodiscard]] ImageView* GetCurrentSwapchainImageView() const;
+        [[nodiscard]] Format GetSwapchainImageFormat() const;
 
         class Impl;
     private:

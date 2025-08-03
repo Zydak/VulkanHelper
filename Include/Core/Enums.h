@@ -355,4 +355,83 @@ namespace VulkanHelper
         UNDEFINED = 0x7FFFFFFF
     };
     DEFINE_BITWISE_OPERATORS(MemoryProperties)
+
+    enum class ShaderStages
+    {
+        VERTEX_BIT = 0x00000001,
+        TESSELLATION_CONTROL_BIT = 0x00000002,
+        TESSELLATION_EVALUATION_BIT = 0x00000004,
+        GEOMETRY_BIT = 0x00000008,
+        FRAGMENT_BIT = 0x00000010,
+        COMPUTE_BIT = 0x00000020,
+        ALL_GRAPHICS = 0x0000001F,
+        ALL = 0x7FFFFFFF,
+        RAYGEN_BIT_KHR = 0x00000100,
+        ANY_HIT_BIT_KHR = 0x00000200,
+        CLOSEST_HIT_BIT_KHR = 0x00000400,
+        MISS_BIT_KHR = 0x00000800,
+        INTERSECTION_BIT_KHR = 0x00001000,
+        CALLABLE_BIT_KHR = 0x00002000,
+        TASK_BIT_EXT = 0x00000040,
+        MESH_BIT_EXT = 0x00000080,
+        SUBPASS_SHADING_BIT_HUAWEI = 0x00004000,
+        CLUSTER_CULLING_BIT_HUAWEI = 0x00080000,
+        RAYGEN_BIT_NV = RAYGEN_BIT_KHR,
+        ANY_HIT_BIT_NV = ANY_HIT_BIT_KHR,
+        CLOSEST_HIT_BIT_NV = CLOSEST_HIT_BIT_KHR,
+        MISS_BIT_NV = MISS_BIT_KHR,
+        INTERSECTION_BIT_NV = INTERSECTION_BIT_KHR,
+        CALLABLE_BIT_NV = CALLABLE_BIT_KHR,
+        TASK_BIT_NV = TASK_BIT_EXT,
+        MESH_BIT_NV = MESH_BIT_EXT,
+        UNDEFINED = 0x7FFFFFFF
+    };
+    DEFINE_BITWISE_OPERATORS(ShaderStages)
+
+    enum class PolygonMode
+    {
+        FILL = 0,
+        LINE = 1,
+        POINT = 2,
+        FILL_RECTANGLE_NV = 1000153000,
+        UNDEFINED = 0x7FFFFFFF
+    };
+
+    enum class PrimitiveTopology
+    {
+        POINT_LIST = 0,
+        LINE_LIST = 1,
+        LINE_STRIP = 2,
+        TRIANGLE_LIST = 3,
+        TRIANGLE_STRIP = 4,
+        TRIANGLE_FAN = 5,
+        //LINE_LIST_WITH_ADJACENCY = 6,
+        //LINE_STRIP_WITH_ADJACENCY = 7,
+        //TRIANGLE_LIST_WITH_ADJACENCY = 8,
+        //TRIANGLE_STRIP_WITH_ADJACENCY = 9,
+        PATCH_LIST = 10,
+        UNDEFINED = 0x7FFFFFFF
+    };
+
+    enum class CullMode
+    {
+        NONE = 0,
+        FRONT_BIT = 0x00000001,
+        BACK_BIT = 0x00000002,
+        FRONT_AND_BACK = 0x00000003,
+        UNDEFINED = 0x7FFFFFFF
+    };
+    DEFINE_BITWISE_OPERATORS(CullMode)
+
+    enum class SampleCount {
+        COUNT_1_BIT = 0x00000001,
+        COUNT_2_BIT = 0x00000002,
+        COUNT_4_BIT = 0x00000004,
+        COUNT_8_BIT = 0x00000008,
+        COUNT_16_BIT = 0x00000010,
+        COUNT_32_BIT = 0x00000020,
+        COUNT_64_BIT = 0x00000040,
+        UNDEFINED = 0x7FFFFFFF
+    };
+    DEFINE_BITWISE_OPERATORS(SampleCount)
 }

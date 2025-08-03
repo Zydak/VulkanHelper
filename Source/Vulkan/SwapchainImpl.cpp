@@ -48,12 +48,7 @@ namespace VulkanHelper
         // Get format info
         uint32_t formatCount;
         res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDeviceImpl->GetDevice(), config.Window->GetSurface(), &formatCount, nullptr);
-        if (res != VK_SUCCESS)
-        {
-            VH_LOG_ERROR("Failed to get surface formats");
-            return VulkanHelper::Unexpected(VHResult(res));
-        }
-        if (formatCount == 0)
+        if (formatCount == 0 || res != VK_SUCCESS)
         {
             VH_LOG_ERROR("No surface formats available!");
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
@@ -400,5 +395,10 @@ namespace VulkanHelper
     uint32_t Swapchain::GetFramesInFlightCount() const
     {
         return m_Impl->GetFramesInFlight();
+    }
+
+    Format Swapchain::GetSwapchainImageFormat() const
+    {
+        return m_Impl->GetSwapchainImageFormat();
     }
 }

@@ -32,8 +32,13 @@ namespace VulkanHelper
         FORMAT_NOT_SUPPORTED = -11,     ///< A requested format is not supported on this device. (VK_ERROR_FORMAT_NOT_SUPPORTED)
         FRAGMENTED_POOL = -12,          ///< A pool allocation has failed due to fragmentation of the pool's memory. (VK_ERROR_FRAGMENTED_POOL)
         UNKNOWN = -13,                  ///< An unknown error has occurred. (VK_ERROR_UNKNOWN)
-        WRONG_ARGUMENTS = -14,          ///< A function was called with incorrect or invalid arguments.
-        NOT_IMPLEMENTED = -15,          ///< A function is not implemented or not supported.
+
+        WRONG_ARGUMENTS = -15000,          ///< A function was called with incorrect or invalid arguments.
+        NOT_IMPLEMENTED = -15001,          ///< A function is not implemented yet.
+        NO_SPECIFIED_ENTRY_POINT_FOUND = -15002,    ///< The specified entry point was not found in the shader module.
+        NO_SPECIFIED_SHADER_MODULE_FOUND = -15003,  ///< The specified shader module was not found.
+        SHADER_COMPILATION_FAILED = -15004,         ///< Shader compilation failed due to syntax or semantic errors.
+
         
         // Vulkan extensions and platform-specific errors
         OUT_OF_POOL_MEMORY = -1000069000, ///< A pool memory allocation has failed. (VK_ERROR_OUT_OF_POOL_MEMORY)

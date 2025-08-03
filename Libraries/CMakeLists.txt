@@ -41,12 +41,6 @@ FetchContent_Declare(
     GIT_TAG v1.4.321
 )
 
-FetchContent_Declare(
-    SPIRV-Headers
-    GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
-    GIT_TAG vulkan-sdk-1.4.321.0
-)
-
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 

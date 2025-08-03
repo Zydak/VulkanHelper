@@ -89,6 +89,8 @@ namespace VulkanHelper
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
         [[nodiscard]] uint32_t GetFramesInFlightCount() const;
 
+        [[nodiscard]] Format GetSwapchainImageFormat() const;
+
         class Impl;
     private:
         friend class Impl;

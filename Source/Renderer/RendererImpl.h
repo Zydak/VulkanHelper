@@ -38,6 +38,7 @@ namespace VulkanHelper
 
         [[nodiscard]] inline Image* GetCurrentSwapchainImage() const { return m_Swapchain.GetCurrentSwapchainImage(); }
         [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() const { return m_Swapchain.GetCurrentSwapchainImageView(); }
+        [[nodiscard]] inline Format GetSwapchainImageFormat() const { return m_Swapchain.GetSwapchainImageFormat(); }
 
     private:
         Device* m_Device;

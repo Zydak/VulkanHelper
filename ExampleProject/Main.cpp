@@ -7,6 +7,7 @@
 #include "Renderer/Renderer.h"
 
 #include "Vulkan/Shader.h"
+#include "Vulkan/Pipeline.h"
 
 #include <filesystem>
 
@@ -52,20 +53,28 @@ int main()
 
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
 
-    VulkanHelper::Shader::InitializeSession("ExampleProject/Shaders/");
+    VulkanHelper::Shader::InitializeSession("../../ExampleProject/Shaders/");
 
-    (void)VulkanHelper::Shader::New({&device, "TriangleVertex.slang"});
-    (void)VulkanHelper::Shader::New({&device, "TriangleFragment.slang"});
+    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "TriangleVertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
+    VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({&device, "TriangleFragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
+
+    VulkanHelper::Pipeline::GraphicsConfig pipelineConfig{};
+    pipelineConfig.Device = &device;
+    pipelineConfig.Shaders.PushBack(&vertexShader);
+    pipelineConfig.Shaders.PushBack(&fragShader);
+    pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
+    VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
     
     while (!window.WantsToClose())
     {
         VulkanHelper::Window::PollEvents();
         VulkanHelper::CommandBuffer* commandBuffer = renderer.BeginFrame().Value();
-        (void)commandBuffer;
 
         VulkanHelper::Vector<VulkanHelper::ImageView*> views;
         views.PushBack(renderer.GetCurrentSwapchainImageView());
         renderer.BeginRendering(*commandBuffer, views, nullptr);
+
+        pipeline.Bind(commandBuffer);
 
         renderer.EndRendering(*commandBuffer);
 

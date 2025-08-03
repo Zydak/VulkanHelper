@@ -4,25 +4,23 @@
 #include <filesystem>
 #include <vector>
 
+#include <fstream>
+
 #include "slang.h"
 #include "slang-com-ptr.h"
 #include "slang-com-helper.h"
-#include <vulkan/vulkan.h>
-
-#include "DeviceImpl.h"
-
-#include <fstream>
-
-static inline Slang::ComPtr<slang::IGlobalSession> s_GlobalSession;
-static inline Slang::ComPtr<slang::ISession> s_Session;
 
 namespace VulkanHelper
 {
+    // It's here instead of as a member variable so I don't have to include slang in the header file
+    static inline Slang::ComPtr<slang::IGlobalSession> s_GlobalSession;
+    static inline Slang::ComPtr<slang::ISession> s_Session;
+
     void Shader::Impl::InitializeSession(const char* shaderSearchPath)
     {
         slang::createGlobalSession(s_GlobalSession.writeRef());
 
-        static slang::TargetDesc targetDesc = {};
+        slang::TargetDesc targetDesc = {};
         targetDesc.format = SLANG_SPIRV;
         targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
 
@@ -30,10 +28,10 @@ namespace VulkanHelper
 		compilerOptions[0].name = slang::CompilerOptionName::Optimization;
 		compilerOptions[0].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL };
 
-        static std::string searchPath = std::string(std::filesystem::current_path().c_str()) + "/../../" + shaderSearchPath;
+        std::string searchPath = std::string(std::filesystem::current_path().c_str()) + "/" + shaderSearchPath;
         const char* searchPathCStr = searchPath.c_str();
-        VH_LOG_DEBUG(searchPath.c_str());
-        static slang::SessionDesc sessionDesc = {};
+        VH_LOG_DEBUG("slang session search path: {}", searchPath.c_str());
+        slang::SessionDesc sessionDesc = {};
         sessionDesc.targets = &targetDesc;
         sessionDesc.targetCount = 1;
         sessionDesc.searchPaths = &searchPathCStr;
@@ -46,7 +44,20 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Shader::Impl>, VHResult> Shader::Impl::New(const Config& config)
     {
-        (void)config;
+        VH_LOG_INFO("Creating Shader Module Implementation");
+
+        if (config.device == nullptr)
+        {
+            VH_LOG_ERROR("Device Can't Be NULL!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        if (config.Stage == ShaderStages::UNDEFINED)
+        {
+            VH_LOG_ERROR("Shader Stage Can't Be UNDEFINED!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
         std::string filepath = config.Filepath;
         if (filepath == "")
         {
@@ -65,17 +76,16 @@ namespace VulkanHelper
             }
             if (!slangModule)
             {
-                return Unexpected(VHResult::INITIALIZATION_FAILED);
+                return Unexpected(VHResult::NO_SPECIFIED_SHADER_MODULE_FOUND);
             }
         }
 
         Slang::ComPtr<slang::IEntryPoint> entryPoint;
         {
-            Slang::ComPtr<slang::IBlob> diagnosticsBlob;
             SlangResult result = slangModule->findEntryPointByName("Main", entryPoint.writeRef());
             
             if (result < 0)
-                return Unexpected(VHResult::INITIALIZATION_FAILED);
+                return Unexpected(VHResult::NO_SPECIFIED_ENTRY_POINT_FOUND);
         }
 
         std::array<slang::IComponentType*, 2> componentTypes =
@@ -127,14 +137,13 @@ namespace VulkanHelper
             if (diagnosticsBlob != nullptr)
                 VH_LOG_ERROR((const char*)diagnosticsBlob->getBufferPointer());
             if (result < 0)
-                return Unexpected(VHResult::INITIALIZATION_FAILED);
+                return Unexpected(VHResult::SHADER_COMPILATION_FAILED);
         }
 
         std::vector<uint32_t> data;
         size_t codeSize = spirvCode->getBufferSize();
         data.resize(codeSize / 4);
         memcpy(data.data(), spirvCode->getBufferPointer(), codeSize);
-        VH_LOG_DEBUG((const char*)spirvCode->getBufferPointer());
 
         VkShaderModuleCreateInfo createInfo{};
 
@@ -144,27 +153,60 @@ namespace VulkanHelper
 
         VkShaderModule module;
 
-        vkCreateShaderModule(Device::Impl::GetImplementation(config.device)->GetDevice(), &createInfo, nullptr, &module);
+        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.device);
+        VkResult res = vkCreateShaderModule(deviceImpl->GetDevice(), &createInfo, nullptr, &module);
+        if (res != VK_SUCCESS)
+            return Unexpected(VHResult(res));
 
-        return Unexpected(VHResult::NOT_IMPLEMENTED);
+        return UniquePtr(new Impl(deviceImpl, module, (VkShaderStageFlagBits)config.Stage));
     }
 
     Shader::Impl::~Impl()
     {
-
+        if (m_Shader != nullptr)
+        {
+            VH_LOG_INFO("Destroying Shader Module Implementation");
+            vkDestroyShaderModule(m_Device->GetDevice(), m_Shader, nullptr);
+            m_Shader = nullptr;
+            m_Device = nullptr;
+        }
     }
 
     Shader::Impl::Impl(Impl&& other) noexcept
+        : m_Device(other.m_Device), m_Shader(other.m_Shader), m_Stage(other.m_Stage)
     {
-        (void) other;
+        other.m_Device = nullptr;
+        other.m_Shader = nullptr;
     }
 
     Shader::Impl& Shader::Impl::operator=(Impl&& other) noexcept
     {
         if (this == &other)
             return *this;
+
+        this->~Impl(); // Cleanup current state
+
+        m_Device = other.m_Device;
+        other.m_Device = nullptr;
+        m_Shader = other.m_Shader;
+        other.m_Shader = nullptr;
+        m_Stage = other.m_Stage;
         
         return *this;
+    }
+
+    VkPipelineShaderStageCreateInfo Shader::Impl::GetShaderStageCreateInfo() const
+    {
+        VkPipelineShaderStageCreateInfo stage;
+		stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		stage.stage = m_Stage;
+		stage.module = m_Shader;
+		stage.pName = "main";
+		stage.flags = 0;
+		stage.pNext = nullptr;
+		stage.pSpecializationInfo = nullptr;
+
+		return stage;
     }
 
     //

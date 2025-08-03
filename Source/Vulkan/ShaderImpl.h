@@ -2,6 +2,9 @@
 
 #include "Vulkan/Shader.h"
 
+#include "DeviceImpl.h"
+#include <vulkan/vulkan.h>
+
 namespace VulkanHelper
 {
     class Shader::Impl
@@ -17,6 +20,19 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const Shader* publicInterface) { return publicInterface->m_Impl.Get(); }
+
+        [[nodiscard]] inline VkShaderModule GetShaderModule() const { return m_Shader; }
+        [[nodiscard]] inline VkShaderStageFlagBits GetShaderStage() const { return m_Stage; }
+        [[nodiscard]] VkPipelineShaderStageCreateInfo GetShaderStageCreateInfo() const;
     private:
+        Device::Impl* m_Device;
+        VkShaderModule m_Shader;
+        VkShaderStageFlagBits m_Stage;
+
+        Impl(Device::Impl* device, VkShaderModule shader, VkShaderStageFlagBits stage)
+            : m_Device(device)
+            , m_Shader(shader)
+            , m_Stage(stage)
+        {}
     };
 }

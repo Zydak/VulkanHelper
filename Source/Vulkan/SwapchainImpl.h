@@ -34,6 +34,8 @@ namespace VulkanHelper
         [[nodiscard]] inline uint32_t GetCurrentFrameIndex() const { return m_CurrentFrameIndex; }
         [[nodiscard]] inline uint32_t GetFramesInFlight() const { return m_FramesInFlight; }
 
+        [[nodiscard]] inline Format GetSwapchainImageFormat() const { return m_Images[0].GetFormat(); }
+
     private:
 
         Impl(

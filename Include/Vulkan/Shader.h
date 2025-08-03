@@ -3,6 +3,7 @@
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/UniquePtr.h"
+#include "Core/Enums.h"
 #include "Vulkan/Device.h"
 
 namespace VulkanHelper
@@ -10,10 +11,12 @@ namespace VulkanHelper
     class Shader
     {
     public:
+
         struct Config
         {
             Device* device = nullptr;
             const char* Filepath = "";
+            ShaderStages Stage = ShaderStages::UNDEFINED;
         };
 
         static void InitializeSession(const char* shaderSearchPath);
