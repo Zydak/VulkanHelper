@@ -1,0 +1,99 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Core/Error.h"
+
+#include "vk_mem_alloc.h"
+
+namespace VulkanHelper
+{
+    class VulkanMemoryAllocator
+    {
+    public:
+        struct Config
+        {
+            VkDevice Device = nullptr;
+            VkInstance Instance = nullptr;
+            VkPhysicalDevice PhysicalDevice = nullptr;
+        };
+
+        struct BufferAllocation
+        {
+            VkBuffer Buffer = nullptr;
+            VmaAllocation Allocation;
+        };
+
+        struct ImageAllocation
+        {
+            VkImage image = nullptr;
+            VmaAllocation Allocation;
+        };
+
+        [[nodiscard]] static VulkanHelper::Expected<VulkanMemoryAllocator, VHResult> New(const Config& config);
+
+        VulkanMemoryAllocator(const VulkanMemoryAllocator& other) = delete;
+        VulkanMemoryAllocator& operator=(const VulkanMemoryAllocator& other) = delete;
+
+        VulkanMemoryAllocator(VulkanMemoryAllocator&& other) noexcept;
+        VulkanMemoryAllocator& operator=(VulkanMemoryAllocator&& other) noexcept;
+
+        ~VulkanMemoryAllocator();
+
+        /**
+         * @brief Allocate a buffer with the specified memory usage.
+         *
+         * @param bufferInfo Vulkan buffer creation info.
+         * @param allowCpuAccess Whether to create memory mapable or not.
+         * @return Expected<BufferAllocation, VHResult> Buffer allocation on success, or error on failure.
+         */
+        VulkanHelper::Expected<BufferAllocation, VHResult> AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowCpuAccess = false);
+
+        /**
+         * @brief Allocate an image with the specified memory usage.
+         *
+         * @param imageInfo Vulkan image creation info.
+         * @param allowCpuAccess Whether to create memory mapable or not.
+         * @return Expected<ImageAllocation, VHResult> Image allocation on success, or error on failure.
+         */
+        VulkanHelper::Expected<ImageAllocation, VHResult> AllocateImage(const VkImageCreateInfo& imageInfo, bool allowCpuAccess = false);
+
+        /**
+         * @brief Deallocate a previously allocated buffer.
+         *
+         * @param allocation Buffer allocation to deallocate.
+         */
+        void DeallocateBuffer(const BufferAllocation& allocation);
+
+        /**
+         * @brief Deallocate a previously allocated image.
+         *
+         * @param allocation Image allocation to deallocate.
+         */
+        void DeallocateImage(const ImageAllocation& allocation);
+
+        /**
+         * @brief Map buffer memory for CPU access.
+         *
+         * @param allocation Buffer allocation to map.
+         * @return Expected<void*, VHResult> Pointer to mapped memory on success, or error on failure.
+         */
+        [[nodiscard]] VulkanHelper::Expected<void*, VHResult> MapBuffer(const BufferAllocation& allocation);
+
+        /**
+         * @brief Unmap previously mapped buffer memory.
+         *
+         * @param allocation Buffer allocation to unmap.
+         */
+        void UnmapBuffer(const BufferAllocation& allocation);
+
+    private:
+        VmaAllocator m_Allocator;
+
+        /**
+         * @brief Private constructor - use New() to create instances.
+         *
+         * @param allocator VMA allocator handle.
+         */
+        explicit VulkanMemoryAllocator(VmaAllocator allocator);
+    };
+}

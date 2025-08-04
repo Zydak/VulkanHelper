@@ -7,22 +7,23 @@ namespace VulkanHelper
 {
     /**
      * @class PhysicalDevice
-     * @brief RAII wrapper for a Vulkan physical device.
-     *
-     * Manages the lifetime of a Vulkan physical device, providing functionality to check suitability.
+     * @brief RAII wrapper for a physical GPU device. Provides GPU capabilities querying and device suitability checking.
      */
     class PhysicalDevice
     {
     public:
+        /**
+         * @brief GPU vendor identifiers
+         */
         enum class Vendor
         {
-            NVIDIA,
-			AMD,
-			INTEL,
-			ImgTec,
-			ARM,
-			Qualcomm,
-			Unknown
+            NVIDIA,    ///< NVIDIA GPU
+            AMD,       ///< AMD GPU
+            INTEL,     ///< Intel GPU
+            ImgTec,    ///< Imagination Technologies GPU
+            ARM,       ///< ARM GPU
+            Qualcomm,  ///< Qualcomm GPU
+            Unknown    ///< Unknown vendor
         };
 
         ~PhysicalDevice();
@@ -34,33 +35,32 @@ namespace VulkanHelper
         PhysicalDevice& operator=(PhysicalDevice&& other) noexcept;
 
         /**
-         * @brief Checks if the physical device supports the required extensions and is suitable for use.
-         *
-         * This function evaluates whether the physical device meets the application's requirements by checking for the presence of the specified Vulkan extensions.
-         *
-         * @param extensions A vector of required Vulkan extension names.
-         * @return true if the device supports all required extensions and is suitable; false otherwise.
+         * @brief Checks if the device supports the specified Vulkan Device Extensions. Returns true if all required deviceExtensions are supported.
+         * 
+         * @param deviceExtensions List of required Vulkan device extension names
+         * @return true if device is suitable, false otherwise
+         * @note Device must have Vulkan driver installed
          */
-        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& extensions) const;
+        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
 
         /**
-         * @brief Gets the vendor of the physical device.
-         *
-         * @return Vendor The vendor enum value representing the GPU manufacturer.
+         * @brief Gets the GPU manufacturer identifier.
+         * 
+         * @return Vendor The GPU vendor enum value
          */
         [[nodiscard]] Vendor GetVendor() const;
 
         /**
-         * @brief Gets the name of the physical device.
-         *
-         * @return const char* The name of the GPU as reported by the Vulkan driver.
+         * @brief Gets the GPU device name as reported by the driver.
+         * 
+         * @return const char* The GPU device name
          */
         [[nodiscard]] const char* GetName() const;
 
         /**
-         * @brief Checks if the physical device is a discrete GPU.
-         *
-         * @return true if the device is discrete (dedicated GPU); false if integrated or otherwise.
+         * @brief Checks if this is a discrete (dedicated) GPU.
+         * 
+         * @return true if discrete GPU, false if integrated
          */
         [[nodiscard]] bool IsDiscrete() const;
 
@@ -69,6 +69,9 @@ namespace VulkanHelper
         friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
 
+        /**
+         * @brief Internal constructor used by Instance class
+         */
         PhysicalDevice(VulkanHelper::UniquePtr<Impl>&& impl);
 
         friend class Instance; // Allow Instance to construct PhysicalDevice

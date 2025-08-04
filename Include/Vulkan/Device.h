@@ -4,6 +4,7 @@
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
 #include "Vulkan/PhysicalDevice.h"
+#include "Instance.h"
 
 namespace VulkanHelper
 {
@@ -11,76 +12,94 @@ namespace VulkanHelper
     
     /**
      * @class Device
-     * @brief RAII wrapper for a Vulkan logical device.
-     *
-     * Manages the lifetime of a Vulkan logical device, including queues and command pools.
+     * @brief RAII wrapper for Vulkan logical device objects
+     * 
+     * Manages queues and device-level Vulkan operations.
      */
     class Device
     {
     public:
         /**
          * @struct Config
-         * @brief Configuration parameters for creating a Device instance.
-         *
-         * Specify the physical device to use and, optionally, a window for presentation support.
-         * Pass this struct to Device::New() to create a logical device and associated resources.
+         * @brief Configuration parameters for creating a logical device
          */
         struct Config
         {
             /**
-             * @brief The Vulkan physical device to use for logical device creation.
-             *
-             * This must be a valid and suitable physical device selected by the application.
+             * @brief Physical device to create the logical device from
+             * @note Must be a valid device that supports required features
              */
             VulkanHelper::PhysicalDevice PhysicalDevice;
 
             /**
-             * @brief Vector containing pointers to windows
-             *
-             * If vector is not empty, it queries support for presenting queue that supports all listed windows.
+             * @brief Windows that the device will present to
+             * @note If not empty, device will create presentation-capable queues
              */
             VulkanHelper::Vector<VulkanHelper::Window*> Windows;
-        };
 
-        struct QueueFamilyIndices
-        {
-            uint32_t GraphicsFamily = UINT32_MAX;
-            uint32_t ComputeFamily = UINT32_MAX;
-            uint32_t PresentFamily = UINT32_MAX;
+            /**
+             * @brief Vulkan instance to create the device from
+             * @note Must not be nullptr and must outlive this object
+             */
+            VulkanHelper::Instance* Instance = nullptr;
         };
 
         /**
-         * @brief Creates a new logical Vulkan device and associated queues/command pools.
-         *
-         * This static factory function attempts to create a logical device from the given physical device and optional window.
-         * It selects appropriate queue families for graphics, compute, and presentation, and creates command pools for each.
-         *
-         * @param config Configuration struct specifying the physical device and optional window for presentation support.
-         * @return VulkanHelper::Expected<Device, VHError> An expected containing the created Device on success, or a VHError on failure.
+         * @struct QueueFamilyIndices
+         * @brief Queue family indices for different types of operations
+         */
+        struct QueueFamilyIndices
+        {
+            uint32_t GraphicsFamily = UINT32_MAX;  ///< Index for graphics operations
+            uint32_t ComputeFamily = UINT32_MAX;   ///< Index for compute operations
+            uint32_t PresentFamily = UINT32_MAX;   ///< Index for presentation operations
+        };
+
+        /**
+         * @brief Creates a new logical device
+         * @param config Configuration parameters for the device
+         * @return Expected containing the created device or an error code
          */
         [[nodiscard]] static VulkanHelper::Expected<Device, VHResult> New(const Config& config);
+        /**
+         * @brief Destructor
+         */
         ~Device();
+
+        /**
+         * @brief Delete copy constructor
+         */
         Device(const Device& other) = delete;
+
+        /**
+         * @brief Delete copy assignment operator
+         */
         Device& operator=(const Device& other) = delete;
+
+        /**
+         * @brief Move constructor
+         */
         Device(Device&& other) noexcept;
+
+        /**
+         * @brief Move assignment operator
+         */
         Device& operator=(Device&& other) noexcept;
 
         /**
-         * @brief Gets the physical device associated with this logical device.
-         *
-         * @return Pointer to the PhysicalDevice object used to create this logical device.
+         * @brief Get the underlying physical device
+         * @return Reference to the physical device
          */
         [[nodiscard]] const PhysicalDevice& GetPhysicalDevice() const;
 
         /**
-         * @brief Gets the cached indices of the queue families.
-         *
-         * @return QueueFamilyIndices struct containing the indices.
+         * @brief Get queue family indices for different operations
+         * @return Queue family indices used by this device
          */
         [[nodiscard]] QueueFamilyIndices GetQueueFamilyIndices() const;
 
         /**
-         * @brief Blocks until all operations have finished.
+         * @brief Wait for all device operations to complete
          */
         void WaitUntilIdle() const;
 

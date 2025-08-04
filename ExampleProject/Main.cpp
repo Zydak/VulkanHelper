@@ -8,8 +8,9 @@
 
 #include "Vulkan/Shader.h"
 #include "Vulkan/Pipeline.h"
-
+#include "Vulkan/Buffer.h"
 #include <filesystem>
+#include "Vulkan/CommandPool.h"
 
 int main()
 {
@@ -49,7 +50,7 @@ int main()
     VulkanHelper::Vector<VulkanHelper::Window*> windows;
     windows.PushBack(&window);
 
-    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, std::move(windows)}).Value();
+    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, std::move(windows), &instance}).Value();
 
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
 
@@ -64,6 +65,22 @@ int main()
     pipelineConfig.Shaders.PushBack(&fragShader);
     pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
+
+    VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({&device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
+    VulkanHelper::CommandBuffer testCmdBuffer = commandPool.AllocateCommandBuffer({}).Value();
+    (void)testCmdBuffer.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
+
+    VulkanHelper::Buffer::Usage usage = VulkanHelper::Buffer::Usage::TRANSFER_SRC | VulkanHelper::Buffer::Usage::TRANSFER_DST;
+    VulkanHelper::Buffer buffer = VulkanHelper::Buffer::New({&device, nullptr, 5, usage, false}).Value();
+    int data = 59; 
+    (void)buffer.UploadData(&data, 4, 1, &testCmdBuffer);
+
+    int data1;
+    (void)buffer.DownloadData(&data1, 4, 1, &testCmdBuffer);
+    (void)testCmdBuffer.EndRecording();
+    (void)testCmdBuffer.SubmitAndWait();
+
+    VH_LOG_FATAL("DATA: {}", data1);
     
     while (!window.WantsToClose())
     {

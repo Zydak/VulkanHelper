@@ -84,7 +84,7 @@ namespace VulkanHelper
             return Unexpected(res);
 
         const uint32_t currentFrameIndex = m_Swapchain.GetCurrentFrameIndex();
-        res = m_CommandBuffers[currentFrameIndex].Begin(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
+        res = m_CommandBuffers[currentFrameIndex].BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
 
         if (res != VHResult::OK)
             return Unexpected(res);
@@ -97,7 +97,7 @@ namespace VulkanHelper
         const uint32_t currentFrameIndex = m_Swapchain.GetCurrentFrameIndex();
 
         m_Swapchain.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::PRESENT_SRC_KHR, m_CommandBuffers[currentFrameIndex], 0, 1);
-        VHResult res = m_CommandBuffers[currentFrameIndex].End();
+        VHResult res = m_CommandBuffers[currentFrameIndex].EndRecording();
         if (res != VHResult::OK)
             return res;
 

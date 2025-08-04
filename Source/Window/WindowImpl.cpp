@@ -27,11 +27,11 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
 
         VkSurfaceKHR surface = VK_NULL_HANDLE;
-        VkResult res = glfwCreateWindowSurface(config.Instance->GetInstance(), window, nullptr, &surface);
+        Instance::Impl* instanceImpl = Instance::Impl::GetImplementation(config.Instance);
+        VkResult res = glfwCreateWindowSurface(instanceImpl->GetInstance(), window, nullptr, &surface);
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
-        Instance::Impl* instanceImpl = Instance::Impl::GetImplementation(config.Instance);
         return VulkanHelper::UniquePtr(new Impl(instanceImpl, window, surface, VulkanHelper::Move(name), config.Width, config.Height));
     }
 

@@ -277,8 +277,4 @@ namespace VulkanHelper
         return m_Impl->GetSuitablePhysicalDevices();
     }
 
-    VkInstance Instance::GetInstance() const
-    {
-        return m_Impl->GetInstance();
-    }
 }

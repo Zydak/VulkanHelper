@@ -126,7 +126,6 @@ namespace VulkanHelper
 
     [[nodiscard]] Format ImageView::GetFormat() const { return m_Impl->GetFormat(); }
     [[nodiscard]] Image::Layout ImageView::GetLayout() const { return m_Impl->GetLayout(); }
-    [[nodiscard]] MemoryProperties ImageView::GetMemoryProperties() const { return m_Impl->GetMemoryProperties(); }
     [[nodiscard]] Image::Aspect ImageView::GetAspect() const { return m_Impl->GetAspect(); }
         
     [[nodiscard]] uint32_t ImageView::GetWidth() const { return m_Impl->GetWidth(); }

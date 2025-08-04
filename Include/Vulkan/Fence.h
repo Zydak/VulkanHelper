@@ -9,44 +9,43 @@ namespace VulkanHelper
     class Device;
 
     /**
-    * @class Fence
-    * @brief Vulkan synchronization primitive wrapper.
-    *
-    * Provides a RAII wrapper for Vulkan fences, allowing for easy waiting and resetting.
-    */
+     * @class Fence
+     * @brief RAII wrapper for Vulkan fence objects
+     * 
+     * Provides CPU-GPU synchronization.
+     */
     class Fence
     {
     public:
         /**
-        * @struct Config
-        * @brief Configuration parameters for creating a Fence instance.
-        */
+         * @struct Config
+         * @brief Configuration parameters for creating a fence
+         */
         struct Config
         {
             /**
-            * @brief Pointer to the logical Vulkan device to use for fence creation.
-            *
-            * @note Cannot be nullptr.
-            */
+             * @brief Device to create the fence on
+             * @note Must not be nullptr and must outlive this object
+             */
             VulkanHelper::Device* Device = nullptr;
 
             /**
-            * @brief Whether the fence should start in the signaled state.
-            */
+             * @brief Initial state of the fence
+             * @note When true, fence starts signaled and doesn't need initial wait
+             */
             bool StartSignaled = true;
         };
 
         /**
-        * @brief Creates a new Fence instance with the specified configuration.
-        *
-        * This static factory function attempts to create a Fence according to the provided configuration.
-        * If successful, it returns a Fence object; otherwise, it returns a VHResult describing the failure.
-        *
-        * @param config The configuration struct specifying fence creation options.
-        * @return VulkanHelper::Expected<Fence, VHResult> An expected containing the created Fence on success, or a VHResult on failure.
-        */
+         * @brief Creates a new fence
+         * @param config Configuration parameters for the fence
+         * @return Expected containing the created fence or an error code
+         */
         [[nodiscard]] static Expected<Fence, VHResult> New(const Config& config);
 
+        /**
+         * @brief Delete copy constructor
+         */
         Fence(const Fence& other) = delete;
         Fence& operator=(const Fence& other) = delete;
 
@@ -84,11 +83,7 @@ namespace VulkanHelper
     private:
         friend class Impl;
         VulkanHelper::UniquePtr<Impl> m_Impl;
-        
-        /**
-        * @brief Private constructor used by the factory function.
-        * @param impl Implementation pointer.
-        */
+
         Fence(UniquePtr<Impl>&& impl);
     };
 }

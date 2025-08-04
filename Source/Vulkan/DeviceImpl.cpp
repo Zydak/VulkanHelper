@@ -18,6 +18,12 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
+        if (config.Instance == nullptr)
+        {
+            VH_LOG_ERROR("Instance Pointer Can't be NULL!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
         VulkanHelper::Vector<const char*> extensions;
         extensions.PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 
@@ -106,7 +112,10 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return UniquePtr<Impl>(new Impl(config.PhysicalDevice, device, VulkanHelper::Move(indices)));
+        Instance::Impl* instanceImpl = Instance::Impl::GetImplementation(config.Instance);
+        VulkanMemoryAllocator allocator = VulkanMemoryAllocator::New({device, instanceImpl->GetInstance(), physicalDeviceImpl->GetDevice()}).Value();
+
+        return UniquePtr<Impl>(new Impl(instanceImpl, device, Move(config.PhysicalDevice), Move(indices), Move(allocator)));
     }
 
     Device::Impl::~Impl()
@@ -114,15 +123,20 @@ namespace VulkanHelper
         if (m_Device != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying device implementation");
+
+            m_Allocator.~VulkanMemoryAllocator(); // Allocator has to be destroyed before the device
+
             vkDestroyDevice(m_Device, nullptr);
             m_Device = nullptr;
         }
     }
 
     Device::Impl::Impl(Impl&& other) noexcept
-        : m_PhysicalDevice(VulkanHelper::Move(other.m_PhysicalDevice)), 
-          m_Device(other.m_Device),
-          m_QueueFamilyIndices(VulkanHelper::Move(other.m_QueueFamilyIndices))
+        : m_Instance(other.m_Instance)
+        , m_Device(other.m_Device)
+        , m_PhysicalDevice(Move(other.m_PhysicalDevice))
+        , m_QueueFamilyIndices(Move(other.m_QueueFamilyIndices))
+        , m_Allocator(Move(other.m_Allocator))
     {
         other.m_Device = nullptr;
     }
@@ -134,11 +148,13 @@ namespace VulkanHelper
 
         this->~Impl(); // Clean up current state
 
-        m_PhysicalDevice = VulkanHelper::Move(other.m_PhysicalDevice);
+        m_Instance = other.m_Instance;
+        other.m_Instance = nullptr;
         m_Device = other.m_Device;
-        m_QueueFamilyIndices = VulkanHelper::Move(other.m_QueueFamilyIndices);
-
         other.m_Device = nullptr;
+        m_PhysicalDevice = Move(other.m_PhysicalDevice);
+        m_QueueFamilyIndices = Move(other.m_QueueFamilyIndices);
+        m_Allocator = Move(other.m_Allocator);
 
         return *this;
     }
@@ -192,6 +208,38 @@ namespace VulkanHelper
     void Device::Impl::WaitUntilIdle() const
     {
         vkDeviceWaitIdle(m_Device);
+    }
+
+    VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> 
+    Device::Impl::AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowCpuAccess)
+    {
+        return m_Allocator.AllocateBuffer(bufferInfo, allowCpuAccess);
+    }
+
+    VulkanHelper::Expected<VulkanMemoryAllocator::ImageAllocation, VHResult> 
+    Device::Impl::AllocateImage(const VkImageCreateInfo& imageInfo, bool allowCpuAccess)
+    {
+        return m_Allocator.AllocateImage(imageInfo, allowCpuAccess);
+    }
+
+    void Device::Impl::DeallocateBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation)
+    {
+        m_Allocator.DeallocateBuffer(allocation);
+    }
+
+    void Device::Impl::DeallocateImage(const VulkanMemoryAllocator::ImageAllocation& allocation)
+    {
+        m_Allocator.DeallocateImage(allocation);
+    }
+
+    VulkanHelper::Expected<void*, VHResult> Device::Impl::MapBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation)
+    {
+        return m_Allocator.MapBuffer(allocation);
+    }
+
+    void Device::Impl::UnmapBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation)
+    {
+        m_Allocator.UnmapBuffer(allocation);
     }
 
     //

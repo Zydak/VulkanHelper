@@ -41,6 +41,12 @@ FetchContent_Declare(
     GIT_TAG v1.4.321
 )
 
+FetchContent_Declare(
+    VulkanMemoryAllocator
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG v3.3.0
+)
+
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 
@@ -49,6 +55,8 @@ suppress_warnings(fmt)
 
 FetchContent_MakeAvailable(glm)
 suppress_warnings(glm)
+
+FetchContent_MakeAvailable(VulkanMemoryAllocator)
 
 FetchContent_MakeAvailable(Vulkan-Headers)
 FetchContent_MakeAvailable(Vulkan-Loader)

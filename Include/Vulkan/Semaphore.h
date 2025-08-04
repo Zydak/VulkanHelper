@@ -8,27 +8,33 @@ namespace VulkanHelper
 {
     class Device;
 
+    /**
+     * @class Semaphore
+     * @brief RAII wrapper for a Vulkan synchronization semaphore. Used for GPU queue synchronization.
+     */
     class Semaphore
     {
     public:
         /**
-        * @struct Config
-        * @brief Configuration parameters for creating a Semaphore instance.
-        *
-        * Specify the logical device to use for semaphore creation (can't be nullptr).
-        */
+         * @brief Configuration for semaphore creation
+         */
         struct Config
         {
+            /**
+             * @brief The logical device that will own this semaphore
+             * 
+             * @note Must not be nullptr and must outlive this object
+             */
             VulkanHelper::Device* Device = nullptr;
         };
 
         /**
-        * @brief Creates a new Semaphore instance with the specified configuration.
-        *
-        * @param config The configuration struct specifying semaphore creation options.
-        *
-        * @return Expected<Semaphore, VHResult> An expected containing the created Semaphore on success, or a VHResult on failure.
-        */
+         * @brief Creates a new binary semaphore for GPU queue synchronization.
+         * 
+         * @param config Semaphore creation configuration
+         * @return Expected<Semaphore, VHResult> The created semaphore or error code
+         * @note Device must be valid
+         */
         [[nodiscard]] static Expected<Semaphore, VHResult> New(const Config& config);
 
         Semaphore(const Semaphore& other) = delete;

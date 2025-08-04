@@ -5,34 +5,34 @@
 #include "Core/UniquePtr.h"
 #include "Core/Vector.h"
 
-typedef struct VkInstance_T* VkInstance;
-
 namespace VulkanHelper
 {
     class PhysicalDevice;
 
     /**
      * @class Instance
-     * @brief RAII wrapper for a Vulkan instance.
-     *
-     * Manages the lifetime of a Vulkan instance, providing functionality to create and query physical devices.
+     * @brief RAII wrapper for a Vulkan instance. Manages the lifetime and functionality of a VkInstance object.
      */
     class Instance
     {
     public:
+        /**
+         * @brief Configuration options for Instance creation
+         */
         struct Config
         {
+            /**
+             * @brief When true, adds GLFW-required instance extensions to the creation info
+             */
             bool AddGLFWExtensions = false;
         };
 
         /**
          * @brief Creates a new Vulkan instance with the specified configuration.
-         *
-         * This static factory function attempts to create a Vulkan instance according to the provided configuration.
-         * If successful, it returns an Instance object; otherwise, it returns a VHError describing the failure.
-         *
-         * @param config The configuration struct specifying instance creation options, such as whether to add GLFW extensions.
-         * @return VulkanHelper::Expected<Instance, VHError> An expected containing the created Instance on success, or a VHError on failure.
+         * 
+         * @param config Configuration options for instance creation
+         * @return VulkanHelper::Expected<Instance, VHResult> The created Instance or error code
+         * @note Requires valid Vulkan installation
          */
         static VulkanHelper::Expected<Instance, VHResult> New(const Config& config);
 
@@ -43,22 +43,11 @@ namespace VulkanHelper
         Instance& operator=(Instance&& other) noexcept;
 
         /**
-         * @brief Finds all suitable physical devices for the given extension requirements.
-         *
-         * This function enumerates all available Vulkan physical devices and checks if they support the required extensions.
-         * Only devices that meet the requirements are returned in the result vector.
-         *
-         * @param deviceExtensions A vector of required Vulkan Device Extension names.
-         * @return VulkanHelper::Vector<PhysicalDevice> A vector of suitable PhysicalDevice objects.
+         * @brief Enumerates all physical devices that meet Vulkan requirements. Returns a vector of suitable PhysicalDevice objects.
+         * 
+         * @return VulkanHelper::Vector<PhysicalDevice> List of suitable physical devices
          */
         VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices() const;
-
-        /**
-         * @brief Retrieves the underlying Vulkan VkInstance handle.
-         *
-         * @return VkInstance The Vulkan instance handle managed by this object.
-         */
-        [[nodiscard]] VkInstance GetInstance() const;
 
         ~Instance();
 

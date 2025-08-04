@@ -20,8 +20,8 @@ namespace VulkanHelper
 
         [[nodiscard]] inline static Impl* GetImplementation(const CommandBuffer* publicInterface) { return publicInterface->m_Impl.Get(); }
 
-        [[nodiscard]] VHResult Begin(Usage usageFlags);
-        [[nodiscard]] VHResult End();
+        [[nodiscard]] VHResult BeginRecording(Usage usageFlags);
+        [[nodiscard]] VHResult EndRecording();
 
         [[nodiscard]] VHResult SubmitAndWait();
         [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence);

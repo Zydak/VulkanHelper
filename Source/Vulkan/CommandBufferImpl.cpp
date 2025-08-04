@@ -42,7 +42,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    VHResult CommandBuffer::Impl::Begin(Usage usageFlags)
+    VHResult CommandBuffer::Impl::BeginRecording(Usage usageFlags)
     {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -51,7 +51,7 @@ namespace VulkanHelper
         return (VHResult)vkBeginCommandBuffer(m_CommandBuffer, &beginInfo);
     }
 
-    VHResult CommandBuffer::Impl::End()
+    VHResult CommandBuffer::Impl::EndRecording()
     {
         return (VHResult)vkEndCommandBuffer(m_CommandBuffer);
     }
@@ -98,6 +98,7 @@ namespace VulkanHelper
         }
 
         VkFence fenceVk = VK_NULL_HANDLE;
+        if (fence != nullptr)
         {
             Fence::Impl* fenceImpl = Fence::Impl::GetImplementation(fence);
             fenceVk = fenceImpl->GetFenceHandle();
@@ -144,14 +145,14 @@ namespace VulkanHelper
         
     }
 
-    VHResult CommandBuffer::Begin(Usage usageFlags)
+    VHResult CommandBuffer::BeginRecording(Usage usageFlags)
     {
-        return m_Impl->Begin(usageFlags);
+        return m_Impl->BeginRecording(usageFlags);
     }
 
-    VHResult CommandBuffer::End()
+    VHResult CommandBuffer::EndRecording()
     {
-        return m_Impl->End();
+        return m_Impl->EndRecording();
     }
     
     VHResult CommandBuffer::SubmitAndWait()

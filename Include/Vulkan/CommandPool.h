@@ -12,100 +12,94 @@ namespace VulkanHelper
     class Device;
     
     /**
-    * @class CommandPool
-    * @brief Vulkan command pool wrapper.
-    *
-    * Provides a RAII wrapper for Vulkan command pools, allowing for allocation of command buffers.
-    */
+     * @class CommandPool
+     * @brief RAII wrapper for Vulkan command pool objects
+     * 
+     * Manages allocation and lifecycle of command buffers.
+     */
     class CommandPool
     {
     public:
         /**
-        * @enum Flags
-        * @brief Flags for command pool creation.
-        */
+         * @enum Flags
+         * @brief Specifies command pool behavior
+         */
         enum class Flags
         {
-            TRANSIENT_BIT = 0x00000001,
-            RESET_COMMAND_BUFFER_BIT = 0x00000002,
-            PROTECTED_BIT = 0x00000004,
+            TRANSIENT_BIT = 0x00000001,             ///< Pool allocates short-lived command buffers
+            RESET_COMMAND_BUFFER_BIT = 0x00000002,   ///< Command buffers can be individually reset
+            PROTECTED_BIT = 0x00000004,             ///< Command buffers are protected
         };
 
         /**
-        * @struct Config
-        * @brief Configuration parameters for creating a CommandPool instance.
-        *
-        * Specify the logical device, flags, and queue family index.
-        */
+         * @struct Config
+         * @brief Configuration parameters for creating a command pool
+         */
         struct Config
         {
             /**
-            * @brief Pointer to the logical Vulkan device to use for command pool creation.
-            *
-            * @note Cannot be nullptr.
-            */
+             * @brief Device to create the command pool on
+             * @note Must not be nullptr and must outlive this object
+             */
             VulkanHelper::Device* Device = nullptr;
 
             /**
-            * @brief Flags controlling command pool behavior.
-            */
+             * @brief Flags controlling command pool behavior
+             * @note Affects performance and functionality of allocated command buffers
+             */
             VulkanHelper::CommandPool::Flags Flags = VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT;
 
             /**
-            * @brief Queue family index for the command pool.
-            */
+             * @brief Queue family index for command buffer allocation
+             * @note Must be a valid queue family index from the physical device
+             */
             uint32_t QueueFamilyIndex = UINT32_MAX;
         };
 
+        /**
+         * @brief Delete copy constructor
+         */
         CommandPool(const CommandPool& other) = delete;
+
+        /**
+         * @brief Delete copy assignment operator
+         */
         CommandPool& operator=(const CommandPool& other) = delete;
 
         /**
-        * @brief Move constructor. Takes ownership of another CommandPool's resources.
-        * @param other The CommandPool to move from.
-        */
+         * @brief Move constructor
+         */
         CommandPool(CommandPool&& other) noexcept;
 
         /**
-        * @brief Move assignment operator. Takes ownership of another CommandPool's resources.
-        * @param other The CommandPool to move from.
-        * @return Reference to this CommandPool.
-        */
+         * @brief Move assignment operator
+         */
         CommandPool& operator=(CommandPool&& other) noexcept;
 
         /**
-        * @brief Destructor. Destroys the CommandPool and releases resources.
-        */
+         * @brief Destructor
+         */
         ~CommandPool();
 
         /**
-        * @brief Creates a new CommandPool instance with the specified configuration.
-        *
-        * This static factory function attempts to create a CommandPool according to the provided configuration.
-        * If successful, it returns a CommandPool object; otherwise, it returns a VHResult describing the failure.
-        *
-        * @param config The configuration struct specifying command pool creation options.
-        * @return VulkanHelper::Expected<CommandPool, VHResult> An expected containing the created CommandPool on success, or a VHResult on failure.
-        */
+         * @brief Creates a new command pool
+         * @param config Configuration parameters for the command pool
+         * @return Expected containing the created command pool or an error code
+         */
         [[nodiscard]] static VulkanHelper::Expected<CommandPool, VHResult> New(const Config& config);
 
         /**
-        * @brief Allocates a command buffer from the pool.
-        *
-        * @param config The configuration struct specifying command buffer allocation options.
-        * @return VulkanHelper::Expected<CommandBuffer, VHResult> An expected containing the allocated CommandBuffer on success, or a VHResult on failure.
-        */
+         * @brief Allocates a command buffer from the pool
+         * @param config Configuration parameters for the command buffer
+         * @return Expected containing the allocated command buffer or an error code
+         */
         [[nodiscard]] VulkanHelper::Expected<CommandBuffer, VHResult> AllocateCommandBuffer(const CommandBuffer::Config& config) const;
 
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        VulkanHelper::UniquePtr<Impl> m_Impl; 
 
-        /**
-        * @brief Private constructor used by the factory function.
-        * @param impl Implementation pointer.
-        */
         CommandPool(VulkanHelper::UniquePtr<Impl>&& impl);
     };
 
