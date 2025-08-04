@@ -28,7 +28,6 @@ namespace VulkanHelper
 
         [[nodiscard]] inline Format GetFormat() const { return m_Image->GetFormat(); }
         [[nodiscard]] inline Image::Layout GetLayout() const { return m_Image->GetLayout(); }
-        [[nodiscard]] inline MemoryProperties GetMemoryProperties() const { return m_Image->GetMemoryProperties(); }
         [[nodiscard]] inline Image::Aspect GetAspect() const { return m_Image->GetAspect(); }
         
         [[nodiscard]] inline uint32_t GetWidth() const { return m_Image->GetWidth(); }

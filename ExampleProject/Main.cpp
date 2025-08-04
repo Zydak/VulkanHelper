@@ -81,6 +81,28 @@ int main()
     (void)testCmdBuffer.SubmitAndWait();
 
     VH_LOG_FATAL("DATA: {}", data1);
+
+    data = 420;
+
+    VulkanHelper::Image::Config imageInfo{};
+    imageInfo.Device = &device;
+    imageInfo.Width = 1;
+    imageInfo.Height = 1;
+    imageInfo.Format = VulkanHelper::Format::R8G8B8A8_UNORM;
+    imageInfo.Usage = VulkanHelper::Image::Usage::TRANSFER_SRC_BIT | VulkanHelper::Image::Usage::TRANSFER_DST_BIT;
+    imageInfo.UsePersistentStagingBuffer = false;
+    //imageInfo.Tiling = VulkanHelper::Image::Tiling::LINEAR;
+    //imageInfo.AllowMapping = true;
+    VulkanHelper::Image testImage = VulkanHelper::Image::New(imageInfo).Value();
+    (void)testCmdBuffer.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
+
+    (void)testImage.UploadData(&data, 4, 0, &testCmdBuffer);
+
+    (void)testImage.TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_SRC_OPTIMAL, testCmdBuffer);
+    (void)testImage.DownloadData(&data1, 4, 0, &testCmdBuffer);
+    (void)testCmdBuffer.EndRecording();
+    (void)testCmdBuffer.SubmitAndWait();
+    VH_LOG_FATAL("DATA: {}", data1);
     
     while (!window.WantsToClose())
     {

@@ -191,7 +191,6 @@ namespace VulkanHelper
                 deviceImpl,
                 (Format)chosenFormat.format,
                 Image::Layout::UNDEFINED,
-                MemoryProperties::UNDEFINED,
                 Image::Aspect::COLOR_BIT,
                 config.Window->GetWidth(),
                 config.Window->GetHeight(),

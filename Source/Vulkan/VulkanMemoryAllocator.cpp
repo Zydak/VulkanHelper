@@ -81,11 +81,11 @@ namespace VulkanHelper
     }
 
     VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> 
-    VulkanMemoryAllocator::AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowCpuAccess)
+    VulkanMemoryAllocator::AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowMapping)
     {
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        if (allowCpuAccess)
+        if (allowMapping)
             allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
         BufferAllocation allocation = {};
@@ -101,11 +101,11 @@ namespace VulkanHelper
     }
 
     VulkanHelper::Expected<VulkanMemoryAllocator::ImageAllocation, VHResult> 
-    VulkanMemoryAllocator::AllocateImage(const VkImageCreateInfo& imageInfo, bool allowCpuAccess)
+    VulkanMemoryAllocator::AllocateImage(const VkImageCreateInfo& imageInfo, bool allowMapping)
     {
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        if (allowCpuAccess)
+        if (allowMapping)
             allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
         ImageAllocation allocation = {};
@@ -130,10 +130,10 @@ namespace VulkanHelper
         vmaDestroyImage(m_Allocator, allocation.image, allocation.Allocation);
     }
 
-    VulkanHelper::Expected<void*, VHResult> VulkanMemoryAllocator::MapBuffer(const BufferAllocation& allocation)
+    VulkanHelper::Expected<void*, VHResult> VulkanMemoryAllocator::MapMemory(const VmaAllocation& allocation)
     {
         void* mappedData;
-        VkResult result = vmaMapMemory(m_Allocator, allocation.Allocation, &mappedData);
+        VkResult result = vmaMapMemory(m_Allocator, allocation, &mappedData);
         if (result != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to map buffer memory using VMA");
@@ -143,8 +143,8 @@ namespace VulkanHelper
         return mappedData;
     }
 
-    void VulkanMemoryAllocator::UnmapBuffer(const BufferAllocation& allocation)
+    void VulkanMemoryAllocator::UnmapMemory(const VmaAllocation& allocation)
     {
-        vmaUnmapMemory(m_Allocator, allocation.Allocation);
+        vmaUnmapMemory(m_Allocator, allocation);
     }
 }

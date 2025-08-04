@@ -38,6 +38,7 @@ namespace VulkanHelper
         NO_SPECIFIED_ENTRY_POINT_FOUND = -15002,    ///< The specified entry point was not found in the shader module.
         NO_SPECIFIED_SHADER_MODULE_FOUND = -15003,  ///< The specified shader module was not found.
         SHADER_COMPILATION_FAILED = -15004,         ///< Shader compilation failed due to syntax or semantic errors.
+        WRONG_IMAGE_LAYOUT = -15005,                ///< Image is in the wrong layout, Transition it to a layout specified by error message.
 
         
         // Vulkan extensions and platform-specific errors

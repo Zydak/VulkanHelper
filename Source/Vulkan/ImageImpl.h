@@ -4,6 +4,7 @@
 #include "Vulkan/Swapchain.h"
 
 #include "DeviceImpl.h"
+#include "VulkanMemoryAllocator.h"
 
 typedef struct VkImage_T* VkImage;
 
@@ -28,7 +29,6 @@ namespace VulkanHelper
 
         [[nodiscard]] inline Format GetFormat() const { return m_Format; }
         [[nodiscard]] inline Layout GetLayout() const { return m_Layout; }
-        [[nodiscard]] inline MemoryProperties GetMemoryProperties() const { return m_MemoryProperties; }
         [[nodiscard]] inline Aspect GetAspect() const { return m_Aspect; }
         
         [[nodiscard]] inline uint32_t GetWidth() const { return m_Width; }
@@ -36,16 +36,21 @@ namespace VulkanHelper
         [[nodiscard]] inline uint32_t GetLayerCount() const { return m_LayerCount; }
         [[nodiscard]] inline uint32_t GetMipCount() const { return m_MipCount; }
 
-        [[nodiscard]] inline VkImage GetImage() const { return m_Image; }
+        [[nodiscard]] inline VkImage GetImage() const { return m_Allocation.image; }
 
         void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount);
-    private:
 
+        [[nodiscard]] Expected<void*, VHResult> Map();
+        void Unmap();
+        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
+
+        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr) const;
+
+    private:
         Device::Impl* m_Device;
 
         Format m_Format;
         Layout m_Layout;
-        MemoryProperties m_MemoryProperties;
         Aspect m_Aspect;
 
         uint32_t m_Width;
@@ -53,29 +58,56 @@ namespace VulkanHelper
         uint32_t m_LayerCount;
         uint32_t m_MipCount;
 
-        VkImage m_Image;
+        bool m_Mapable;
 
-        Impl(Device::Impl* device,
+        VulkanMemoryAllocator::ImageAllocation m_Allocation;
+        VulkanMemoryAllocator::BufferAllocation m_StagingBufferAllocation;
+
+        explicit Impl(Device::Impl* device,
             Format format,
             Layout layout,
-            MemoryProperties memoryProp,
             Aspect aspect,
             uint32_t width,
             uint32_t height,
-            uint32_t layoutCount,
+            uint32_t layerCount,
+            uint32_t mipCount,
+            bool mapable,
+            VulkanMemoryAllocator::ImageAllocation&& allocation,
+            VulkanMemoryAllocator::BufferAllocation&& stagingBuffer
+        )
+            : m_Device(device)
+            , m_Format(format)
+            , m_Layout(layout)
+            , m_Aspect(aspect)
+            , m_Width(width)
+            , m_Height(height)
+            , m_LayerCount(layerCount)
+            , m_MipCount(mipCount)
+            , m_Mapable(mapable)
+            , m_Allocation(Move(allocation))
+            , m_StagingBufferAllocation(Move(stagingBuffer))
+        {}
+
+        // Special case, alternative constructor for swapchain
+        explicit Impl(Device::Impl* device,
+            Format format,
+            Layout layout,
+            Aspect aspect,
+            uint32_t width,
+            uint32_t height,
+            uint32_t layerCount,
             uint32_t mipCount,
             VkImage image
         )
             : m_Device(device)
             , m_Format(format)
             , m_Layout(layout)
-            , m_MemoryProperties(memoryProp)
             , m_Aspect(aspect)
             , m_Width(width)
             , m_Height(height)
-            , m_LayerCount(layoutCount)
+            , m_LayerCount(layerCount)
             , m_MipCount(mipCount)
-            , m_Image(image)
+            , m_Allocation({image, nullptr})
         {}
 
         // Swapchain needs to be able to construct image from raw VkImage handle given by the VkSwapchain

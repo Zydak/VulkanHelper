@@ -57,19 +57,19 @@ namespace VulkanHelper
         void DeallocateImage(const VulkanMemoryAllocator::ImageAllocation& allocation);
 
         /**
-         * @brief Map buffer memory for CPU access.
+         * @brief Map memory for CPU access.
          *
-         * @param allocation Buffer allocation to map.
+         * @param allocation Allocation to map.
          * @return Expected<void*, VHResult> Pointer to mapped memory on success, or error on failure.
          */
-        [[nodiscard]] VulkanHelper::Expected<void*, VHResult> MapBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation);
+        [[nodiscard]] VulkanHelper::Expected<void*, VHResult> MapMemory(const VmaAllocation& allocation);
 
         /**
-         * @brief Unmap previously mapped buffer memory.
+         * @brief Unmap previously mapped memory.
          *
-         * @param allocation Buffer allocation to unmap.
+         * @param allocation Allocation to unmap.
          */
-        void UnmapBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation);
+        void UnmapMemory(const VmaAllocation& allocation);
     private:
 
         Instance::Impl* m_Instance;

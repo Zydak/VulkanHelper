@@ -217,9 +217,9 @@ namespace VulkanHelper
     }
 
     VulkanHelper::Expected<VulkanMemoryAllocator::ImageAllocation, VHResult> 
-    Device::Impl::AllocateImage(const VkImageCreateInfo& imageInfo, bool allowCpuAccess)
+    Device::Impl::AllocateImage(const VkImageCreateInfo& imageInfo, bool allowMapping)
     {
-        return m_Allocator.AllocateImage(imageInfo, allowCpuAccess);
+        return m_Allocator.AllocateImage(imageInfo, allowMapping);
     }
 
     void Device::Impl::DeallocateBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation)
@@ -232,14 +232,14 @@ namespace VulkanHelper
         m_Allocator.DeallocateImage(allocation);
     }
 
-    VulkanHelper::Expected<void*, VHResult> Device::Impl::MapBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation)
+    VulkanHelper::Expected<void*, VHResult> Device::Impl::MapMemory(const VmaAllocation& allocation)
     {
-        return m_Allocator.MapBuffer(allocation);
+        return m_Allocator.MapMemory(allocation);
     }
 
-    void Device::Impl::UnmapBuffer(const VulkanMemoryAllocator::BufferAllocation& allocation)
+    void Device::Impl::UnmapMemory(const VmaAllocation& allocation)
     {
-        m_Allocator.UnmapBuffer(allocation);
+        m_Allocator.UnmapMemory(allocation);
     }
 
     //

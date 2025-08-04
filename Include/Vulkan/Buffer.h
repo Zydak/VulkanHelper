@@ -78,7 +78,7 @@ namespace VulkanHelper
 
             /**
              * @brief Whether to use persistent staging
-             * @note Improves performance for frequent updates to GPU-only buffers
+             * @note Improves performance for frequent CPU writes to GPU-only buffers, but doubles the memory size cost
              */
             bool UsePersistentStagingBuffer = false;
 

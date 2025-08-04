@@ -58,10 +58,10 @@ namespace VulkanHelper
             formattedStr = fmt::format(fmt::runtime(formattedStr), args...);
             
             if (m_ConsoleVerbosity >= verbosity)
-                fmt::print(style, fmt::runtime(formattedStr));
+                fmt::print(style, "{}", formattedStr);
 
             if (m_FileVerbosity >= verbosity)
-                m_LogFileOutput.print(fmt::runtime(formattedStr));
+                m_LogFileOutput.print("{}", formattedStr);
         }
 
         /**

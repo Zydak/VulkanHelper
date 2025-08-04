@@ -39,39 +39,10 @@ namespace VulkanHelper
             return publicInterface->m_Impl.Get(); 
         }
 
-        /**
-         * @brief Gets the device used to create this buffer.
-         *
-         * @return Pointer to the device implementation.
-         */
         [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
-
-        /**
-         * @brief Gets the native Vulkan buffer handle.
-         *
-         * @return VkBuffer handle.
-         */
         [[nodiscard]] inline VkBuffer GetBuffer() const { return m_BufferAllocation.Buffer; }
-
-        /**
-         * @brief Gets the size of the buffer in bytes.
-         *
-         * @return Size of the buffer in bytes.
-         */
         [[nodiscard]] inline uint64_t GetSize() const { return m_Size; }
-
-        /**
-         * @brief Gets the usage flags of the buffer.
-         *
-         * @return Buffer usage flags.
-         */
         [[nodiscard]] inline Usage GetUsage() const { return m_Usage; }
-
-        /**
-         * @brief Check if the buffer memory is currently mapped.
-         *
-         * @return True if the buffer is mapped, false otherwise.
-         */
         [[nodiscard]] inline bool IsMapped() const { return m_MappedData != nullptr; }
 
         /**

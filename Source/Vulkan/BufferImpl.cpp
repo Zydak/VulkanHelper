@@ -100,7 +100,7 @@ namespace VulkanHelper
             config.CpuMapable,
             scratchBuffer
         ));
-        
+
         return impl;
     }
 
@@ -188,7 +188,7 @@ namespace VulkanHelper
         // For CPU-accessible memory, map and copy directly
         if (m_Mapable)
         {
-            auto mapResult = m_Device->MapBuffer(m_BufferAllocation);
+            auto mapResult = m_Device->MapMemory(m_BufferAllocation.Allocation);
             if (!mapResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to map buffer memory for upload using VMA");
@@ -197,7 +197,7 @@ namespace VulkanHelper
 
             void* mappedData = mapResult.Value();
             memcpy(static_cast<char*>(mappedData) + offset, data, size);
-            m_Device->UnmapBuffer(m_BufferAllocation);
+            m_Device->UnmapMemory(m_BufferAllocation.Allocation);
         }
         else
         {
@@ -232,7 +232,7 @@ namespace VulkanHelper
             }
 
             // Map scratch buffer and copy data
-            auto mapResult = m_Device->MapBuffer(scratchAllocation);
+            auto mapResult = m_Device->MapMemory(scratchAllocation.Allocation);
             if (!mapResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to map scratch buffer for upload");
@@ -244,7 +244,7 @@ namespace VulkanHelper
             void* scratchMappedData = mapResult.Value();
             uint64_t scratchOffset = hasScratchBuffer ? offset : 0;
             memcpy(static_cast<char*>(scratchMappedData) + scratchOffset, data, size);
-            m_Device->UnmapBuffer(scratchAllocation);
+            m_Device->UnmapMemory(scratchAllocation.Allocation);
 
             // Copy from scratch buffer to main buffer using GPU
             CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(cmd);
@@ -259,8 +259,8 @@ namespace VulkanHelper
             
             if (useTemporaryStaging)
             {
-                // Unfortunately if we're using temporary stagin buffer, the copy command has to be exectured BEFORE the buffer is dealocated.
-                // Which means the cmd has to end, submit and start again before the scratch can be dealocated.
+                // Unfortunately if we're using temporary staging buffer, the copy command has to be executed BEFORE the buffer is dealocated.
+                // Which means the cmd has to end, submit and start again before the staging buffer can be dealocated.
                 VHResult res = cmd->EndRecording();
                 if (res != VHResult::OK)
                 {
@@ -307,7 +307,7 @@ namespace VulkanHelper
         // For CPU-accessible memory, map and copy directly
         if (m_Mapable)
         {
-            auto mapResult = m_Device->MapBuffer(m_BufferAllocation);
+            auto mapResult = m_Device->MapMemory(m_BufferAllocation.Allocation);
             if (!mapResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to map buffer memory for download using VMA");
@@ -316,7 +316,7 @@ namespace VulkanHelper
 
             void* mappedData = mapResult.Value();
             memcpy(data, static_cast<const char*>(mappedData) + offset, size);
-            m_Device->UnmapBuffer(m_BufferAllocation);
+            m_Device->UnmapMemory(m_BufferAllocation.Allocation);
 
             return VHResult::OK;
         }
@@ -364,58 +364,51 @@ namespace VulkanHelper
             copyRegion.size = size;
 
             vkCmdCopyBuffer(commandBuffer, m_BufferAllocation.Buffer, scratchAllocation.Buffer, 1, &copyRegion);
-            VHResult copyResult = VHResult::OK;
-            
-            if (copyResult == VHResult::OK)
-            {
-                // Map scratch buffer and copy data to CPU memory
-                auto mapResult = m_Device->MapBuffer(scratchAllocation);
-                if (!mapResult.HasValue())
-                {
-                    VH_LOG_ERROR("Failed to map scratch buffer for download");
-                    // Error occurred during mapping
-                    if (useTemporaryStaging)
-                        m_Device->DeallocateBuffer(scratchAllocation);
-                    return mapResult.Error();
-                }
 
-                void* scratchMappedData = mapResult.Value();
-                memcpy(data, static_cast<const char*>(scratchMappedData) + scratchOffset, size);
-                m_Device->UnmapBuffer(scratchAllocation);
+            // We have to wait for the copy to finish so use EndRecording() and SubmitAndWait();
+            VHResult res = cmd->EndRecording();
+            if (res != VHResult::OK)
+            {
+                VH_LOG_ERROR("Couldn't end recording of the command buffer! Make sure it is in recording state!");
+                m_Device->DeallocateBuffer(scratchAllocation);
+                return res;
+            }
+            res = cmd->SubmitAndWait();
+            if (res != VHResult::OK)
+            {
+                VH_LOG_ERROR("Couldn't end Submit the command buffer!");
+                m_Device->DeallocateBuffer(scratchAllocation);
+                return res;
+            }
+            
+            auto mapResult = m_Device->MapMemory(scratchAllocation.Allocation);
+            if (!mapResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to map scratch buffer for download");
+                if (useTemporaryStaging)
+                    m_Device->DeallocateBuffer(scratchAllocation);
+                return mapResult.Error();
             }
 
-            // GPU copy completed
-            
+            // Then we can copy the data wherever the user wanted
+            void* scratchMappedData = mapResult.Value();
+            memcpy(data, static_cast<const char*>(scratchMappedData) + scratchOffset, size);
+            m_Device->UnmapMemory(scratchAllocation.Allocation);
             if (useTemporaryStaging)
             {
-                // Unfortunately if we're using temporary stagin buffer, the copy command has to be exectured BEFORE the buffer is dealocated.
-                // Which means the cmd has to end, submit and start again before the scratch can be dealocated.
-                VHResult res = cmd->EndRecording();
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't end recording of the command buffer! Make sure it is in recording state!");
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                    return res;
-                }
-                res = cmd->SubmitAndWait();
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't end Submit the command buffer!");
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                    return res;
-                }
-                res = cmd->BeginRecording(VulkanHelper::CommandBuffer::Usage::NONE);
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't begin CommandBuffer recording!");
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                    return res;
-                }
-
                 m_Device->DeallocateBuffer(scratchAllocation);
             }
+            
+            // Start recording again
+            res = cmd->BeginRecording(VulkanHelper::CommandBuffer::Usage::NONE);
+            if (res != VHResult::OK)
+            {
+                VH_LOG_ERROR("Couldn't begin CommandBuffer recording!");
+                m_Device->DeallocateBuffer(scratchAllocation);
+                return res;
+            }
 
-            return copyResult;
+            return VHResult::OK;
         }
     }
 
@@ -433,7 +426,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::MEMORY_MAP_FAILED);
         }
 
-        auto mapResult = m_Device->MapBuffer(m_BufferAllocation);
+        auto mapResult = m_Device->MapMemory(m_BufferAllocation.Allocation);
         if (!mapResult.HasValue())
         {
             VH_LOG_ERROR("Failed to map buffer memory using VMA");
@@ -452,7 +445,7 @@ namespace VulkanHelper
             return;
         }
 
-        m_Device->UnmapBuffer(m_BufferAllocation);
+        m_Device->UnmapMemory(m_BufferAllocation.Allocation);
         m_MappedData = nullptr;
     }
 
@@ -563,7 +556,7 @@ namespace VulkanHelper
 
     Buffer::~Buffer()
     {
-        // Impl destructor will handle cleanup
+
     }
 
     Buffer::Buffer(UniquePtr<Impl>&& impl)

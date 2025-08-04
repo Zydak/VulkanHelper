@@ -151,12 +151,6 @@ namespace VulkanHelper
             VulkanHelper::Image::Usage Usage = Usage::UNDEFINED;
 
             /**
-             * @brief Memory property flags for the image
-             * @note Must not be MemoryProperties::UNDEFINED
-             */
-            VulkanHelper::MemoryProperties MemoryProperties = MemoryProperties::UNDEFINED;
-
-            /**
              * @brief Tiling mode for the image data
              * @note OPTIMAL is preferred for GPU-only access, LINEAR for CPU access
              */
@@ -167,6 +161,23 @@ namespace VulkanHelper
              * @note Must match the aspect(s) implied by the Format
              */
             VulkanHelper::Image::Aspect Aspect = Aspect::COLOR_BIT;
+
+            /**
+             * @brief Initial layout of the image
+             * @note Must be valid Image::Layout
+             */
+            VulkanHelper::Image::Layout InitialLayout = Layout::UNDEFINED;
+
+            /**
+             * @brief Whether to use persistent staging
+             * @note Improves performance for frequent CPU writes to GPU-only images, but doubles the memory size cost
+             */
+            bool UsePersistentStagingBuffer = false;
+
+            /**
+             * @brief Flag dictating whether you can map image memory
+             */
+            bool AllowMapping = false;
         };
 
         /**
@@ -216,8 +227,43 @@ namespace VulkanHelper
          * @param baseLayer The first array layer to transition
          * @param layerCount The number of consecutive layers to transition
          */
-        void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount);
+        void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer = 0, uint32_t layerCount = 1);
 
+        /**
+         * @brief Upload data to the image.
+         *
+         * @param data Pointer to the data to upload.
+         * @param size Size of the data in bytes.
+         * @param offset Offset in the image to start writing.
+         * @param cmd Command buffer for GPU operations (required for non-mappable images).
+         * @return VHResult::OK on success, or an error code on failure.
+         */
+        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
+
+        /**
+         * @brief Download data from the image.
+         *
+         * @param data Pointer to the destination buffer.
+         * @param size Size of the data to read in bytes.
+         * @param offset Offset in the image to start reading.
+         * @param cmd Command buffer for GPU operations (required for non-mappable images).
+         * @return VHResult::OK on success, or an error code on failure.
+         */
+        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr) const;
+
+        /**
+         * @brief Map image memory for CPU access
+         * @return Expected containing pointer to mapped memory or an error code
+         * @note Image must be created with AllowMapping=true
+         */
+        [[nodiscard]] Expected<void*, VHResult> Map();
+
+        /**
+         * @brief Unmap previously mapped image memory
+         * @note Must be called after Map() when done accessing the memory
+         */
+        void Unmap();
+        
         /**
          * @brief Gets the format of the image
          * @return The image format
