@@ -2,6 +2,7 @@ Bin/
 BinInt/
 **/build/
 .vs/
+**/VulkanHelper.log
 **/*.vcxproj.*
 **/*.vcxproj
 **.sln

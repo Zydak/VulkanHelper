@@ -9,7 +9,7 @@ endfunction()
 include(FetchContent)
 include(ExternalProject)
 
-set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/Libraries")
+set(FETCHCONTENT_BASE_DIR "${PROJECT_SOURCE_DIR}/Libraries")
 
 FetchContent_Declare(
     glfw
@@ -63,8 +63,8 @@ FetchContent_MakeAvailable(Vulkan-Loader)
 
 # Clone prebuild slang
 set(SLANG_URL "https://github.com/shader-slang/slang/releases/download/v2025.13.2/slang-2025.13.2-linux-x86_64.zip")
-set(SLANG_ZIP "${CMAKE_SOURCE_DIR}/Libraries/slang.zip")
-set(SLANG_DIR "${CMAKE_SOURCE_DIR}/Libraries/slang")
+set(SLANG_ZIP "${PROJECT_SOURCE_DIR}/Libraries/slang.zip")
+set(SLANG_DIR "${PROJECT_SOURCE_DIR}/Libraries/slang")
 
 # Download only if not already downloaded
 if(NOT EXISTS ${SLANG_ZIP})

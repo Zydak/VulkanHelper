@@ -217,7 +217,11 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        return UniquePtr(new Impl(deviceImpl, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, config.PushConstant));
+        PushConstant::Impl* pushConstantImpl = nullptr;
+        if (config.PushConstant != nullptr)
+            pushConstantImpl = PushConstant::Impl::GetImplementation(config.PushConstant);
+
+        return UniquePtr(new Impl(deviceImpl, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, pushConstantImpl));
     }
 
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(const ComputeConfig& config)
@@ -310,8 +314,7 @@ namespace VulkanHelper
         // Push constants after binding the pipeline
         if (m_PushConstant != nullptr)
         {
-            PushConstant::Impl* pushConstantImpl = PushConstant::Impl::GetImplementation(m_PushConstant);
-            VkPushConstantRange range = pushConstantImpl->GetVkPushConstantRange();
+            VkPushConstantRange range = m_PushConstant->GetVkPushConstantRange();
             
             vkCmdPushConstants(
                 cmdImpl->GetCommandBuffer(),
@@ -319,7 +322,7 @@ namespace VulkanHelper
                 range.stageFlags,
                 range.offset,
                 range.size,
-                pushConstantImpl->GetData()
+                m_PushConstant->GetData()
             );
         }
     }

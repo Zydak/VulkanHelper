@@ -24,13 +24,9 @@ int main()
         VH_LOG_FATAL("No suitable physical devices found!");
         return -1;
     }
-    for (size_t i = 0; i < physicalDevices.Size(); i++)
-    {
-        VH_LOG_INFO("Found Physical Device: {} (Vendor: {}, Discrete: {})", physicalDevices[i].GetName(), int(physicalDevices[i].GetVendor()), physicalDevices[i].IsDiscrete());
-    }
 
-    // Pick discrete GPU if available
-    VulkanHelper::PhysicalDevice* selectedDevice = nullptr;
+    // Prefer a discrete GPU if available
+    VulkanHelper::PhysicalDevice* selectedDevice = &physicalDevices[0];
     for (size_t i = 0; i < physicalDevices.Size(); i++)
     {   
         if (physicalDevices[i].IsDiscrete())
@@ -40,65 +36,21 @@ int main()
             break;
         }
     }
-    if (selectedDevice == nullptr)
-    {
-        VH_LOG_WARN("No discrete GPU found, using first available device: {}", physicalDevices[0].GetName());
-        selectedDevice = &physicalDevices[0];
-    }
 
     VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 600, 600, "Example Project", "", false}).Value();
 
-    VulkanHelper::Vector<VulkanHelper::Window*> windows;
-    windows.PushBack(&window);
-
-    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, std::move(windows), &instance}).Value();
+    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
 
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
 
-    VulkanHelper::Shader::InitializeSession("../../ExampleProject/Shaders/");
+    VulkanHelper::Shader::InitializeSession("../../HelloTriangle/Shaders/");
 
     VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "TriangleVertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
     VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({&device, "TriangleFragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
 
     VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({&device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
-    VulkanHelper::CommandBuffer testCmdBuffer = commandPool.AllocateCommandBuffer({}).Value();
-    (void)testCmdBuffer.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
-
-    VulkanHelper::Buffer::Usage usage = VulkanHelper::Buffer::Usage::TRANSFER_SRC | VulkanHelper::Buffer::Usage::TRANSFER_DST;
-    VulkanHelper::Buffer buffer = VulkanHelper::Buffer::New({&device, nullptr, 5, usage, false}).Value();
-    int data = 59; 
-    (void)buffer.UploadData(&data, 4, 1, &testCmdBuffer);
-
-    int data1;
-    (void)buffer.DownloadData(&data1, 4, 1, &testCmdBuffer);
-    (void)testCmdBuffer.EndRecording();
-    (void)testCmdBuffer.SubmitAndWait();
-
-    VH_LOG_FATAL("DATA: {}", data1);
-
-    data = 420;
-
-    VulkanHelper::Image::Config imageInfo{};
-    imageInfo.Device = &device;
-    imageInfo.Width = 1;
-    imageInfo.Height = 1;
-    imageInfo.Format = VulkanHelper::Format::R8G8B8A8_UNORM;
-    imageInfo.Usage = VulkanHelper::Image::Usage::TRANSFER_SRC_BIT | VulkanHelper::Image::Usage::TRANSFER_DST_BIT;
-    imageInfo.UsePersistentStagingBuffer = false;
-    //imageInfo.Tiling = VulkanHelper::Image::Tiling::LINEAR;
-    //imageInfo.AllowMapping = true;
-    VulkanHelper::Image testImage = VulkanHelper::Image::New(imageInfo).Value();
-    (void)testCmdBuffer.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
-
-    (void)testImage.UploadData(&data, 4, 0, &testCmdBuffer);
-
-    (void)testImage.TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_SRC_OPTIMAL, testCmdBuffer);
-    (void)testImage.DownloadData(&data1, 4, 0, &testCmdBuffer);
-    (void)testCmdBuffer.EndRecording();
-    (void)testCmdBuffer.SubmitAndWait();
-    VH_LOG_FATAL("DATA: {}", data1);
+    VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
     
-    // Create a simple triangle mesh for demonstration
     struct Vertex {
         float position[3];
         float color[3];
@@ -125,21 +77,14 @@ int main()
     meshConfig.VertexDataSize = sizeof(vertices);
     meshConfig.IndexData = indices;
     meshConfig.IndexDataSize = sizeof(indices);
-    meshConfig.CommandBuffer = &testCmdBuffer;
-    
-    (void)testCmdBuffer.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
+    meshConfig.CommandBuffer = &initializationCmd;
+
+    (void)initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
     VulkanHelper::Mesh triangleMesh = VulkanHelper::Mesh::New(meshConfig).Value();
-    (void)testCmdBuffer.EndRecording();
-    (void)testCmdBuffer.SubmitAndWait();
+    (void)initializationCmd.EndRecording();
+    (void)initializationCmd.SubmitAndWait();
 
     VH_LOG_INFO("Created triangle mesh successfully!");
-
-    float pushData[3] = {1.0f, 1.0f, 1.0f}; // Example data
-    VulkanHelper::PushConstant::Config pushConstantConfig{};
-    pushConstantConfig.Stage = VulkanHelper::ShaderStages::VERTEX_BIT;
-    pushConstantConfig.Data = &pushData; // No initial data
-    pushConstantConfig.Size = sizeof(float) * 3;
-    VulkanHelper::PushConstant pushConstant = VulkanHelper::PushConstant::New(pushConstantConfig).Value();
 
     VulkanHelper::Pipeline::GraphicsConfig pipelineConfig{};
     pipelineConfig.Device = &device;
@@ -148,7 +93,6 @@ int main()
     pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
     pipelineConfig.AttributeDesc = &triangleMesh.GetAttributesDescriptions();
     pipelineConfig.BindingDesc = triangleMesh.GetBindingDescription();
-    pipelineConfig.PushConstant = &pushConstant;
     
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
     
@@ -157,9 +101,7 @@ int main()
         VulkanHelper::Window::PollEvents();
         VulkanHelper::CommandBuffer* commandBuffer = renderer.BeginFrame().Value();
 
-        VulkanHelper::Vector<VulkanHelper::ImageView*> views;
-        views.PushBack(renderer.GetCurrentSwapchainImageView());
-        renderer.BeginRendering(*commandBuffer, views, nullptr);
+        renderer.BeginRendering(*commandBuffer, {renderer.GetCurrentSwapchainImageView()}, nullptr);
 
         pipeline.Bind(commandBuffer);
 
