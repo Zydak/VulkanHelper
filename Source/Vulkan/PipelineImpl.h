@@ -30,12 +30,14 @@ namespace VulkanHelper
         VkPipeline m_Pipeline;
         VkPipelineLayout m_Layout;
         PipelineType m_PipelineType;
+        PushConstant* m_PushConstant; // Store reference to push constant for binding
 
-        Impl(Device::Impl* device, VkPipeline pipeline, VkPipelineLayout layout, PipelineType type)
+        Impl(Device::Impl* device, VkPipeline pipeline, VkPipelineLayout layout, PipelineType type, PushConstant* pushConstant = nullptr)
             : m_Device(device)
             , m_Pipeline(pipeline)
             , m_Layout(layout)
             , m_PipelineType(type)
+            , m_PushConstant(pushConstant)
         {}
     };
 }

@@ -3,10 +3,12 @@
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/UniquePtr.h"
+#include "Core/Vector.h"
 
 #include "Vulkan/Device.h"
 #include "Vulkan/Shader.h"
 #include "Vulkan/CommandBuffer.h"
+#include "Vulkan/PushConstant.h"
 
 #include "Renderer/Mesh.h"
 
@@ -79,7 +81,13 @@ namespace VulkanHelper
 			bool BlendingEnable = false;
 
 			//VulkanHelper::Vector<VkDescriptorSetLayout> DescriptorSetLayouts; // TODO
-			//VkPushConstantRange* PushConstants = nullptr; TODO
+
+            /**
+             * @brief Push constant (Optional)
+             * 
+             * @note If not nullptr, must outlive this object
+             */
+			VulkanHelper::PushConstant* PushConstant = nullptr;
 
             /**
              * @brief Number of color attachments

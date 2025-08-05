@@ -134,6 +134,13 @@ int main()
 
     VH_LOG_INFO("Created triangle mesh successfully!");
 
+    float pushData[3] = {1.0f, 1.0f, 1.0f}; // Example data
+    VulkanHelper::PushConstant::Config pushConstantConfig{};
+    pushConstantConfig.Stage = VulkanHelper::ShaderStages::VERTEX_BIT;
+    pushConstantConfig.Data = &pushData; // No initial data
+    pushConstantConfig.Size = sizeof(float) * 3;
+    VulkanHelper::PushConstant pushConstant = VulkanHelper::PushConstant::New(pushConstantConfig).Value();
+
     VulkanHelper::Pipeline::GraphicsConfig pipelineConfig{};
     pipelineConfig.Device = &device;
     pipelineConfig.Shaders.PushBack(&vertexShader);
@@ -141,6 +148,7 @@ int main()
     pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
     pipelineConfig.AttributeDesc = &triangleMesh.GetAttributesDescriptions();
     pipelineConfig.BindingDesc = triangleMesh.GetBindingDescription();
+    pipelineConfig.PushConstant = &pushConstant;
     
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
     

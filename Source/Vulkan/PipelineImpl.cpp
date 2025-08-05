@@ -1,6 +1,7 @@
 #include "PipelineImpl.h"
 #include "ShaderImpl.h"
 #include "CommandBufferImpl.h"
+#include "PushConstantImpl.h"
 
 namespace VulkanHelper
 {
@@ -16,7 +17,22 @@ namespace VulkanHelper
 
         VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        // TODO descriptors sets + push constants
+        // TODO descriptors sets
+
+        // Handle push constants
+        VkPushConstantRange pushConstantRange{};
+        if (config.PushConstant != nullptr)
+        {
+            PushConstant::Impl* pushConstantImpl = PushConstant::Impl::GetImplementation(config.PushConstant);
+            pushConstantRange = pushConstantImpl->GetVkPushConstantRange();
+            layoutInfo.pushConstantRangeCount = 1;
+            layoutInfo.pPushConstantRanges = &pushConstantRange;
+        }
+        else
+        {
+            layoutInfo.pushConstantRangeCount = 0;
+            layoutInfo.pPushConstantRanges = nullptr;
+        }
 
         VkPipelineLayout pipelineLayout;
         Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
@@ -201,7 +217,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        return UniquePtr(new Impl(deviceImpl, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics));
+        return UniquePtr(new Impl(deviceImpl, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, config.PushConstant));
     }
 
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(const ComputeConfig& config)
@@ -238,10 +254,12 @@ namespace VulkanHelper
         , m_Pipeline(other.m_Pipeline)
         , m_Layout(other.m_Layout)
         , m_PipelineType(other.m_PipelineType)
+        , m_PushConstant(other.m_PushConstant)
     {
         other.m_Device = nullptr;
         other.m_Pipeline = nullptr;
         other.m_Layout = nullptr;
+        other.m_PushConstant = nullptr;
     }
 
     Pipeline::Impl& Pipeline::Impl::operator=(Impl&& other) noexcept
@@ -258,6 +276,8 @@ namespace VulkanHelper
         m_Layout = other.m_Layout;
         other.m_Layout = nullptr;
         m_PipelineType = other.m_PipelineType;
+        m_PushConstant = other.m_PushConstant;
+        other.m_PushConstant = nullptr;
 
         return *this;
     }
@@ -266,22 +286,41 @@ namespace VulkanHelper
     {
         CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(commandBuffer);
 
+        VkPipelineBindPoint bindPoint;
         switch (m_PipelineType)
         {
         case Pipeline::PipelineType::Graphics:
-            vkCmdBindPipeline(cmdImpl->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+            bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
             break;
 
         case Pipeline::PipelineType::Compute:
-            vkCmdBindPipeline(cmdImpl->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, m_Pipeline);
+            bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
             break;
 
         case Pipeline::PipelineType::RayTracing:
-            vkCmdBindPipeline(cmdImpl->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_Pipeline);
+            bindPoint = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
             break;
         
         default:
             VH_ASSERT(false, "Incorrect pipeline type! You should never see this unless the memory is corrupted.");
+            return;
+        }
+        vkCmdBindPipeline(cmdImpl->GetCommandBuffer(), bindPoint, m_Pipeline);
+
+        // Push constants after binding the pipeline
+        if (m_PushConstant != nullptr)
+        {
+            PushConstant::Impl* pushConstantImpl = PushConstant::Impl::GetImplementation(m_PushConstant);
+            VkPushConstantRange range = pushConstantImpl->GetVkPushConstantRange();
+            
+            vkCmdPushConstants(
+                cmdImpl->GetCommandBuffer(),
+                m_Layout,
+                range.stageFlags,
+                range.offset,
+                range.size,
+                pushConstantImpl->GetData()
+            );
         }
     }
 
