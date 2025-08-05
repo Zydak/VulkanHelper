@@ -17,7 +17,7 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Renderer Implementation");
 
-        auto swapchain = Swapchain::New({config.Device, config.Window, config.FramesInFlight});
+        auto swapchain = Swapchain::New({config.Device, config.Window, nullptr, config.FramesInFlight});
         if (!swapchain.HasValue())
         {
             VH_LOG_ERROR("Couldn't create swapchain!");
@@ -80,8 +80,16 @@ namespace VulkanHelper
     Expected<CommandBuffer*, VHResult> Renderer::Impl::BeginFrame()
     {
         VHResult res = m_Swapchain.AcquireNextImage();
-        if (res != VHResult::OK)
+        if (res == VHResult::OUT_OF_DATE_KHR)
+        {
+            res = RecreateSwapchain();
+            if (res != VHResult::OK)
+                return Unexpected(res);
+        }
+        else if (res != VHResult::OK)
+        {
             return Unexpected(res);
+        }
 
         const uint32_t currentFrameIndex = m_Swapchain.GetCurrentFrameIndex();
         res = m_CommandBuffers[currentFrameIndex].BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
@@ -102,8 +110,16 @@ namespace VulkanHelper
             return res;
 
         res = m_Swapchain.Submit(m_CommandBuffers[currentFrameIndex]);
-        if (res != VHResult::OK)
+        if (res == VHResult::OUT_OF_DATE_KHR)
+        {
+            res = RecreateSwapchain();
+            if (res != VHResult::OK)
+                return res;
+        }
+        else if (res != VHResult::OK)
+        {
             return res;
+        }
 
         return VHResult::OK;
     }
@@ -209,6 +225,22 @@ namespace VulkanHelper
     {
         VkCommandBuffer commandBufferHandle = CommandBuffer::Impl::GetImplementation(&commandBuffer)->GetCommandBuffer();
 	    VulkanHelper::FunctionLoader::vkCmdEndRendering(commandBufferHandle);
+    }
+
+    VHResult Renderer::Impl::RecreateSwapchain()
+    {
+        m_Device->WaitUntilIdle();
+        Swapchain oldSwapchain = VulkanHelper::Move(m_Swapchain);
+
+        auto swapchainResult = Swapchain::New({m_Device, m_Window, &oldSwapchain, oldSwapchain.GetFramesInFlightCount()});
+        if (!swapchainResult.HasValue())
+        {
+            VH_LOG_ERROR("Failed to recreate swapchain");
+            return swapchainResult.Error();
+        }
+
+        m_Swapchain = VulkanHelper::Move(swapchainResult.Value());
+        return VHResult::OK;
     }
 
     //

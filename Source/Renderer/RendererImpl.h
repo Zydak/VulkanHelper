@@ -41,6 +41,8 @@ namespace VulkanHelper
         [[nodiscard]] inline Format GetSwapchainImageFormat() const { return m_Swapchain.GetSwapchainImageFormat(); }
 
     private:
+        VHResult RecreateSwapchain();
+        
         Device* m_Device;
         Window* m_Window;
         Swapchain m_Swapchain;

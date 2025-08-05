@@ -36,6 +36,11 @@ namespace VulkanHelper
             VulkanHelper::Window* Window = nullptr;
 
             /**
+             * @brief The previous swapchain to be reused (Optional)
+             */
+            VulkanHelper::Swapchain* PreviousSwapchain = nullptr;
+
+            /**
              * @brief Number of frames that can be rendered simultaneously
              */
             uint32_t MaxFramesInFlight = 2;

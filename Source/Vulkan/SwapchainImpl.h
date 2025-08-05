@@ -36,6 +36,10 @@ namespace VulkanHelper
 
         [[nodiscard]] inline Format GetSwapchainImageFormat() const { return m_Images[0].GetFormat(); }
 
+        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+
+        [[nodiscard]] inline VkSwapchainKHR GetSwapchain() const { return m_Swapchain; }
+
     private:
 
         Impl(

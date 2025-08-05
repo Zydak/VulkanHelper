@@ -12,6 +12,13 @@
 
 namespace VulkanHelper
 {
+    void Window::Impl::WindowSizeCallback(GLFWwindow* window, int width, int height)
+    {
+        VulkanHelper::Window::Impl* impl = static_cast<VulkanHelper::Window::Impl*>(glfwGetWindowUserPointer(window));
+        impl->m_Width = static_cast<uint32_t>(width);
+        impl->m_Height = static_cast<uint32_t>(height);
+    }
+
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Window::Impl>, VHResult> Window::Impl::New(const Config& config)
     {
         VH_LOG_INFO("Creating Window Implementation");
@@ -31,6 +38,8 @@ namespace VulkanHelper
         VkResult res = glfwCreateWindowSurface(instanceImpl->GetInstance(), window, nullptr, &surface);
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
+
+        glfwSetWindowSizeCallback(window, WindowSizeCallback);
 
         return VulkanHelper::UniquePtr(new Impl(instanceImpl, window, surface, VulkanHelper::Move(name), config.Width, config.Height));
     }

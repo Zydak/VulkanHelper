@@ -42,7 +42,11 @@ namespace VulkanHelper
             m_Name(VulkanHelper::Move(name)),
             m_Width(width),
             m_Height(height)
-        {}
+        {
+            glfwSetWindowUserPointer(m_Window, this);
+        }
+
+        static void WindowSizeCallback(GLFWwindow* window, int width, int height);
 
         Instance::Impl* m_Instance;
         GLFWwindow*     m_Window;

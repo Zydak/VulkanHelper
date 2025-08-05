@@ -144,6 +144,13 @@ namespace VulkanHelper
             submitSemaphores.PushBack(VulkanHelper::Move(semaphore.Value()));
         }
 
+        VkSwapchainKHR prevSwapchain = VK_NULL_HANDLE;
+        if (config.PreviousSwapchain != nullptr)
+        {
+            VulkanHelper::Swapchain::Impl* prevImpl = Swapchain::Impl::GetImplementation(config.PreviousSwapchain);
+            prevSwapchain = prevImpl->GetSwapchain();
+        }
+
         // Create swapchain
         VkSwapchainCreateInfoKHR swapchainCreateInfo{};
         swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -151,7 +158,7 @@ namespace VulkanHelper
         swapchainCreateInfo.minImageCount = imageCount;
         swapchainCreateInfo.imageFormat = chosenFormat.format;
         swapchainCreateInfo.imageColorSpace = chosenFormat.colorSpace;
-        swapchainCreateInfo.imageExtent = { config.Window->GetWidth(), config.Window->GetHeight() };
+        swapchainCreateInfo.imageExtent = surfaceCapabilities.currentExtent;
         swapchainCreateInfo.imageArrayLayers = 1;
         swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE; // Single queue
@@ -161,7 +168,7 @@ namespace VulkanHelper
         swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         swapchainCreateInfo.presentMode = chosenPresentMode;
         swapchainCreateInfo.clipped = VK_TRUE;
-        swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE; // No previous swapchain
+        swapchainCreateInfo.oldSwapchain = prevSwapchain;
 
         Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
         VkSwapchainKHR swapchain;
@@ -192,8 +199,8 @@ namespace VulkanHelper
                 (Format)chosenFormat.format,
                 Image::Layout::UNDEFINED,
                 Image::Aspect::COLOR_BIT,
-                config.Window->GetWidth(),
-                config.Window->GetHeight(),
+                surfaceCapabilities.currentExtent.width,
+                surfaceCapabilities.currentExtent.height,
                 1,
                 1,
                 swapchainImages[i]
