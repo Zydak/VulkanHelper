@@ -105,11 +105,11 @@ namespace VulkanHelper
 }
 
 #define VH_LOG_FATAL(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VFatal, fmt::fg(fmt::color::white) | fmt::bg(fmt::color::crimson) | fmt::emphasis::bold, __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
-#define VH_LOG_ERROR(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VFatal, fmt::fg(fmt::color::red) | fmt::emphasis::bold, __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
-#define VH_LOG_WARN(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VFatal, fmt::fg(fmt::color::yellow), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
-#define VH_LOG_INFO(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VFatal, fmt::fg(fmt::color::green), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
-#define VH_LOG_DEBUG(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VFatal, fmt::fg(fmt::color::blue), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
-#define VH_LOG_TRACE(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VFatal, fmt::fg(fmt::color::white), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
+#define VH_LOG_ERROR(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VError, fmt::fg(fmt::color::red) | fmt::emphasis::bold, __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
+#define VH_LOG_WARN(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VWarn, fmt::fg(fmt::color::yellow), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
+#define VH_LOG_INFO(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VInfo, fmt::fg(fmt::color::green), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
+#define VH_LOG_DEBUG(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VDebug, fmt::fg(fmt::color::blue), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
+#define VH_LOG_TRACE(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VTrace, fmt::fg(fmt::color::white), __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define VH_ASSERT(condition, ...)\
 if (!(condition))\

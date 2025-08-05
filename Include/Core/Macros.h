@@ -8,7 +8,7 @@ inline ENUM_CLASS operator|(ENUM_CLASS left, ENUM_CLASS right)\
 \
 inline ENUM_CLASS operator&(ENUM_CLASS left, ENUM_CLASS right)\
 {\
-    return ENUM_CLASS((int)left | int(right));\
+    return ENUM_CLASS((int)left & int(right));\
 }\
 \
 inline ENUM_CLASS operator~(ENUM_CLASS val)\

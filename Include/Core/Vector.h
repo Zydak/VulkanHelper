@@ -2,6 +2,7 @@
 
 #include "Log/Log.h"
 #include "Move.h"
+#include <initializer_list>
 
 namespace VulkanHelper
 {
@@ -62,6 +63,24 @@ namespace VulkanHelper
         }
 
         /**
+         * @brief Constructs a vector from an initializer list.
+         *
+         * @param initList The initializer list containing values to initialize the vector with.
+         */
+        Vector(std::initializer_list<T> initList)
+            : m_Data(nullptr), m_Size(0), m_Capacity(0)
+        {
+            if (initList.size() > 0)
+            {
+                Reserve(initList.size());
+                for (const auto& item : initList)
+                {
+                    PushBack(item);
+                }
+            }
+        }
+
+        /**
          * @brief Destructor. Destroys all elements and frees memory.
          */
         ~Vector()
@@ -77,12 +96,13 @@ namespace VulkanHelper
          * @brief Copy constructor. Creates a deep copy of another vector.
          * @param other The vector to copy from.
          */
-        explicit Vector(const Vector& other)
-            : m_Data(nullptr), m_Size(other.m_Size), m_Capacity(other.m_Capacity)
+        Vector(const Vector& other)
+            : m_Data(nullptr), m_Size(0), m_Capacity(0)
         {
             if (other.m_Size > 0)
             {
                 ChangeCapacity(other.m_Capacity);
+                m_Size = other.m_Size;
                 for (size_t i = 0; i < m_Size; i++)
                 {
                     ConstructAt(i, other[i]);
@@ -100,15 +120,16 @@ namespace VulkanHelper
             if (this == &other)
                 return *this;
 
-            this->~Vector(); // Clean up current state
-
-            m_Size = other.m_Size;
-            m_Capacity = other.m_Capacity;
+            Clear();
+            free(m_Data);
             m_Data = nullptr;
+            m_Size = 0;
+            m_Capacity = 0;
 
-            if (m_Size > 0)
+            if (other.m_Size > 0)
             {
-                ChangeCapacity(m_Capacity);
+                ChangeCapacity(other.m_Capacity);
+                m_Size = other.m_Size;
                 for (size_t i = 0; i < m_Size; i++)
                 {
                     ConstructAt(i, other[i]);
@@ -209,10 +230,10 @@ namespace VulkanHelper
          *
          * @param value The value to append (copied).
          */
-        void PushBack(T& value)
+        void PushBack(const T& value)
         {
             if (m_Size >= m_Capacity)
-                ChangeCapacity(m_Capacity * GrowFactor);
+                ChangeCapacity(m_Capacity == 0 ? 1 : m_Capacity * GrowFactor);
 
             ConstructAt(m_Size, value);
             m_Size++;
@@ -228,7 +249,7 @@ namespace VulkanHelper
         void PushBack(T&& value)
         {
             if (m_Size >= m_Capacity)
-                ChangeCapacity(m_Capacity * GrowFactor);
+                ChangeCapacity(m_Capacity == 0 ? 1 : m_Capacity * GrowFactor);
 
             ConstructAt(m_Size, std::move(value));
             m_Size++;
@@ -246,7 +267,7 @@ namespace VulkanHelper
         void EmplaceBack(Args&&... args)
         {
             if (m_Size >= m_Capacity)
-                ChangeCapacity(m_Capacity * GrowFactor);
+                ChangeCapacity(m_Capacity == 0 ? 1 : m_Capacity * GrowFactor);
             ConstructAt(m_Size, std::forward<Args>(args)...);
             m_Size++;
         }
@@ -340,6 +361,106 @@ namespace VulkanHelper
             return (const T*)m_Data;
         }
 
+        /**
+         * @brief Returns a reference to the first element.
+         *
+         * @return Reference to the first element.
+         * @throws If vector is empty, triggers VH_ASSERT.
+         */
+        [[nodiscard]] T& Front()
+        {
+            VH_ASSERT(m_Size > 0, "Vector is empty");
+            return ((T*)m_Data)[0];
+        }
+
+        /**
+         * @brief Returns a const reference to the first element.
+         *
+         * @return Const reference to the first element.
+         * @throws If vector is empty, triggers VH_ASSERT.
+         */
+        [[nodiscard]] const T& Front() const
+        {
+            VH_ASSERT(m_Size > 0, "Vector is empty");
+            return ((const T*)m_Data)[0];
+        }
+
+        /**
+         * @brief Returns a reference to the last element.
+         *
+         * @return Reference to the last element.
+         * @throws If vector is empty, triggers VH_ASSERT.
+         */
+        [[nodiscard]] T& Back()
+        {
+            VH_ASSERT(m_Size > 0, "Vector is empty");
+            return ((T*)m_Data)[m_Size - 1];
+        }
+
+        /**
+         * @brief Returns a const reference to the last element.
+         *
+         * @return Const reference to the last element.
+         * @throws If vector is empty, triggers VH_ASSERT.
+         */
+        [[nodiscard]] const T& Back() const
+        {
+            VH_ASSERT(m_Size > 0, "Vector is empty");
+            return ((const T*)m_Data)[m_Size - 1];
+        }
+
+        /**
+         * @brief Removes the last element from the vector.
+         *
+         * @throws If vector is empty, triggers VH_ASSERT.
+         */
+        void PopBack()
+        {
+            VH_ASSERT(m_Size > 0, "Vector is empty");
+            m_Size--;
+            ((T*)m_Data)[m_Size].~T();
+        }
+
+        /**
+         * @brief Returns an iterator to the first element.
+         *
+         * @return Iterator to the beginning of the vector.
+         */
+        [[nodiscard]] T* begin()
+        {
+            return (T*)m_Data;
+        }
+
+        /**
+         * @brief Returns a const iterator to the first element.
+         *
+         * @return Const iterator to the beginning of the vector.
+         */
+        [[nodiscard]] const T* begin() const
+        {
+            return (const T*)m_Data;
+        }
+
+        /**
+         * @brief Returns an iterator to one past the last element.
+         *
+         * @return Iterator to the end of the vector.
+         */
+        [[nodiscard]] T* end()
+        {
+            return (T*)m_Data + m_Size;
+        }
+
+        /**
+         * @brief Returns a const iterator to one past the last element.
+         *
+         * @return Const iterator to the end of the vector.
+         */
+        [[nodiscard]] const T* end() const
+        {
+            return (const T*)m_Data + m_Size;
+        }
+
     private:
         /**
          * @brief Changes the capacity of the vector to the specified value.
@@ -356,9 +477,19 @@ namespace VulkanHelper
                 return;
             
             void* oldData = m_Data;
-            m_Data = std::aligned_alloc(alignof(T), sizeof(T) * newCapacity);
+            
+            // Use malloc for better portability, alignment should be handled by the allocator for most types
+            if constexpr (alignof(T) <= sizeof(void*))
+            {
+                m_Data = malloc(sizeof(T) * newCapacity);
+            }
+            else
+            {
+                // For types with special alignment requirements, use aligned_alloc if available
+                m_Data = std::aligned_alloc(alignof(T), sizeof(T) * newCapacity);
+            }
 
-            if (m_Size > 0)
+            if (m_Size > 0 && oldData != nullptr)
             {
                 for (size_t i = 0; i < m_Size; i++)
                 {
@@ -372,6 +503,12 @@ namespace VulkanHelper
                         new((T*)m_Data + i) T(*(((T*)oldData) + i)); // Copy existing elements to new buffer
                     }
                 }
+
+                // Destroy old elements
+                for (size_t i = 0; i < m_Size; i++)
+                {
+                    ((T*)oldData)[i].~T();
+                }
                 free(oldData);
             }
 
@@ -381,7 +518,7 @@ namespace VulkanHelper
         template<typename ... Args>
         void ConstructAt(size_t index, Args&&... args)
         {
-            new ((T*)m_Data + index) T(std::move(args)...); // Placement new to construct T in the allocated memory
+            new ((T*)m_Data + index) T(std::forward<Args>(args)...); // Placement new to construct T in the allocated memory
         }
 
         void* m_Data;      ///< Pointer to the allocated memory buffer.

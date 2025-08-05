@@ -116,13 +116,27 @@ namespace VulkanHelper
 		dynamicStateInfo.dynamicStateCount = 2;
 		dynamicStateInfo.pDynamicStates = dynamicStates;
 
+        VkVertexInputBindingDescription bindingDesc = {};
+        bindingDesc.binding = config.BindingDesc.Binding;
+        bindingDesc.stride = config.BindingDesc.Stride;
+        bindingDesc.inputRate = (VkVertexInputRate)config.BindingDesc.PerInstance;
+
+        VulkanHelper::Vector<VkVertexInputAttributeDescription> attributeDescs(config.AttributeDesc->Size());
+        for (size_t i = 0; i < config.AttributeDesc->Size(); i++)
+        {
+            const Mesh::VertexAttributeDescription& attrDesc = (*config.AttributeDesc)[i];
+            attributeDescs[i].location = attrDesc.Location;
+            attributeDescs[i].binding = attrDesc.Binding;
+            attributeDescs[i].format = (VkFormat)attrDesc.Format;
+            attributeDescs[i].offset = attrDesc.Offset;
+        }
+
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        // TODO
-		//vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)config.AttributeDesc.Size();
-		//vertexInputInfo.pVertexAttributeDescriptions = config.AttributeDesc.Data();
-		//vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)config.BindingDesc.Size();
-		//vertexInputInfo.pVertexBindingDescriptions = config.BindingDesc.Data();
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+        vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDescs.Size();
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescs.Data();
 
         // This is a dynamic state, it's set properly when begining the rendering. This is just a placeholder since Vulkan requires me to pass something
         // in there for whatever reason

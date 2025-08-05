@@ -24,8 +24,10 @@ target_link_libraries(
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings
 target_include_directories(VulkanHelper SYSTEM PUBLIC ${glm_SOURCE_DIR})
-target_include_directories(VulkanHelper SYSTEM PUBLIC "../Libraries/vulkanmemoryallocator-src/include")
 get_target_property(FMT_INCLUDE_DIRS fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(VulkanHelper SYSTEM PUBLIC ${FMT_INCLUDE_DIRS})
+
+target_include_directories(VulkanHelper SYSTEM PRIVATE "../Libraries/vulkanmemoryallocator-src/include")
+target_include_directories(VulkanHelper PRIVATE ${PROJECT_SOURCE_DIR}/Source)
 
 target_include_directories(VulkanHelper PUBLIC ${PROJECT_SOURCE_DIR}/Include)

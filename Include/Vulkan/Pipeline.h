@@ -8,6 +8,8 @@
 #include "Vulkan/Shader.h"
 #include "Vulkan/CommandBuffer.h"
 
+#include "Renderer/Mesh.h"
+
 namespace VulkanHelper
 {
     /**
@@ -35,8 +37,16 @@ namespace VulkanHelper
              */
             VulkanHelper::Vector<Shader*> Shaders;
 
-			//VulkanHelper::Vector<VkVertexInputBindingDescription> BindingDesc; TODO
-			//VulkanHelper::Vector<VkVertexInputAttributeDescription> AttributeDesc; TODO
+            /**
+             * @brief Vertex input state configuration
+             * @note Must not be nullptr
+             */
+			const VulkanHelper::Vector<Mesh::VertexAttributeDescription>* AttributeDesc;
+			
+            /**
+             * @brief Vertex binding description
+             */
+            VulkanHelper::Mesh::VertexBindingDescription BindingDesc;
 
             /**
              * @brief How polygons should be rasterized
