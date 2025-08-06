@@ -2,6 +2,7 @@ Bin/
 BinInt/
 **/build/
 .vs/
+**/VulkanHelper.log
 **/*.vcxproj.*
 **/*.vcxproj
 **.sln
@@ -9,3 +10,7 @@ BinInt/
 **/*.cmd
 **/*.rsp
 **/VulkanHelper.log
+.cache/
+.vscode/
+Libraries/*
+!Libraries/CMakeLists.txt
