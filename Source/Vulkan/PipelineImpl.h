@@ -2,6 +2,7 @@
 
 #include "Vulkan/Pipeline.h"
 #include "DeviceImpl.h"
+#include "DescriptorSetImpl.h"
 
 #include <vulkan/vulkan.h>
 
@@ -12,7 +13,7 @@ namespace VulkanHelper
     class Pipeline::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, Vector<Shader::Impl*> shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format> colorFormats, Format depthFormat, SampleCount sampleCount);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, Vector<Shader::Impl*> shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, Vector<DescriptorSet::Impl*> descriptorSets, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format> colorFormats, Format depthFormat, SampleCount sampleCount);
         [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const ComputeConfig& config);
         [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const RayTracingConfig& config);
 
@@ -31,13 +32,15 @@ namespace VulkanHelper
         VkPipeline m_Pipeline;
         VkPipelineLayout m_Layout;
         PipelineType m_PipelineType;
+        Vector<DescriptorSet::Impl*> m_DescriptorSets; // Store references to descriptor sets for binding
         PushConstant::Impl* m_PushConstant; // Store reference to push constant for binding
 
-        Impl(Device::Impl* device, VkPipeline pipeline, VkPipelineLayout layout, PipelineType type, PushConstant::Impl* pushConstant = nullptr)
+        Impl(Device::Impl* device, VkPipeline pipeline, VkPipelineLayout layout, PipelineType type, Vector<DescriptorSet::Impl*>&& descriptorSets, PushConstant::Impl* pushConstant = nullptr)
             : m_Device(device)
             , m_Pipeline(pipeline)
             , m_Layout(layout)
             , m_PipelineType(type)
+            , m_DescriptorSets(VulkanHelper::Move(descriptorSets))
             , m_PushConstant(pushConstant)
         {}
     };

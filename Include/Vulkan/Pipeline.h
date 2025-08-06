@@ -9,6 +9,7 @@
 #include "Vulkan/Shader.h"
 #include "Vulkan/CommandBuffer.h"
 #include "Vulkan/PushConstant.h"
+#include "Vulkan/DescriptorSet.h"
 
 #include "Renderer/Mesh.h"
 
@@ -80,7 +81,13 @@ namespace VulkanHelper
              */
 			bool BlendingEnable = false;
 
-			//VulkanHelper::Vector<VkDescriptorSetLayout> DescriptorSetLayouts; // TODO
+            /**
+             * @brief Descriptor sets to bind with this pipeline (Optional)
+             * 
+             * @note If not empty, descriptor sets will be automatically bound when the pipeline is bound
+             * @note All descriptor sets must outlive this object
+             */
+            VulkanHelper::Vector<DescriptorSet*> DescriptorSets;
 
             /**
              * @brief Push constant (Optional)

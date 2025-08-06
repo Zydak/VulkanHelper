@@ -2,10 +2,11 @@
 #include "ShaderImpl.h"
 #include "CommandBufferImpl.h"
 #include "PushConstantImpl.h"
+#include "DescriptorSetImpl.h"
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Vector<Shader::Impl*> shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format> colorFormats, Format depthFormat, SampleCount sampleCount)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Vector<Shader::Impl*> shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, Vector<DescriptorSet::Impl*> descriptorSets, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format> colorFormats, Format depthFormat, SampleCount sampleCount)
     {
         VH_LOG_INFO("Creating Graphics Pipeline Implementation");
 
@@ -17,7 +18,24 @@ namespace VulkanHelper
 
         VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        // TODO descriptors sets
+
+        // Handle descriptor sets
+        VulkanHelper::Vector<VkDescriptorSetLayout> descriptorSetLayouts;
+        if (!descriptorSets.Empty())
+        {
+            descriptorSetLayouts.Reserve(descriptorSets.Size());
+            for (size_t i = 0; i < descriptorSets.Size(); ++i)
+            {
+                descriptorSetLayouts.PushBack(descriptorSets[i]->GetDescriptorSetLayout());
+            }
+            layoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.Size());
+            layoutInfo.pSetLayouts = descriptorSetLayouts.Data();
+        }
+        else
+        {
+            layoutInfo.setLayoutCount = 0;
+            layoutInfo.pSetLayouts = nullptr;
+        }
 
         // Handle push constants
         VkPushConstantRange pushConstantRange{};
@@ -214,7 +232,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, pushConstant));
+        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, VulkanHelper::Move(descriptorSets), pushConstant));
     }
 
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(const ComputeConfig& config)
@@ -304,6 +322,29 @@ namespace VulkanHelper
         }
         vkCmdBindPipeline(cmdImpl->GetCommandBuffer(), bindPoint, m_Pipeline);
 
+        // Bind descriptor sets if any
+        if (!m_DescriptorSets.Empty())
+        {
+            VulkanHelper::Vector<VkDescriptorSet> descriptorSets;
+            descriptorSets.Reserve(m_DescriptorSets.Size());
+            
+            for (size_t i = 0; i < m_DescriptorSets.Size(); ++i)
+            {
+                descriptorSets.PushBack(m_DescriptorSets[i]->GetDescriptorSet());
+            }
+
+            vkCmdBindDescriptorSets(
+                cmdImpl->GetCommandBuffer(),
+                bindPoint,
+                m_Layout,
+                0, // firstSet
+                static_cast<uint32_t>(descriptorSets.Size()),
+                descriptorSets.Data(),
+                0, // dynamicOffsetCount
+                nullptr // pDynamicOffsets
+            );
+        }
+
         // Push constants after binding the pipeline
         if (m_PushConstant != nullptr)
         {
@@ -330,6 +371,14 @@ namespace VulkanHelper
         for (size_t i = 0; i < config.Shaders.Size(); i++)
             shaders[i] = Shader::Impl::GetImplementation(config.Shaders[i]);
 
+        VulkanHelper::Vector<DescriptorSet::Impl*> descriptorSets;
+        if (!config.DescriptorSets.Empty())
+        {
+            descriptorSets.Reserve(config.DescriptorSets.Size());
+            for (size_t i = 0; i < config.DescriptorSets.Size(); i++)
+                descriptorSets.PushBack(DescriptorSet::Impl::GetImplementation(config.DescriptorSets[i]));
+        }
+
         PushConstant::Impl* pushConstant = nullptr;
         if (config.PushConstant != nullptr)
             pushConstant = PushConstant::Impl::GetImplementation(config.PushConstant);
@@ -345,6 +394,7 @@ namespace VulkanHelper
             config.DepthTestEnable,
             config.DepthClamp,
             config.BlendingEnable,
+            descriptorSets,
             pushConstant,
             config.ColorAttachmentCount,
             config.ColorFormats,

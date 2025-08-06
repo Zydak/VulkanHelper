@@ -13,6 +13,8 @@
 #include <filesystem>
 #include "Vulkan/CommandPool.h"
 
+#include "Vulkan/DescriptorPool.h"
+
 int main()
 {
     VH_LOG_INFO("Current working directory: {}", std::filesystem::current_path().c_str());
@@ -55,7 +57,7 @@ int main()
 
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
 
-    VulkanHelper::Shader::InitializeSession("../../HelloTriangle/Shaders/");
+    VulkanHelper::Shader::InitializeSession("../../Camera/Shaders/");
 
     VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "TriangleVertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
     VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({&device, "TriangleFragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
@@ -134,6 +136,20 @@ int main()
 
     VH_LOG_INFO("Created triangle mesh successfully!");
 
+    VulkanHelper::Buffer testBuffer = VulkanHelper::Buffer::New({&device, 1024, VulkanHelper::Buffer::Usage::UNIFORM_BUFFER, true}).Value();
+    glm::vec3 testData = {1.0f, 0.5f, 0.25f}; // Example data
+    (void)testBuffer.UploadData(&testData, sizeof(testData), 0);
+
+    VulkanHelper::DescriptorPool::PoolSize poolSizes[] = {
+        {VulkanHelper::DescriptorType::UNIFORM_BUFFER, 1},
+    };
+    VulkanHelper::DescriptorPool descriptorPool = VulkanHelper::DescriptorPool::New({&device, 10, poolSizes, 1}).Value();
+    VulkanHelper::DescriptorSet::BindingDescription bindingDesc = {0, 1, VulkanHelper::ShaderStages::VERTEX_BIT, VulkanHelper::DescriptorType::UNIFORM_BUFFER};
+    VulkanHelper::DescriptorSet::Config descriptorSetConfig{&bindingDesc, 1};
+
+    VulkanHelper::DescriptorSet descSet = descriptorPool.AllocateDescriptorSet(descriptorSetConfig).Value();
+    (void)descSet.AddBuffer(0, 0, testBuffer);
+
     float pushData[3] = {1.0f, 1.0f, 1.0f}; // Example data
     VulkanHelper::PushConstant::Config pushConstantConfig{};
     pushConstantConfig.Stage = VulkanHelper::ShaderStages::VERTEX_BIT;
@@ -149,9 +165,10 @@ int main()
     pipelineConfig.AttributeDesc = &triangleMesh.GetAttributesDescriptions();
     pipelineConfig.BindingDesc = triangleMesh.GetBindingDescription();
     pipelineConfig.PushConstant = &pushConstant;
+    pipelineConfig.DescriptorSets.PushBack(&descSet);
     
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
-    
+
     while (!window.WantsToClose())
     {
         VulkanHelper::Window::PollEvents();

@@ -18,11 +18,18 @@ struct PushConstantData
 [[vk::push_constant]]
 PushConstantData pushConstantData;
 
+struct SomeData
+{
+    float3 Color;
+};
+
+[[vk::binding(0, 0)]] ConstantBuffer<SomeData> uSomeData;
+
 [shader("vertex")]
 VertexOutput Main(VertexInput input)
 {
     VertexOutput output;
     output.Position = float4(input.Position, 1.0);
-    output.Color = pushConstantData.Color * input.Color;
+    output.Color = uSomeData.Color * input.Color;
     return output;
 }
