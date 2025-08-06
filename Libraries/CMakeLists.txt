@@ -107,4 +107,9 @@ endif()
 
 add_library(slang INTERFACE)
 target_include_directories(slang SYSTEM INTERFACE "${SLANG_DIR}/include/")
-target_link_libraries(slang INTERFACE "${SLANG_DIR}/lib/slang.lib")
+
+if (MSVC)
+    target_link_libraries(slang INTERFACE "${SLANG_DIR}/lib/slang.lib")
+else()
+    target_link_libraries(slang INTERFACE "${SLANG_DIR}/lib/libslang.so")
+endif()

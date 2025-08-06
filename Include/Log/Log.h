@@ -104,7 +104,9 @@ namespace VulkanHelper
     };
 }
 
+#ifdef WIN32
 #define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 
 #define VH_LOG_FATAL(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VFatal, fmt::fg(fmt::color::white) | fmt::bg(fmt::color::crimson) | fmt::emphasis::bold, __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
 #define VH_LOG_ERROR(...) ::VulkanHelper::Logger::GetInstance().Log(::VulkanHelper::Logger::VError, fmt::fg(fmt::color::red) | fmt::emphasis::bold, __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
