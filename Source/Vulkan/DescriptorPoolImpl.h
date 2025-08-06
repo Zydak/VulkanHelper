@@ -23,12 +23,13 @@ namespace VulkanHelper
         [[nodiscard]] inline static Impl* GetImplementation(const DescriptorPool* publicInterface) { return publicInterface->m_Impl.Get(); }
         [[nodiscard]] inline static DescriptorPool CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return DescriptorPool(VulkanHelper::Move(impl)); }
 
-        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
-        [[nodiscard]] inline VkDescriptorPool GetDescriptorPool() const { return m_DescriptorPool; }
-
         [[nodiscard]] VulkanHelper::Expected<DescriptorSet, VHResult> AllocateDescriptorSet(const DescriptorSet::Config& config);
 
         void Reset();
+
+        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+        [[nodiscard]] inline VkDescriptorPool GetDescriptorPool() const { return m_DescriptorPool; }
+        
     private:
         Device::Impl* m_Device;
         VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
