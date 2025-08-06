@@ -11,7 +11,6 @@ namespace VulkanHelper
     class Device;
     class CommandBuffer;
     class Image;
-    class VulkanMemoryAllocator;
 
     /**
      * @class Buffer
@@ -51,12 +50,6 @@ namespace VulkanHelper
              * @note Must not be nullptr and must outlive this object
              */
             VulkanHelper::Device* Device = nullptr;
-
-            /**
-             * @brief Memory allocator for buffer allocation
-             * @note If nullptr, default allocator will be used
-             */
-            VulkanHelper::VulkanMemoryAllocator* Allocator = nullptr;
 
             /**
              * @brief Size of the buffer in bytes

@@ -11,14 +11,8 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Mesh::Impl>, VHResult> Mesh::Impl::New(Device* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize)
+    Expected<UniquePtr<Mesh::Impl>, VHResult> Mesh::Impl::New(Device::Impl* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize)
     {
-        if (!device)
-        {
-            VH_LOG_ERROR("Device cannot be null");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
         if (!vertexAttributes || vertexAttributeCount == 0)
         {
             VH_LOG_ERROR("VertexAttributes cannot be null and VertexAttributeCount must be greater than 0");
@@ -37,24 +31,22 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(device);
-
         // Create vertex buffer
-        Buffer::Config vertexBufferConfig{};
-        vertexBufferConfig.Device = device;
-        vertexBufferConfig.Size = vertexDataSize;
-        vertexBufferConfig.Usage = Buffer::Usage::VERTEX_BUFFER | Buffer::Usage::TRANSFER_DST;
-        vertexBufferConfig.CpuMapable = false;
-        vertexBufferConfig.DebugName = "Mesh Vertex Buffer";
-
-        auto vertexBufferResult = Buffer::New(vertexBufferConfig);
+        auto vertexBufferResult = Buffer::Impl::New(
+            device,
+            vertexDataSize,
+            Buffer::Usage::VERTEX_BUFFER | Buffer::Usage::TRANSFER_DST,
+            false, // CpuMapable
+            false, // UsePersistentStagingBuffer
+            "Mesh Vertex Buffer"
+        );
         if (!vertexBufferResult.HasValue())
         {
             VH_LOG_ERROR("Failed to create vertex buffer");
             return Unexpected(vertexBufferResult.Error());
         }
 
-        Buffer vertexBuffer = Move(vertexBufferResult.Value());
+        Buffer vertexBuffer = Move(Buffer::Impl::CreatePublicInterface(Move(vertexBufferResult.Value())));
 
         // Upload vertex data
         VHResult uploadResult = vertexBuffer.UploadData(vertexData, vertexDataSize, 0, commandBuffer);
@@ -95,21 +87,21 @@ namespace VulkanHelper
         
         if (indexData && indexDataSize > 0)
         {
-            Buffer::Config indexBufferConfig{};
-            indexBufferConfig.Device = device;
-            indexBufferConfig.Size = indexDataSize;
-            indexBufferConfig.Usage = Buffer::Usage::INDEX_BUFFER | Buffer::Usage::TRANSFER_DST;
-            indexBufferConfig.CpuMapable = false;
-            indexBufferConfig.DebugName = "Mesh Index Buffer";
-
-            auto indexBufferResult = Buffer::New(indexBufferConfig);
+            auto indexBufferResult = Buffer::Impl::New(
+                device,
+                indexDataSize,
+                Buffer::Usage::INDEX_BUFFER | Buffer::Usage::TRANSFER_DST,
+                false, // CpuMapable
+                false, // UsePersistentStagingBuffer
+                "Mesh Index Buffer"
+            );
             if (!indexBufferResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to create index buffer");
                 return Unexpected(indexBufferResult.Error());
             }
 
-            indexBuffer = UniquePtr<Buffer>(new Buffer(Move(indexBufferResult.Value())));
+            indexBuffer = UniquePtr<Buffer>(new Buffer(Move(Buffer::Impl::CreatePublicInterface(Move(indexBufferResult.Value())))));
 
             // Upload index data
             uploadResult = indexBuffer->UploadData(indexData, indexDataSize, 0, commandBuffer);
@@ -129,7 +121,7 @@ namespace VulkanHelper
 
         VH_LOG_INFO("Created Mesh with {} vertices and {} indices", vertexCount, indexCount);
 
-        return UniquePtr<Impl>(new Impl(deviceImpl, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec)));
+        return UniquePtr<Impl>(new Impl(device, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec)));
     }
 
     Mesh::Impl::Impl(Impl&& other) noexcept
@@ -238,7 +230,25 @@ namespace VulkanHelper
 
     Expected<Mesh, VHResult> Mesh::New(const Config& config)
     {
-        auto implResult = Impl::New(config.Device, config.CommandBuffer, config.VertexAttributes, config.VertexAttributeCount, config.VertexData, config.VertexDataSize, config.IndexData, config.IndexDataSize);
+        VH_LOG_INFO("Creating Mesh Implementation");
+
+        if (!config.Device)
+        {
+            VH_LOG_ERROR("Device cannot be null");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            config.CommandBuffer,
+            config.VertexAttributes,
+            config.VertexAttributeCount,
+            config.VertexData,
+            config.VertexDataSize,
+            config.IndexData,
+            config.IndexDataSize
+        );
+
         if (!implResult.HasValue())
         {
             return Unexpected(implResult.Error());

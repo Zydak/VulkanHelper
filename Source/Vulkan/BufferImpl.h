@@ -12,7 +12,7 @@ namespace VulkanHelper
     class Buffer::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, VulkanMemoryAllocator* allocator, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;

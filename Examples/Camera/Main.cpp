@@ -65,7 +65,7 @@ int main()
     (void)testCmdBuffer.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
 
     VulkanHelper::Buffer::Usage usage = VulkanHelper::Buffer::Usage::TRANSFER_SRC | VulkanHelper::Buffer::Usage::TRANSFER_DST;
-    VulkanHelper::Buffer buffer = VulkanHelper::Buffer::New({&device, nullptr, 5, usage, false}).Value();
+    VulkanHelper::Buffer buffer = VulkanHelper::Buffer::New({&device, 5, usage, false}).Value();
     int data = 59; 
     (void)buffer.UploadData(&data, 4, 1, &testCmdBuffer);
 

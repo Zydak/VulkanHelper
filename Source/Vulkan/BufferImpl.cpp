@@ -14,11 +14,9 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Buffer::Impl>, VHResult> Buffer::Impl::New(Device::Impl* device, VulkanMemoryAllocator* allocator, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName)
+    Expected<UniquePtr<Buffer::Impl>, VHResult> Buffer::Impl::New(Device::Impl* device, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName)
     {
         VH_LOG_INFO("Creating Vulkan Buffer Implementation");
-
-        (void)allocator; // Suppress unused parameter warning - using device's allocator instead
 
         if (!device)
         {
@@ -533,7 +531,6 @@ namespace VulkanHelper
     {
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
-            config.Allocator,
             config.Size,
             config.Usage,
             config.CpuMapable,
