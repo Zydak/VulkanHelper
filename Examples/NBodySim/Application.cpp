@@ -136,13 +136,6 @@ Application Application::New()
     //  Graphics Pipeline
     //
 
-    // Push Constant
-    VulkanHelper::PushConstant::Config pushConstantConfig;
-    pushConstantConfig.Size = sizeof(glm::mat4);
-    pushConstantConfig.Stage = VulkanHelper::ShaderStages::VERTEX_BIT;
-
-    VulkanHelper::PushConstant pushConstant = VulkanHelper::PushConstant::New(pushConstantConfig).Value();
-
     // Shaders
     VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "Vertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
     VulkanHelper::Shader fragmentShader = VulkanHelper::Shader::New({&device, "Fragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
@@ -157,7 +150,6 @@ Application Application::New()
     graphicsPipelineConfig.PolygonMode = VulkanHelper::PolygonMode::FILL;
     graphicsPipelineConfig.Topology = VulkanHelper::PrimitiveTopology::POINT_LIST;
     graphicsPipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
-    graphicsPipelineConfig.PushConstant = &pushConstant;
 
     VulkanHelper::Pipeline graphicsPipeline = VulkanHelper::Pipeline::New(graphicsPipelineConfig).Value();
 
@@ -175,7 +167,6 @@ Application Application::New()
         std::move(pointsMesh),
         std::move(descriptorPool),
         std::move(computeSet),
-        std::move(pushConstant),
         std::move(vertexShader),
         std::move(fragmentShader),
         std::move(graphicsPipeline)
@@ -187,10 +178,6 @@ void Application::Run()
     while (!m_Window.WantsToClose())
     {
         m_Window.PollEvents();
-
-        // Update push constant with projection matrix
-        glm::mat4 projection = glm::ortho(0, static_cast<int>(m_Window.GetWidth()), static_cast<int>(m_Window.GetHeight()), 0);
-        VH_ASSERT(m_PushConstant.SetData(&projection, sizeof(glm::mat4)) == VulkanHelper::VHResult::OK, "Failed to update push constant data!");
 
         VulkanHelper::CommandBuffer* cmd = m_Renderer.BeginFrame().Value();
 

@@ -23,7 +23,6 @@ private:
         VulkanHelper::Mesh&& points,
         VulkanHelper::DescriptorPool&& descriptorPool,
         VulkanHelper::DescriptorSet&& computeSet,
-        VulkanHelper::PushConstant&& pushConstant,
         VulkanHelper::Shader&& vertexShader,
         VulkanHelper::Shader&& fragmentShader,
         VulkanHelper::Pipeline&& graphicsPipeline
@@ -37,7 +36,6 @@ private:
       m_Points(std::move(points)),
       m_DescriptorPool(std::move(descriptorPool)),
       m_ComputeSet(std::move(computeSet)),
-      m_PushConstant(std::move(pushConstant)),
       m_VertexShader(std::move(vertexShader)),
       m_FragmentShader(std::move(fragmentShader)),
       m_GraphicsPipeline(std::move(graphicsPipeline))
@@ -58,7 +56,6 @@ private:
     VulkanHelper::DescriptorPool m_DescriptorPool;
     VulkanHelper::DescriptorSet m_ComputeSet;
 
-    VulkanHelper::PushConstant m_PushConstant;
     VulkanHelper::Shader m_VertexShader;
     VulkanHelper::Shader m_FragmentShader;
     VulkanHelper::Pipeline m_GraphicsPipeline;
