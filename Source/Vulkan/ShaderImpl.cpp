@@ -42,24 +42,16 @@ namespace VulkanHelper
         s_GlobalSession->createSession(sessionDesc, s_Session.writeRef());
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Shader::Impl>, VHResult> Shader::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Shader::Impl>, VHResult> Shader::Impl::New(Device::Impl* device, const char* filepath, ShaderStages stage)
     {
-        VH_LOG_INFO("Creating Shader Module Implementation");
-
-        if (config.device == nullptr)
-        {
-            VH_LOG_ERROR("Device Can't Be NULL!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
-        if (config.Stage == ShaderStages::UNDEFINED)
+        if (stage == ShaderStages::UNDEFINED)
         {
             VH_LOG_ERROR("Shader Stage Can't Be UNDEFINED!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        std::string filepath = config.Filepath;
-        if (filepath == "")
+        std::string filepathStr = filepath;
+        if (filepathStr == "")
         {
             VH_LOG_ERROR("Shader Filepath cannot be empty!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
@@ -68,7 +60,7 @@ namespace VulkanHelper
         Slang::ComPtr<slang::IModule> slangModule;
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            std::string moduleName = filepath.substr(0, filepath.find(".slang"));
+            std::string moduleName = filepathStr.substr(0, filepathStr.find(".slang"));
             slangModule = s_Session->loadModule(moduleName.c_str(), diagnosticsBlob.writeRef());
             if (diagnosticsBlob != nullptr)
             {
@@ -153,12 +145,11 @@ namespace VulkanHelper
 
         VkShaderModule module;
 
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.device);
-        VkResult res = vkCreateShaderModule(deviceImpl->GetDevice(), &createInfo, nullptr, &module);
+        VkResult res = vkCreateShaderModule(device->GetDevice(), &createInfo, nullptr, &module);
         if (res != VK_SUCCESS)
             return Unexpected(VHResult(res));
 
-        return UniquePtr(new Impl(deviceImpl, module, (VkShaderStageFlagBits)config.Stage));
+        return UniquePtr(new Impl(device, module, (VkShaderStageFlagBits)stage));
     }
 
     Shader::Impl::~Impl()
@@ -220,7 +211,15 @@ namespace VulkanHelper
     
     VulkanHelper::Expected<Shader, VHResult> Shader::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        VH_LOG_INFO("Creating Shader Module Implementation");
+
+        if (config.device == nullptr)
+        {
+            VH_LOG_ERROR("Device Can't Be NULL!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        auto implResult = Impl::New(Device::Impl::GetImplementation(config.device), config.Filepath, config.Stage);
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

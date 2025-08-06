@@ -12,7 +12,7 @@ namespace VulkanHelper
     class Pipeline::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const GraphicsConfig& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, Vector<Shader::Impl*> shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format> colorFormats, Format depthFormat, SampleCount sampleCount);
         [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const ComputeConfig& config);
         [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const RayTracingConfig& config);
 
@@ -23,6 +23,7 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const Pipeline* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Pipeline CreatePublicInterface(UniquePtr<Impl>&& impl) { return Pipeline(VulkanHelper::Move(impl)); }
 
         void Bind(CommandBuffer* commandBuffer);
     private:

@@ -10,13 +10,6 @@ namespace VulkanHelper
     class VulkanMemoryAllocator
     {
     public:
-        struct Config
-        {
-            VkDevice Device = nullptr;
-            VkInstance Instance = nullptr;
-            VkPhysicalDevice PhysicalDevice = nullptr;
-        };
-
         struct BufferAllocation
         {
             VkBuffer Buffer = nullptr;
@@ -29,7 +22,7 @@ namespace VulkanHelper
             VmaAllocation Allocation = nullptr;
         };
 
-        [[nodiscard]] static VulkanHelper::Expected<VulkanMemoryAllocator, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanMemoryAllocator, VHResult> New(VkDevice device, VkInstance instance, VkPhysicalDevice physicalDevice);
 
         VulkanMemoryAllocator(const VulkanMemoryAllocator& other) = delete;
         VulkanMemoryAllocator& operator=(const VulkanMemoryAllocator& other) = delete;

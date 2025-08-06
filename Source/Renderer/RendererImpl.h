@@ -20,10 +20,11 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Renderer* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, Window::Impl* window, uint32_t framesInFlight);
 
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Config& config);
-        
+        [[nodiscard]] inline static Impl* GetImplementation(const Renderer* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Renderer CreatePublicInterface(UniquePtr<Impl>&& impl) { return Renderer(VulkanHelper::Move(impl)); }
+
         [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
         [[nodiscard]] VHResult EndFrame();
 
@@ -43,15 +44,15 @@ namespace VulkanHelper
     private:
         VHResult RecreateSwapchain();
         
-        Device* m_Device;
-        Window* m_Window;
+        Device::Impl* m_Device;
+        Window::Impl* m_Window;
         Swapchain m_Swapchain;
         CommandPool m_CommandPool;
         Vector<CommandBuffer> m_CommandBuffers;
 
         Impl(
-            Device* device,
-            Window* window,
+            Device::Impl* device,
+            Window::Impl* window,
             Swapchain&& swapchain,
             CommandPool&& pool,
             Vector<CommandBuffer>&& commandBuffers

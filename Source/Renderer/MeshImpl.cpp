@@ -11,38 +11,38 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Mesh::Impl>, VHResult> Mesh::Impl::New(const Config& config)
+    Expected<UniquePtr<Mesh::Impl>, VHResult> Mesh::Impl::New(Device* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize)
     {
-        if (!config.Device)
+        if (!device)
         {
             VH_LOG_ERROR("Device cannot be null");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (!config.VertexAttributes || config.VertexAttributeCount == 0)
+        if (!vertexAttributes || vertexAttributeCount == 0)
         {
             VH_LOG_ERROR("VertexAttributes cannot be null and VertexAttributeCount must be greater than 0");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (!config.VertexData || config.VertexDataSize == 0)
+        if (!vertexData || vertexDataSize == 0)
         {
             VH_LOG_ERROR("VertexData cannot be null and VertexDataSize must be greater than 0");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (!config.CommandBuffer)
+        if (!commandBuffer)
         {
             VH_LOG_ERROR("CommandBuffer cannot be null");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
+        Device::Impl* deviceImpl = Device::Impl::GetImplementation(device);
 
         // Create vertex buffer
         Buffer::Config vertexBufferConfig{};
-        vertexBufferConfig.Device = config.Device;
-        vertexBufferConfig.Size = config.VertexDataSize;
+        vertexBufferConfig.Device = device;
+        vertexBufferConfig.Size = vertexDataSize;
         vertexBufferConfig.Usage = Buffer::Usage::VERTEX_BUFFER | Buffer::Usage::TRANSFER_DST;
         vertexBufferConfig.CpuMapable = false;
         vertexBufferConfig.DebugName = "Mesh Vertex Buffer";
@@ -57,7 +57,7 @@ namespace VulkanHelper
         Buffer vertexBuffer = Move(vertexBufferResult.Value());
 
         // Upload vertex data
-        VHResult uploadResult = vertexBuffer.UploadData(config.VertexData, config.VertexDataSize, 0, config.CommandBuffer);
+        VHResult uploadResult = vertexBuffer.UploadData(vertexData, vertexDataSize, 0, commandBuffer);
         if (uploadResult != VHResult::OK)
         {
             VH_LOG_ERROR("Failed to upload vertex data to buffer");
@@ -65,11 +65,11 @@ namespace VulkanHelper
         }
 
         // Calculate vertex count based on vertex attribute sizes
-        VulkanHelper::Vector<Mesh::VertexAttributeDescription> vertexAttributes;
+        VulkanHelper::Vector<Mesh::VertexAttributeDescription> vertexAttributesVec;
         uint32_t vertexSize = 0;
-        for (uint32_t i = 0; i < config.VertexAttributeCount; ++i)
+        for (uint32_t i = 0; i < vertexAttributeCount; ++i)
         {
-            Format format = config.VertexAttributes[i];
+            Format format = vertexAttributes[i];
             uint32_t formatSize = VulkanHelper::GetFormatSize(format);
 
             Mesh::VertexAttributeDescription attr{};
@@ -77,15 +77,15 @@ namespace VulkanHelper
             attr.Binding = 0; // Assuming single binding for simplicity
             attr.Format = format;
             attr.Offset = vertexSize;
-            vertexAttributes.PushBack(Move(attr));
+            vertexAttributesVec.PushBack(Move(attr));
 
             vertexSize += formatSize;
         }
 
-        uint32_t vertexCount = config.VertexDataSize / vertexSize;
-        if (config.VertexDataSize % vertexSize != 0)
+        uint32_t vertexCount = vertexDataSize / vertexSize;
+        if (vertexDataSize % vertexSize != 0)
         {
-            VH_LOG_ERROR("VertexDataSize ({}) is not evenly divisible by vertex size ({}), Make sure you passed the correct data!", config.VertexDataSize, vertexSize);
+            VH_LOG_ERROR("VertexDataSize ({}) is not evenly divisible by vertex size ({}), Make sure you passed the correct data!", vertexDataSize, vertexSize);
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
@@ -93,11 +93,11 @@ namespace VulkanHelper
         UniquePtr<Buffer> indexBuffer(nullptr);
         uint32_t indexCount = 0;
         
-        if (config.IndexData && config.IndexDataSize > 0)
+        if (indexData && indexDataSize > 0)
         {
             Buffer::Config indexBufferConfig{};
-            indexBufferConfig.Device = config.Device;
-            indexBufferConfig.Size = config.IndexDataSize;
+            indexBufferConfig.Device = device;
+            indexBufferConfig.Size = indexDataSize;
             indexBufferConfig.Usage = Buffer::Usage::INDEX_BUFFER | Buffer::Usage::TRANSFER_DST;
             indexBufferConfig.CpuMapable = false;
             indexBufferConfig.DebugName = "Mesh Index Buffer";
@@ -112,7 +112,7 @@ namespace VulkanHelper
             indexBuffer = UniquePtr<Buffer>(new Buffer(Move(indexBufferResult.Value())));
 
             // Upload index data
-            uploadResult = indexBuffer->UploadData(config.IndexData, config.IndexDataSize, 0, config.CommandBuffer);
+            uploadResult = indexBuffer->UploadData(indexData, indexDataSize, 0, commandBuffer);
             if (uploadResult != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to upload index data to buffer");
@@ -120,16 +120,16 @@ namespace VulkanHelper
             }
 
             // Assume 32-bit indices (could be extended to support 16-bit indices)
-            indexCount = config.IndexDataSize / sizeof(uint32_t);
-            if (config.IndexDataSize % sizeof(uint32_t) != 0)
+            indexCount = indexDataSize / sizeof(uint32_t);
+            if (indexDataSize % sizeof(uint32_t) != 0)
             {
-                VH_LOG_WARN("IndexDataSize ({}) is not evenly divisible by sizeof(uint32_t), some data may be ignored", config.IndexDataSize);
+                VH_LOG_WARN("IndexDataSize ({}) is not evenly divisible by sizeof(uint32_t), some data may be ignored", indexDataSize);
             }
         }
 
         VH_LOG_INFO("Created Mesh with {} vertices and {} indices", vertexCount, indexCount);
 
-        return UniquePtr<Impl>(new Impl(deviceImpl, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributes)));
+        return UniquePtr<Impl>(new Impl(deviceImpl, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec)));
     }
 
     Mesh::Impl::Impl(Impl&& other) noexcept
@@ -238,7 +238,7 @@ namespace VulkanHelper
 
     Expected<Mesh, VHResult> Mesh::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        auto implResult = Impl::New(config.Device, config.CommandBuffer, config.VertexAttributes, config.VertexAttributeCount, config.VertexData, config.VertexDataSize, config.IndexData, config.IndexDataSize);
         if (!implResult.HasValue())
         {
             return Unexpected(implResult.Error());

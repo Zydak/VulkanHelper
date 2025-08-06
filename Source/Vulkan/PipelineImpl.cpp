@@ -5,11 +5,11 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(const GraphicsConfig& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Vector<Shader::Impl*> shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format> colorFormats, Format depthFormat, SampleCount sampleCount)
     {
         VH_LOG_INFO("Creating Graphics Pipeline Implementation");
 
-        if (config.Device == nullptr)
+        if (device == nullptr)
         {
             VH_LOG_ERROR("Device Cannot be nullptr!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
@@ -21,10 +21,9 @@ namespace VulkanHelper
 
         // Handle push constants
         VkPushConstantRange pushConstantRange{};
-        if (config.PushConstant != nullptr)
+        if (pushConstant != nullptr)
         {
-            PushConstant::Impl* pushConstantImpl = PushConstant::Impl::GetImplementation(config.PushConstant);
-            pushConstantRange = pushConstantImpl->GetVkPushConstantRange();
+            pushConstantRange = pushConstant->GetVkPushConstantRange();
             layoutInfo.pushConstantRangeCount = 1;
             layoutInfo.pPushConstantRanges = &pushConstantRange;
         }
@@ -35,8 +34,7 @@ namespace VulkanHelper
         }
 
         VkPipelineLayout pipelineLayout;
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
-        VkResult res = vkCreatePipelineLayout(deviceImpl->GetDevice(), &layoutInfo, nullptr, &pipelineLayout);
+        VkResult res = vkCreatePipelineLayout(device->GetDevice(), &layoutInfo, nullptr, &pipelineLayout);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Couldn't create pipeline layout!");
@@ -45,35 +43,35 @@ namespace VulkanHelper
 
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
         inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssemblyInfo.topology = (VkPrimitiveTopology)config.Topology;
-		if (config.Topology == PrimitiveTopology::LINE_STRIP || config.Topology == PrimitiveTopology::TRIANGLE_STRIP)
+		inputAssemblyInfo.topology = (VkPrimitiveTopology)topology;
+		if (topology == PrimitiveTopology::LINE_STRIP || topology == PrimitiveTopology::TRIANGLE_STRIP)
             inputAssemblyInfo.primitiveRestartEnable = VK_TRUE;
 		else
             inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
         VkPipelineRasterizationStateCreateInfo rasterizationInfo{};
         rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizationInfo.depthClampEnable = config.DepthClamp;
+		rasterizationInfo.depthClampEnable = depthClamp;
 		rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
-		rasterizationInfo.polygonMode = (VkPolygonMode)config.PolygonMode;
+		rasterizationInfo.polygonMode = (VkPolygonMode)polygonMode;
 		rasterizationInfo.lineWidth = 1.0f;
-		rasterizationInfo.cullMode = (VkCullModeFlags)config.CullMode;
+		rasterizationInfo.cullMode = (VkCullModeFlags)cullMode;
 		rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
 		rasterizationInfo.depthBiasEnable = VK_FALSE;
 
         VkPipelineMultisampleStateCreateInfo multisampleInfo{};
         multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampleInfo.sampleShadingEnable = VK_FALSE;
-		multisampleInfo.rasterizationSamples = (VkSampleCountFlagBits)config.SampleCount;
+		multisampleInfo.rasterizationSamples = (VkSampleCountFlagBits)sampleCount;
 		multisampleInfo.minSampleShading = 1.0f;
 		multisampleInfo.pSampleMask = nullptr;
 		multisampleInfo.alphaToCoverageEnable = VK_FALSE;
 		multisampleInfo.alphaToOneEnable = VK_FALSE;
 
-        VulkanHelper::Vector<VkPipelineColorBlendAttachmentState> blendStates(config.ColorAttachmentCount);
-        for (size_t i = 0; i < config.ColorAttachmentCount; i++)
+        VulkanHelper::Vector<VkPipelineColorBlendAttachmentState> blendStates(colorAttachmentCount);
+        for (size_t i = 0; i < colorAttachmentCount; i++)
         {
-            if (config.BlendingEnable)
+            if (blendingEnable)
 			{
 				auto& blendAttachment = blendStates[i];
 				blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -103,7 +101,7 @@ namespace VulkanHelper
         colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlendInfo.logicOpEnable = VK_FALSE;
 		colorBlendInfo.logicOp = VK_LOGIC_OP_COPY;
-		colorBlendInfo.attachmentCount = config.ColorAttachmentCount;
+		colorBlendInfo.attachmentCount = colorAttachmentCount;
 		colorBlendInfo.pAttachments = blendStates.Data();
 		colorBlendInfo.blendConstants[0] = 0.0f;
 		colorBlendInfo.blendConstants[1] = 0.0f;
@@ -112,7 +110,7 @@ namespace VulkanHelper
 
         VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
         depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencilInfo.depthTestEnable = config.DepthTestEnable;
+		depthStencilInfo.depthTestEnable = depthTestEnable;
 		depthStencilInfo.depthWriteEnable = VK_TRUE;
 		depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
 		depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
@@ -132,15 +130,15 @@ namespace VulkanHelper
 		dynamicStateInfo.dynamicStateCount = 2;
 		dynamicStateInfo.pDynamicStates = dynamicStates;
 
-        VkVertexInputBindingDescription bindingDesc = {};
-        bindingDesc.binding = config.BindingDesc.Binding;
-        bindingDesc.stride = config.BindingDesc.Stride;
-        bindingDesc.inputRate = (VkVertexInputRate)config.BindingDesc.PerInstance;
+        VkVertexInputBindingDescription bindingDescVk = {};
+        bindingDescVk.binding = bindingDesc.Binding;
+        bindingDescVk.stride = bindingDesc.Stride;
+        bindingDescVk.inputRate = (VkVertexInputRate)bindingDesc.PerInstance;
 
-        VulkanHelper::Vector<VkVertexInputAttributeDescription> attributeDescs(config.AttributeDesc->Size());
-        for (size_t i = 0; i < config.AttributeDesc->Size(); i++)
+        VulkanHelper::Vector<VkVertexInputAttributeDescription> attributeDescs(attributeDesc->Size());
+        for (size_t i = 0; i < attributeDesc->Size(); i++)
         {
-            const Mesh::VertexAttributeDescription& attrDesc = (*config.AttributeDesc)[i];
+            const Mesh::VertexAttributeDescription& attrDesc = (*attributeDesc)[i];
             attributeDescs[i].location = attrDesc.Location;
             attributeDescs[i].binding = attrDesc.Binding;
             attributeDescs[i].format = (VkFormat)attrDesc.Format;
@@ -150,7 +148,7 @@ namespace VulkanHelper
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescVk;
         vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDescs.Size();
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescs.Data();
 
@@ -175,11 +173,10 @@ namespace VulkanHelper
 		viewportInfo.scissorCount = 1;
 		viewportInfo.pScissors = &scissors;
 
-        VulkanHelper::Vector<VkPipelineShaderStageCreateInfo> shaderStages(config.Shaders.Size());
+        VulkanHelper::Vector<VkPipelineShaderStageCreateInfo> shaderStages(shaders.Size());
         for (size_t i = 0; i < shaderStages.Size(); i++)
         {
-            Shader::Impl* shaderImpl = Shader::Impl::GetImplementation(config.Shaders[i]);
-            shaderStages[i] = shaderImpl->GetShaderStageCreateInfo();
+            shaderStages[i] = shaders[i]->GetShaderStageCreateInfo();
         }
 
         VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};
@@ -203,9 +200,9 @@ namespace VulkanHelper
         VkPipelineRenderingCreateInfoKHR pipelineRenderingInfo{};
         pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
 		pipelineRenderingInfo.pNext = VK_NULL_HANDLE;
-		pipelineRenderingInfo.colorAttachmentCount = config.ColorAttachmentCount;
-		pipelineRenderingInfo.pColorAttachmentFormats = (VkFormat*)config.ColorFormats.Data();
-		pipelineRenderingInfo.depthAttachmentFormat = (VkFormat)config.DepthFormat;
+		pipelineRenderingInfo.colorAttachmentCount = colorAttachmentCount;
+		pipelineRenderingInfo.pColorAttachmentFormats = (VkFormat*)colorFormats.Data();
+		pipelineRenderingInfo.depthAttachmentFormat = (VkFormat)depthFormat;
 		pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 		graphicsPipelineInfo.pNext = &pipelineRenderingInfo;
 
@@ -213,15 +210,11 @@ namespace VulkanHelper
 		graphicsPipelineInfo.basePipelineIndex = -1;
 
         VkPipeline pipeline;
-        res = vkCreateGraphicsPipelines(deviceImpl->GetDevice(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &pipeline);
+        res = vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &pipeline);
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        PushConstant::Impl* pushConstantImpl = nullptr;
-        if (config.PushConstant != nullptr)
-            pushConstantImpl = PushConstant::Impl::GetImplementation(config.PushConstant);
-
-        return UniquePtr(new Impl(deviceImpl, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, pushConstantImpl));
+        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, pushConstant));
     }
 
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(const ComputeConfig& config)
@@ -333,7 +326,32 @@ namespace VulkanHelper
     
     VulkanHelper::Expected<Pipeline, VHResult> Pipeline::New(const GraphicsConfig& config)
     {
-        auto implResult = Impl::New(config);
+        VulkanHelper::Vector<Shader::Impl*> shaders(config.Shaders.Size());
+        for (size_t i = 0; i < config.Shaders.Size(); i++)
+            shaders[i] = Shader::Impl::GetImplementation(config.Shaders[i]);
+
+        PushConstant::Impl* pushConstant = nullptr;
+        if (config.PushConstant != nullptr)
+            pushConstant = PushConstant::Impl::GetImplementation(config.PushConstant);
+
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            shaders,
+            config.AttributeDesc,
+            config.BindingDesc,
+            config.PolygonMode,
+            config.Topology,
+            config.CullMode,
+            config.DepthTestEnable,
+            config.DepthClamp,
+            config.BlendingEnable,
+            pushConstant,
+            config.ColorAttachmentCount,
+            config.ColorFormats,
+            config.DepthFormat,
+            config.SampleCount
+        );
+
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

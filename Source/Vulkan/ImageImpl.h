@@ -13,7 +13,7 @@ namespace VulkanHelper
     class Image::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, uint32_t height, uint32_t width, uint32_t mipCount, uint32_t layerCount, Format format, Usage usage, Tiling tiling, Aspect aspect, Layout initialLayout, bool usePersistentStagingBuffer, bool allowMapping);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -24,6 +24,7 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Image* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Image CreatePublicInterface(UniquePtr<Impl>&& impl) { return Image(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
 

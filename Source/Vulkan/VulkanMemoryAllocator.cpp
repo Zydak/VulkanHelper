@@ -6,23 +6,23 @@
 
 namespace VulkanHelper
 {
-    Expected<VulkanMemoryAllocator, VHResult> VulkanMemoryAllocator::New(const Config& config)
+    Expected<VulkanMemoryAllocator, VHResult> VulkanMemoryAllocator::New(VkDevice device, VkInstance instance, VkPhysicalDevice physicalDevice)
     {
         VH_LOG_INFO("Creating Vulkan Memory Allocator");
 
-        if (config.Device == nullptr)
+        if (device == nullptr)
         {
             VH_LOG_ERROR("Invalid VulkanMemoryAllocator configuration: Device is null");
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.Instance == nullptr)
+        if (instance == nullptr)
         {
             VH_LOG_ERROR("Invalid VulkanMemoryAllocator configuration: Instance is null");
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.PhysicalDevice == nullptr)
+        if (physicalDevice == nullptr)
         {
             VH_LOG_ERROR("Invalid VulkanMemoryAllocator configuration: PhysicalDevice is null");
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
@@ -31,9 +31,9 @@ namespace VulkanHelper
         VmaAllocatorCreateInfo allocatorCreateInfo = {};
         allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
         allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_2;
-        allocatorCreateInfo.physicalDevice = config.PhysicalDevice;
-        allocatorCreateInfo.device = config.Device;
-        allocatorCreateInfo.instance = config.Instance;
+        allocatorCreateInfo.physicalDevice = physicalDevice;
+        allocatorCreateInfo.device = device;
+        allocatorCreateInfo.instance = instance;
 
         VmaAllocator allocator;
         VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &allocator);

@@ -14,34 +14,34 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Buffer::Impl>, VHResult> Buffer::Impl::New(const Buffer::Config& config)
+    Expected<UniquePtr<Buffer::Impl>, VHResult> Buffer::Impl::New(Device::Impl* device, VulkanMemoryAllocator* allocator, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName)
     {
         VH_LOG_INFO("Creating Vulkan Buffer Implementation");
 
-        if (!config.Device)
+        (void)allocator; // Suppress unused parameter warning - using device's allocator instead
+
+        if (!device)
         {
             VH_LOG_ERROR("Device cannot be null!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.Size == 0)
+        if (size == 0)
         {
             VH_LOG_ERROR("Buffer size cannot be zero!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
-
         // Create buffer info
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = config.Size;
-        bufferInfo.usage = static_cast<VkBufferUsageFlags>(config.Usage);
+        bufferInfo.size = size;
+        bufferInfo.usage = static_cast<VkBufferUsageFlags>(usage);
         
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         // Allocate buffer using device allocator
-        auto allocationResult = deviceImpl->AllocateBuffer(bufferInfo, config.CpuMapable);
+        auto allocationResult = device->AllocateBuffer(bufferInfo, cpuMapable);
         if (!allocationResult.HasValue())
         {
             VH_LOG_ERROR("Failed to allocate buffer using VulkanMemoryAllocator");
@@ -51,41 +51,41 @@ namespace VulkanHelper
         VulkanMemoryAllocator::BufferAllocation bufferAllocation = allocationResult.Value();
 
         // Set debug name if provided
-        if (config.DebugName && strlen(config.DebugName) > 0)
+        if (debugName && strlen(debugName) > 0)
         {
-            VkDevice device = deviceImpl->GetDevice();
+            VkDevice deviceHandle = device->GetDevice();
             VkDebugUtilsObjectNameInfoEXT nameInfo{};
             nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
             nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
             nameInfo.objectHandle = reinterpret_cast<uint64_t>(bufferAllocation.Buffer);
-            nameInfo.pObjectName = config.DebugName;
+            nameInfo.pObjectName = debugName;
             
             // TODO: do this on the device not here
             auto vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
-                vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT"));
+                vkGetDeviceProcAddr(deviceHandle, "vkSetDebugUtilsObjectNameEXT"));
             if (vkSetDebugUtilsObjectNameEXT)
             {
-                vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
+                vkSetDebugUtilsObjectNameEXT(deviceHandle, &nameInfo);
             }
         }
 
         // Create optional persistent scratch buffer
         VulkanMemoryAllocator::BufferAllocation scratchBuffer = {};
-        if (!config.CpuMapable && config.UsePersistentStagingBuffer)
+        if (!cpuMapable && usePersistentStagingBuffer)
         {
-            VH_LOG_INFO("Creating persistent scratch buffer for buffer with size {} bytes", config.Size);
+            VH_LOG_INFO("Creating persistent scratch buffer for buffer with size {} bytes", size);
             
             VkBufferCreateInfo scratchBufferInfo{};
             scratchBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            scratchBufferInfo.size = config.Size;
+            scratchBufferInfo.size = size;
             scratchBufferInfo.usage = static_cast<VkBufferUsageFlags>(Usage::TRANSFER_SRC | Usage::TRANSFER_DST);
             scratchBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-            auto scratchAllocationResult = deviceImpl->AllocateBuffer(scratchBufferInfo, true); // Always CPU mappable
+            auto scratchAllocationResult = device->AllocateBuffer(scratchBufferInfo, true); // Always CPU mappable
             if (!scratchAllocationResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to allocate scratch buffer using VulkanMemoryAllocator");
-                deviceImpl->DeallocateBuffer(bufferAllocation); // Clean up main buffer
+                device->DeallocateBuffer(bufferAllocation); // Clean up main buffer
                 return Unexpected(scratchAllocationResult.Error());
             }
 
@@ -93,11 +93,11 @@ namespace VulkanHelper
         }
 
         auto impl = UniquePtr<Impl>(new Impl(
-            deviceImpl,
+            device,
             bufferAllocation,
-            config.Size,
-            config.Usage,
-            config.CpuMapable,
+            size,
+            usage,
+            cpuMapable,
             scratchBuffer
         ));
 
@@ -531,7 +531,16 @@ namespace VulkanHelper
     // Public Buffer class implementations
     Expected<Buffer, VHResult> Buffer::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            config.Allocator,
+            config.Size,
+            config.Usage,
+            config.CpuMapable,
+            config.UsePersistentStagingBuffer,
+            config.DebugName
+        );
+
         if (!implResult.HasValue())
         {
             return Unexpected(implResult.Error());

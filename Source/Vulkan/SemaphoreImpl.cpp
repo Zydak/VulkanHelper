@@ -7,31 +7,21 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Semaphore::Impl>, VHResult> Semaphore::Impl::New(const Config& config)
+    Expected<UniquePtr<Semaphore::Impl>, VHResult> Semaphore::Impl::New(Device::Impl* device)
     {
-        VH_LOG_INFO("Creating Vulkan Semaphore Implementation");
-        
-        if (config.Device == nullptr)
-        {
-            VH_LOG_ERROR("Semaphore initialization failed. Device can't be nullptr!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-        
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
-
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         semaphoreInfo.flags = 0; // Semaphores don't support initial signaled state
 
         VkSemaphore semaphore;
-        VkResult res = vkCreateSemaphore(deviceImpl->GetDevice(), &semaphoreInfo, nullptr, &semaphore);
+        VkResult res = vkCreateSemaphore(device->GetDevice(), &semaphoreInfo, nullptr, &semaphore);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create semaphore");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return UniquePtr(new Impl(deviceImpl, semaphore));
+        return UniquePtr(new Impl(device, semaphore));
     }
 
     Semaphore::Impl::Impl(Semaphore::Impl&& other) noexcept
@@ -71,7 +61,15 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Semaphore, VHResult> Semaphore::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        VH_LOG_INFO("Creating Vulkan Semaphore Implementation");
+
+        if (config.Device == nullptr)
+        {
+            VH_LOG_ERROR("Semaphore initialization failed. Device can't be nullptr!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        auto implResult = Impl::New(Device::Impl::GetImplementation(config.Device));
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

@@ -9,7 +9,7 @@ namespace VulkanHelper
     class Semaphore::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -20,6 +20,7 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Semaphore* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Semaphore CreatePublicInterface(UniquePtr<Impl>&& impl) { return Semaphore(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] inline VkSemaphore GetSemaphore() const { return m_Semaphore; } 
     private:

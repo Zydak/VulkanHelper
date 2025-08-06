@@ -1,7 +1,11 @@
 #pragma once
 #include "Vulkan/Device.h"
+
+#include "Window/WindowImpl.h"
 #include "InstanceImpl.h"
 #include "VulkanMemoryAllocator.h"
+
+#include "PhysicalDeviceImpl.h"
 
 typedef struct VkDevice_T* VkDevice;
 
@@ -10,7 +14,7 @@ namespace VulkanHelper
     class Device::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*> windows, Instance::Impl* instance);
         ~Impl();
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -18,9 +22,10 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const Device* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Device CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return Device(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] inline VkDevice GetDevice() const { return m_Device; }
-        [[nodiscard]] inline const PhysicalDevice& GetPhysicalDevice() const { return m_PhysicalDevice; }
+        [[nodiscard]] inline const PhysicalDevice::Impl& GetPhysicalDevice() const { return m_PhysicalDevice; }
         [[nodiscard]] inline QueueFamilyIndices GetQueueFamilyIndices() const { return m_QueueFamilyIndices; }
         void WaitUntilIdle() const;
 
@@ -74,24 +79,24 @@ namespace VulkanHelper
 
         Instance::Impl* m_Instance;
         VkDevice m_Device = nullptr;
-        PhysicalDevice m_PhysicalDevice;
+        PhysicalDevice::Impl m_PhysicalDevice;
         QueueFamilyIndices m_QueueFamilyIndices = {};
         VulkanHelper::VulkanMemoryAllocator m_Allocator;
 
         explicit Impl(
             Instance::Impl* instance,
             VkDevice device,
-            PhysicalDevice physicalDevice,
+            PhysicalDevice::Impl&& physicalDevice,
             QueueFamilyIndices&& indices,
             VulkanHelper::VulkanMemoryAllocator&& allocator
         )
             : m_Instance(instance)
             , m_Device(device)
-            , m_PhysicalDevice(physicalDevice)
+            , m_PhysicalDevice(Move(physicalDevice))
             , m_QueueFamilyIndices(Move(indices))
             , m_Allocator(Move(allocator))
         {}
-        
-        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice& physicalDevice, const VulkanHelper::Vector<Window*>& windows);
+
+        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice::Impl& physicalDevice, const VulkanHelper::Vector<Window::Impl*>& windows);
     };
 }

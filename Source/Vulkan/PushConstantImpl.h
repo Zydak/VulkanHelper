@@ -11,7 +11,7 @@ namespace VulkanHelper
     class PushConstant::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const PushConstant::Config& config);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(ShaderStages stage, void* data, uint32_t size);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -21,10 +21,8 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const PushConstant* publicInterface) 
-        { 
-            return publicInterface->m_Impl.Get(); 
-        }
+        [[nodiscard]] inline static Impl* GetImplementation(const PushConstant* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static PushConstant CreatePublicInterface(UniquePtr<Impl>&& impl) { return PushConstant(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] VHResult SetData(const void* data, uint32_t size, uint32_t offset = 0);
 

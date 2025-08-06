@@ -7,29 +7,29 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<PushConstant::Impl>, VHResult> PushConstant::Impl::New(const PushConstant::Config& config)
+    Expected<UniquePtr<PushConstant::Impl>, VHResult> PushConstant::Impl::New(ShaderStages stage, void* data, uint32_t size)
     {
         VH_LOG_INFO("Creating PushConstant Implementation");
 
-        if (config.Stage == ShaderStages::UNDEFINED)
+        if (stage == ShaderStages::UNDEFINED)
         {
             VH_LOG_ERROR("PushConstant shader stage cannot be UNDEFINED!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.Size == 0)
+        if (size == 0)
         {
             VH_LOG_ERROR("PushConstant size cannot be 0!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
         // Vulkan has limits on push constant size, typically 128-256 bytes
-        if (config.Size > 128)
+        if (size > 128)
         {
-            VH_LOG_WARN("PushConstant size {} bytes exceeds common Vulkan limit of 128 bytes. Check device limits. Also note that this may not run on platforms with stricter limits. If you really need more than 128 bytes of space, consider using a Uniform buffer.", config.Size);
+            VH_LOG_WARN("PushConstant size {} bytes exceeds common Vulkan limit of 128 bytes. Check device limits. Also note that this may not run on platforms with stricter limits. If you really need more than 128 bytes of space, consider using a Uniform buffer.", size);
         }
 
-        return UniquePtr<Impl>(new Impl(config.Stage, config.Data, config.Size));
+        return UniquePtr<Impl>(new Impl(stage, data, size));
     }
 
     PushConstant::Impl::Impl(ShaderStages stage, const void* data, uint32_t size)
@@ -105,7 +105,7 @@ namespace VulkanHelper
 
     Expected<PushConstant, VHResult> PushConstant::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        auto implResult = Impl::New(config.Stage, config.Data, config.Size);
         if (!implResult.HasValue())
         {
             return Unexpected(implResult.Error());

@@ -41,12 +41,12 @@ static void GLFWErrorCallback(int errorCode, const char* message)
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Instance::Impl>, VHResult> Instance::Impl::New(const Instance::Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Instance::Impl>, VHResult> Instance::Impl::New(bool addGLFWExtensions)
     {
         VH_LOG_INFO("Creating Vulkan Instance Implementation");
 
         static bool GLFWInitialized = false;
-        if (GLFWInitialized == false && config.AddGLFWExtensions)
+        if (GLFWInitialized == false && addGLFWExtensions)
         {
             if (glfwInit() != GLFW_TRUE)
                 return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
@@ -81,7 +81,7 @@ namespace VulkanHelper
 
         VulkanHelper::Vector<const char*> extensions;
 
-        if (config.AddGLFWExtensions)
+        if (addGLFWExtensions)
         {
             uint32_t glfwExtensionCount = 0;
             const char** glfwExtensions;
@@ -197,7 +197,7 @@ namespace VulkanHelper
         suitableDevices.Reserve(deviceCount);
         for (size_t i = 0; i < devices.Size(); i++)
         {
-            auto physicalDeviceImpl = PhysicalDevice::Impl::New({m_Instance, devices[i]});
+            auto physicalDeviceImpl = PhysicalDevice::Impl::New(m_Instance, devices[i]);
             if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value()->IsSuitable(deviceExtensions))
             {
                 PhysicalDevice physicalDevice(VulkanHelper::Move(physicalDeviceImpl.Value()));
@@ -234,7 +234,7 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Instance, VHResult> Instance::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        auto implResult = Impl::New(config.AddGLFWExtensions);
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

@@ -8,34 +8,33 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<ImageView::Impl>, VHResult> ImageView::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<ImageView::Impl>, VHResult> ImageView::Impl::New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount)
     {
         VH_LOG_INFO("Creating Image View Implementation");
 
-        if (config.image == nullptr)
+        if (image == nullptr)
         {
             VH_LOG_ERROR("Image can't be nullptr!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
-        if (config.ViewType == ViewType::VIEW_UNDEFINED)
+        if (viewType == ViewType::VIEW_UNDEFINED)
         {
             VH_LOG_ERROR("View type can't be undefined!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        Image::Impl* imageImpl = Image::Impl::GetImplementation(config.image);
-        Device::Impl* deviceImpl = imageImpl->GetDevice();
+        Device::Impl* deviceImpl = image->GetDevice();
 
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image = imageImpl->GetImage();
-        viewInfo.viewType = (VkImageViewType)config.ViewType;
-        viewInfo.format = (VkFormat)imageImpl->GetFormat();
-        viewInfo.subresourceRange.aspectMask = (VkImageAspectFlags)imageImpl->GetAspect();
+        viewInfo.image = image->GetImage();
+        viewInfo.viewType = (VkImageViewType)viewType;
+        viewInfo.format = (VkFormat)image->GetFormat();
+        viewInfo.subresourceRange.aspectMask = (VkImageAspectFlags)image->GetAspect();
         viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = imageImpl->GetMipCount();
-        viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = config.LayerCount == UINT32_MAX ? imageImpl->GetLayerCount() : config.LayerCount;
+        viewInfo.subresourceRange.levelCount = image->GetMipCount();
+        viewInfo.subresourceRange.baseArrayLayer = baseLayer;
+        viewInfo.subresourceRange.layerCount = layerCount == UINT32_MAX ? image->GetLayerCount() : layerCount;
 
         VkImageView imageView;
         if (vkCreateImageView(deviceImpl->GetDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS)
@@ -44,7 +43,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return UniquePtr(new Impl(imageImpl, imageView, config.ViewType));
+        return UniquePtr(new Impl(image, imageView, viewType));
     }
 
     ImageView::Impl::Impl(Impl&& other) noexcept
@@ -86,7 +85,13 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<ImageView, VHResult> ImageView::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        auto implResult = Impl::New(
+            Image::Impl::GetImplementation(config.image),
+            config.ViewType,
+            config.BaseLayer,
+            config.LayerCount
+        );
+        
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

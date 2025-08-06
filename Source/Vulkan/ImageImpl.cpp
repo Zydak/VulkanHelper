@@ -44,53 +44,53 @@ namespace VulkanHelper
         }
     }
 
-    Expected<UniquePtr<Image::Impl>, VHResult> Image::Impl::New(const Image::Config& config)
+    Expected<UniquePtr<Image::Impl>, VHResult> Image::Impl::New(Device::Impl* device, uint32_t height, uint32_t width, uint32_t mipCount, uint32_t layerCount, Format format, Usage usage, Tiling tiling, Aspect aspect, Layout initialLayout, bool usePersistentStagingBuffer, bool allowMapping)
     {
         VH_LOG_INFO("Creating Image Implementation");
 
-        if (config.Device == nullptr)
+        if (device == nullptr)
         {
             VH_LOG_ERROR("Device Can't be nullptr!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.Width == 0)
+        if (width == 0)
         {
             VH_LOG_ERROR("Image width must be greater than 0!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.Height == 0)
+        if (height == 0)
         {
             VH_LOG_ERROR("Image height must be greater than 0!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.LayerCount == 0)
+        if (layerCount == 0)
         {
             VH_LOG_ERROR("Image layer count must be greater than 0!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.MipCount == 0)
+        if (mipCount == 0)
         {
             VH_LOG_ERROR("Image mip count must be greater than 0!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.Format == Format::UNDEFINED)
+        if (format == Format::UNDEFINED)
         {
             VH_LOG_ERROR("Image format must be specified!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.Usage == Usage::UNDEFINED)
+        if (usage == Usage::UNDEFINED)
         {
             VH_LOG_ERROR("Image usage flags must be specified!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        if (config.AllowMapping && config.Tiling != Tiling::LINEAR)
+        if (allowMapping && tiling != Tiling::LINEAR)
         {
             VH_LOG_ERROR("If you want to map the image (AllowMapping = true) Tiling has to be set to LINEAR");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
@@ -99,20 +99,19 @@ namespace VulkanHelper
         VkImageCreateInfo imageCreateInfo{};
         imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageCreateInfo.extent.width = config.Width;
-        imageCreateInfo.extent.height = config.Height;
+        imageCreateInfo.extent.width = width;
+        imageCreateInfo.extent.height = height;
         imageCreateInfo.extent.depth = 1;
-        imageCreateInfo.mipLevels = config.MipCount;
-        imageCreateInfo.arrayLayers = config.LayerCount;
-        imageCreateInfo.format = (VkFormat)config.Format;
-        imageCreateInfo.tiling = (VkImageTiling)config.Tiling;
-        imageCreateInfo.initialLayout = (VkImageLayout)config.InitialLayout;
-        imageCreateInfo.usage = (VkImageUsageFlags)config.Usage;
+        imageCreateInfo.mipLevels = mipCount;
+        imageCreateInfo.arrayLayers = layerCount;
+        imageCreateInfo.format = (VkFormat)format;
+        imageCreateInfo.tiling = (VkImageTiling)tiling;
+        imageCreateInfo.initialLayout = (VkImageLayout)initialLayout;
+        imageCreateInfo.usage = (VkImageUsageFlags)usage;
         imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
-        auto image = deviceImpl->AllocateImage(imageCreateInfo, config.AllowMapping);
+        auto image = device->AllocateImage(imageCreateInfo, allowMapping);
         if (!image.HasValue())
         {
             VH_LOG_ERROR("Failed to allocate Image!");
@@ -120,10 +119,10 @@ namespace VulkanHelper
         }
 
         VulkanMemoryAllocator::BufferAllocation staginBuffer{};
-        if (config.UsePersistentStagingBuffer)
+        if (usePersistentStagingBuffer)
         {
-            uint32_t texelSize = GetTexelSizeInBytes((VkFormat)config.Format);
-            uint64_t imageSize = config.Width * config.Height * texelSize;
+            uint32_t texelSize = GetTexelSizeInBytes((VkFormat)format);
+            uint64_t imageSize = width * height * texelSize;
 
             VkBufferCreateInfo bufferInfo{};
             bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -131,11 +130,11 @@ namespace VulkanHelper
             bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-            auto stagingBufferResult = deviceImpl->AllocateBuffer(bufferInfo, true);
+            auto stagingBufferResult = device->AllocateBuffer(bufferInfo, true);
             if (!stagingBufferResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to create staging buffer for image upload");
-                deviceImpl->DeallocateImage(image.Value());
+                device->DeallocateImage(image.Value());
                 return Unexpected(stagingBufferResult.Error());
             }
 
@@ -143,15 +142,15 @@ namespace VulkanHelper
         }
 
         return UniquePtr(new Impl(
-            deviceImpl,
-            config.Format,
-            config.InitialLayout,
-            config.Aspect, 
-            config.Width,
-            config.Height,
-            config.LayerCount,
-            config.MipCount,
-            config.AllowMapping,
+            device,
+            format,
+            initialLayout,
+            aspect, 
+            width,
+            height,
+            layerCount,
+            mipCount,
+            allowMapping,
             Move(image.Value()),
             Move(staginBuffer)
         ));
@@ -662,9 +661,23 @@ namespace VulkanHelper
     //
     //  Forward Functions
     //
-    VulkanHelper::Expected<Image, VHResult> Image::New(const Config& config)
+    VulkanHelper::Expected<Image, VHResult> Image::New(const Image::Config& config)
     {
-        auto implResult = Impl::New(config);
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            config.Height,
+            config.Width,
+            config.MipCount,
+            config.LayerCount,
+            config.Format,
+            config.Usage,
+            config.Tiling,
+            config.Aspect,
+            config.InitialLayout,
+            config.UsePersistentStagingBuffer,
+            config.AllowMapping
+        );
+
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

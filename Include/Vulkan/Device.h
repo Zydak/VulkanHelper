@@ -87,12 +87,6 @@ namespace VulkanHelper
         Device& operator=(Device&& other) noexcept;
 
         /**
-         * @brief Get the underlying physical device
-         * @return Reference to the physical device
-         */
-        [[nodiscard]] const PhysicalDevice& GetPhysicalDevice() const;
-
-        /**
          * @brief Get queue family indices for different operations
          * @return Queue family indices used by this device
          */

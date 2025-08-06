@@ -13,7 +13,7 @@ namespace VulkanHelper
     class Mesh::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -23,10 +23,8 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Mesh* publicInterface) 
-        { 
-            return publicInterface->m_Impl.Get();
-        }
+        [[nodiscard]] inline static Impl* GetImplementation(const Mesh* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Mesh CreatePublicInterface(UniquePtr<Impl>&& impl) { return Mesh(VulkanHelper::Move(impl)); }
 
         void Bind(CommandBuffer* commandBuffer) const;
         void Draw(CommandBuffer* commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const;

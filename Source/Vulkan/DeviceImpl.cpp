@@ -10,15 +10,13 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
 
-#include "PhysicalDeviceImpl.h"
-
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*> windows, Instance::Impl* instance)
     {
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
-        if (config.Instance == nullptr)
+        if (instance == nullptr)
         {
             VH_LOG_ERROR("Instance Pointer Can't be NULL!");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
@@ -41,20 +39,20 @@ namespace VulkanHelper
         features.pNext = &dynamicRenderingFeatures;
         dynamicRenderingFeatures.pNext = &device11Features;
 
-        if (!config.Windows.Empty())
+        if (!windows.Empty())
         {
             extensions.EmplaceBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         }
 
-        if (!config.PhysicalDevice.IsSuitable(extensions))
+        if (!physicalDevice.IsSuitable(extensions))
         {
             VH_LOG_ERROR("Physical device is not suitable for the required device extensions! Pick a different device.");
             return VulkanHelper::Unexpected(VHResult::EXTENSION_NOT_PRESENT);
         }
         
         // Create Queue Families
-        QueueFamilyIndices indices = FindQueueFamilies(config.PhysicalDevice, config.Windows);
-        if (!config.Windows.Empty() && indices.PresentFamily == UINT32_MAX)
+        QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, windows);
+        if (!windows.Empty() && indices.PresentFamily == UINT32_MAX)
         {
             VH_LOG_ERROR("Presentation requested but not supported!");
             return Unexpected(VHResult::INITIALIZATION_FAILED);
@@ -103,19 +101,17 @@ namespace VulkanHelper
         createInfo.ppEnabledLayerNames = nullptr;
         #endif
 
-        PhysicalDevice::Impl* physicalDeviceImpl = PhysicalDevice::Impl::GetImplementation(&config.PhysicalDevice);
         VkDevice device;
-        VkResult res = vkCreateDevice(physicalDeviceImpl->GetDevice(), &createInfo, nullptr, &device);
+        VkResult res = vkCreateDevice(physicalDevice.GetDevice(), &createInfo, nullptr, &device);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create Vulkan device");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        Instance::Impl* instanceImpl = Instance::Impl::GetImplementation(config.Instance);
-        VulkanMemoryAllocator allocator = VulkanMemoryAllocator::New({device, instanceImpl->GetInstance(), physicalDeviceImpl->GetDevice()}).Value();
+        VulkanMemoryAllocator allocator = VulkanMemoryAllocator::New(device, instance->GetInstance(), physicalDevice.GetDevice()).Value();
 
-        return UniquePtr<Impl>(new Impl(instanceImpl, device, Move(config.PhysicalDevice), Move(indices), Move(allocator)));
+        return UniquePtr<Impl>(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator)));
     }
 
     Device::Impl::~Impl()
@@ -159,14 +155,12 @@ namespace VulkanHelper
         return *this;
     }
 
-    Device::QueueFamilyIndices Device::Impl::FindQueueFamilies(const PhysicalDevice& physicalDevice, const VulkanHelper::Vector<Window*>& windows)
+    Device::QueueFamilyIndices Device::Impl::FindQueueFamilies(const PhysicalDevice::Impl& physicalDevice, const VulkanHelper::Vector<Window::Impl*>& windows)
     {
         QueueFamilyIndices indices;
 
-        PhysicalDevice::Impl* physicalDeviceImpl = PhysicalDevice::Impl::GetImplementation(&physicalDevice);
-
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDeviceImpl->GetDevice(), &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.GetDevice(), &queueFamilyCount, nullptr);
         if (queueFamilyCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any queue families!");
@@ -174,7 +168,7 @@ namespace VulkanHelper
         }
 
         VulkanHelper::Vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDeviceImpl->GetDevice(), &queueFamilyCount, queueFamilies.Data());
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.GetDevice(), &queueFamilyCount, queueFamilies.Data());
 
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {
@@ -190,8 +184,8 @@ namespace VulkanHelper
                 VkBool32 presentSupport = false;
                 for (size_t j = 0; j < windows.Size(); j++)
                 {
-                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDeviceImpl->GetDevice(), i, windows[j]->GetSurface(), &presentSupport);
-                    
+                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.GetDevice(), i, windows[j]->GetSurface(), &presentSupport);
+
                     // If even one listed window's surface isn't supported, break the loop and mark presentation support as false
                     if (presentSupport == false)
                         break;
@@ -248,7 +242,17 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Device, VHResult> Device::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        VulkanHelper::Vector<Window::Impl*> windows;
+        for (auto* window : config.Windows)
+        {
+            windows.PushBack(Window::Impl::GetImplementation(window));
+        }
+
+        auto implResult = Impl::New(
+            *PhysicalDevice::Impl::GetImplementation(&config.PhysicalDevice),
+            windows,
+            Instance::Impl::GetImplementation(config.Instance)
+        );
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());
@@ -282,11 +286,6 @@ namespace VulkanHelper
         : m_Impl(VulkanHelper::Move(impl))
     {
         
-    }
-
-    const PhysicalDevice& Device::GetPhysicalDevice() const
-    {
-        return m_Impl->GetPhysicalDevice();
     }
 
     Device::QueueFamilyIndices Device::GetQueueFamilyIndices() const

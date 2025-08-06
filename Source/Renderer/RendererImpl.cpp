@@ -5,27 +5,27 @@
 #include "Vulkan/CommandBuffer.h"
 #include "Vulkan/Device.h"
 
-#include "../Vulkan/ImageViewImpl.h"
-#include "../Vulkan/CommandBufferImpl.h"
-#include "../Vulkan/FunctionLoader.h"
+#include "Vulkan/SwapchainImpl.h"
+#include "Vulkan/ImageViewImpl.h"
+#include "Vulkan/CommandBufferImpl.h"
+#include "Vulkan/CommandPoolImpl.h"
+#include "Vulkan/FunctionLoader.h"
 
 #include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Renderer::Impl>, VHResult> Renderer::Impl::New(const Config& config)
+    Expected<UniquePtr<Renderer::Impl>, VHResult> Renderer::Impl::New(Device::Impl* device, Window::Impl* window, uint32_t framesInFlight)
     {
-        VH_LOG_INFO("Creating Renderer Implementation");
-
-        auto swapchain = Swapchain::New({config.Device, config.Window, nullptr, config.FramesInFlight});
+        auto swapchain = Swapchain::Impl::New(device, window, nullptr, framesInFlight);
         if (!swapchain.HasValue())
         {
             VH_LOG_ERROR("Couldn't create swapchain!");
             return Unexpected(swapchain.Error());
         }
 
-        Device::QueueFamilyIndices queueIndices = config.Device->GetQueueFamilyIndices();
-        auto commandPool = CommandPool::New({config.Device, CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, queueIndices.GraphicsFamily});
+        Device::QueueFamilyIndices queueIndices = device->GetQueueFamilyIndices();
+        auto commandPool = CommandPool::Impl::New(device, CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, queueIndices.GraphicsFamily);
         if (!commandPool.HasValue())
         {
             VH_LOG_ERROR("Couldn't create CommandPool!");
@@ -33,13 +33,19 @@ namespace VulkanHelper
         }
 
         Vector<CommandBuffer> commandBuffers;
-        for (uint32_t i = 0; i < config.FramesInFlight; i++)
+        for (uint32_t i = 0; i < framesInFlight; i++)
         {
-            CommandBuffer cmdBuf = commandPool->AllocateCommandBuffer({}).Value();
+            CommandBuffer cmdBuf = commandPool.Value()->AllocateCommandBuffer({}).Value();
             commandBuffers.PushBack(Move(cmdBuf)); // Allocate cmdBuffer for each frame
         }
 
-        return UniquePtr(new Impl(config.Device, config.Window, Move(swapchain.Value()), Move(commandPool.Value()), Move(commandBuffers)));
+        return UniquePtr(new Impl(
+            device,
+            window,
+            Move(Swapchain::Impl::CreatePublicInterface(Move(swapchain.Value()))),
+            Move(CommandPool::Impl::CreatePublicInterface(Move(commandPool.Value()))),
+            Move(commandBuffers)
+        ));
     }
 
     Renderer::Impl::~Impl()
@@ -232,14 +238,14 @@ namespace VulkanHelper
         m_Device->WaitUntilIdle();
         Swapchain oldSwapchain = VulkanHelper::Move(m_Swapchain);
 
-        auto swapchainResult = Swapchain::New({m_Device, m_Window, &oldSwapchain, oldSwapchain.GetFramesInFlightCount()});
+        auto swapchainResult = Swapchain::Impl::New(m_Device, m_Window, Swapchain::Impl::GetImplementation(&oldSwapchain), oldSwapchain.GetFramesInFlightCount());
         if (!swapchainResult.HasValue())
         {
             VH_LOG_ERROR("Failed to recreate swapchain");
             return swapchainResult.Error();
         }
 
-        m_Swapchain = VulkanHelper::Move(swapchainResult.Value());
+        m_Swapchain = Move(Swapchain::Impl::CreatePublicInterface(Move(swapchainResult.Value())));
         return VHResult::OK;
     }
 
@@ -249,7 +255,24 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Renderer, VHResult> Renderer::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        VH_LOG_INFO("Creating Renderer Implementation");
+        if (config.Device == nullptr)
+        {
+            VH_LOG_ERROR("Device is null!");
+            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+        if (config.Window == nullptr)
+        {
+            VH_LOG_ERROR("Window is null!");
+            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            Window::Impl::GetImplementation(config.Window),
+            config.FramesInFlight
+        );
+
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

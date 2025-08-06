@@ -19,29 +19,27 @@ namespace VulkanHelper
         impl->m_Height = static_cast<uint32_t>(height);
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Window::Impl>, VHResult> Window::Impl::New(const Config& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Window::Impl>, VHResult> Window::Impl::New(Instance::Impl* instance, uint32_t width, uint32_t height, const char* name, const char* iconPath, bool resizable)
     {
-        VH_LOG_INFO("Creating Window Implementation");
-
         // TODO: Icon, for now there's no image loading
+        (void)iconPath; // Suppress unused parameter warning
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, config.Resizable);
+        glfwWindowHint(GLFW_RESIZABLE, resizable);
 
-        std::string name = std::string(config.Name);
+        std::string nameStr = std::string(name);
 
-        GLFWwindow* window = glfwCreateWindow((int)config.Width, (int)config.Height, name.c_str(), NULL, NULL);
+        GLFWwindow* window = glfwCreateWindow((int)width, (int)height, nameStr.c_str(), NULL, NULL);
         if (window == nullptr)
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
 
         VkSurfaceKHR surface = VK_NULL_HANDLE;
-        Instance::Impl* instanceImpl = Instance::Impl::GetImplementation(config.Instance);
-        VkResult res = glfwCreateWindowSurface(instanceImpl->GetInstance(), window, nullptr, &surface);
+        VkResult res = glfwCreateWindowSurface(instance->GetInstance(), window, nullptr, &surface);
         if (res != VK_SUCCESS)
             return VulkanHelper::Unexpected(VHResult(res)); // VkResult maps to VHError so this is legal
 
         glfwSetWindowSizeCallback(window, WindowSizeCallback);
 
-        return VulkanHelper::UniquePtr(new Impl(instanceImpl, window, surface, VulkanHelper::Move(name), config.Width, config.Height));
+        return VulkanHelper::UniquePtr(new Impl(instance, window, surface, VulkanHelper::Move(nameStr), width, height));
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
@@ -162,7 +160,23 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Window, VHResult> Window::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        VH_LOG_INFO("Creating Window Implementation");
+
+        if (config.Instance == nullptr)
+        {
+            VH_LOG_ERROR("Window initialization failed. Instance can't be nullptr!");
+            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        auto implResult = Impl::New(
+            Instance::Impl::GetImplementation(config.Instance),
+            config.Width,
+            config.Height,
+            config.Name,
+            config.IconPath,
+            config.Resizable
+        );
+
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

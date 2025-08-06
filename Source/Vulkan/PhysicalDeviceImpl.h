@@ -12,13 +12,8 @@ namespace VulkanHelper
     class PhysicalDevice::Impl
     {
     public:
-        struct Config
-        {
-            VkInstance Instance = nullptr;
-            VkPhysicalDevice Device = nullptr;
-        };
 
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(VkInstance Instance, VkPhysicalDevice Device);
 
         Impl(const Impl& other);
         Impl& operator=(const Impl& other);
@@ -27,6 +22,7 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const PhysicalDevice* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static PhysicalDevice CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return PhysicalDevice(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
         [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }

@@ -6,31 +6,29 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Fence::Impl>, VHResult> Fence::Impl::New(const Config& config)
+    Expected<UniquePtr<Fence::Impl>, VHResult> Fence::Impl::New(Device::Impl* device, bool startSignaled)
     {
         VH_LOG_INFO("Creating Vulkan Fence Implementation");
 
-        if (config.Device == nullptr)
+        if (device == nullptr)
         {
             VH_LOG_ERROR("Invalid Fence configuration: Device is null.");
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
-        
-        Device::Impl* deviceImpl = Device::Impl::GetImplementation(config.Device);
 
         VkFenceCreateInfo fenceInfo{};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        fenceInfo.flags = startSignaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 
         VkFence fence;
-        VkResult res = vkCreateFence(deviceImpl->GetDevice(), &fenceInfo, nullptr, &fence);
+        VkResult res = vkCreateFence(device->GetDevice(), &fenceInfo, nullptr, &fence);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create fence for swapchain implementation");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return UniquePtr(new Impl(deviceImpl, fence));
+        return UniquePtr(new Impl(device, fence));
     }
 
     Fence::Impl::Impl(Impl&& other) noexcept
@@ -82,7 +80,10 @@ namespace VulkanHelper
 
     Expected<Fence, VHResult> Fence::New(const Config& config)
     {
-        auto implResult = Impl::New(config);
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            config.StartSignaled
+        );
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());

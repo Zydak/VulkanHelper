@@ -19,6 +19,7 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const CommandBuffer* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static CommandBuffer CreatePublicInterface(UniquePtr<Impl>&& impl) { return CommandBuffer(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] VHResult BeginRecording(Usage usageFlags);
         [[nodiscard]] VHResult EndRecording();

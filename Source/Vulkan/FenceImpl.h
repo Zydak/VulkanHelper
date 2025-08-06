@@ -9,7 +9,7 @@ namespace VulkanHelper
     class Fence::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, bool startSignaled);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -20,6 +20,7 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Fence* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Fence CreatePublicInterface(UniquePtr<Impl>&& impl) { return Fence(VulkanHelper::Move(impl)); }
 
         void Wait();
         void Reset();

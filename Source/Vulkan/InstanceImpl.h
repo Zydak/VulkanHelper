@@ -10,7 +10,7 @@ namespace VulkanHelper
     class Instance::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(bool addGLFWExtensions);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -21,6 +21,7 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Instance* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Instance CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return Instance(VulkanHelper::Move(impl)); }
 
         VulkanHelper::Vector<PhysicalDevice> GetSuitablePhysicalDevices() const;
 

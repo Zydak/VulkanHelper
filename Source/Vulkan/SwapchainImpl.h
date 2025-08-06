@@ -16,7 +16,7 @@ namespace VulkanHelper
     class Swapchain::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, Window::Impl* window, Swapchain::Impl* previousSwapchain, uint32_t maxFramesInFlight);
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -25,6 +25,7 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const Swapchain* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Swapchain CreatePublicInterface(UniquePtr<Impl>&& impl) { return Swapchain(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] VHResult AcquireNextImage();
         [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);

@@ -11,7 +11,7 @@ namespace VulkanHelper
     {
     public:
         static void InitializeSession(const char* shaderSearchPath);
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, const char* filepath, ShaderStages stage);
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -20,6 +20,7 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const Shader* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Shader CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return Shader(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] inline VkShaderModule GetShaderModule() const { return m_Shader; }
         [[nodiscard]] inline VkShaderStageFlagBits GetShaderStage() const { return m_Stage; }

@@ -12,13 +12,7 @@ namespace VulkanHelper
     class Buffer::Impl
     {
     public:
-        /**
-         * @brief Creates a new Buffer implementation instance.
-         *
-         * @param config Configuration parameters for buffer creation.
-         * @return Expected<UniquePtr<Impl>, VHResult> Implementation instance on success or error on failure.
-         */
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(const Buffer::Config& config);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, VulkanMemoryAllocator* allocator, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -28,16 +22,8 @@ namespace VulkanHelper
 
         ~Impl();
 
-        /**
-         * @brief Gets the implementation instance from a public Buffer interface.
-         *
-         * @param publicInterface Pointer to the public Buffer instance.
-         * @return Pointer to the implementation instance.
-         */
-        [[nodiscard]] inline static Impl* GetImplementation(const Buffer* publicInterface) 
-        { 
-            return publicInterface->m_Impl.Get(); 
-        }
+        [[nodiscard]] inline static Impl* GetImplementation(const Buffer* publicInterface) { return publicInterface->m_Impl.Get(); }
+        [[nodiscard]] inline static Buffer CreatePublicInterface(UniquePtr<Impl>&& impl) { return Buffer(VulkanHelper::Move(impl)); }
 
         [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
         [[nodiscard]] inline VkBuffer GetBuffer() const { return m_BufferAllocation.Buffer; }
