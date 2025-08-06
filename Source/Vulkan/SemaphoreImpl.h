@@ -2,7 +2,7 @@
 #include "Vulkan/Semaphore.h"
 #include "Vulkan/Device.h"
 
-typedef struct VkSemaphore_T* VkSemaphore;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

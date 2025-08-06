@@ -28,7 +28,7 @@ namespace VulkanHelper
         : m_Device(other.m_Device), m_Semaphore(other.m_Semaphore)
     {
         other.m_Device = nullptr;
-        other.m_Semaphore = nullptr;
+        other.m_Semaphore = VK_NULL_HANDLE;
     }
 
     Semaphore::Impl& Semaphore::Impl::operator=(Impl&& other) noexcept
@@ -39,18 +39,18 @@ namespace VulkanHelper
         m_Device = other.m_Device;
         other.m_Device = nullptr;
         m_Semaphore = other.m_Semaphore;
-        other.m_Semaphore = nullptr;
+        other.m_Semaphore = VK_NULL_HANDLE;
 
         return *this;
     }
 
     Semaphore::Impl::~Impl()
     {
-        if (m_Semaphore != nullptr)
+        if (m_Semaphore != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying Vulkan Semaphore Implementation");
             vkDestroySemaphore(m_Device->GetDevice(), m_Semaphore , nullptr);
-            m_Semaphore = nullptr;
+            m_Semaphore = VK_NULL_HANDLE;
             m_Device = nullptr;
         }
     }

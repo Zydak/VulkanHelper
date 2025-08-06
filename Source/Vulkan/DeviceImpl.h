@@ -7,8 +7,6 @@
 
 #include "PhysicalDeviceImpl.h"
 
-typedef struct VkDevice_T* VkDevice;
-
 namespace VulkanHelper
 {
     class Device::Impl

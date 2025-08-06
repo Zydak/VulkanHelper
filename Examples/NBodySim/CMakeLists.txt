@@ -2,7 +2,9 @@ file(GLOB_RECURSE SOURCES *.cpp ../Include/*.h)
 
 add_executable(NBodySim ${SOURCES})
 
-target_compile_options(NBodySim PRIVATE -Wall -Wextra -Werror -Wpedantic -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wstrict-overflow=2 -Wlogical-op -Wmissing-declarations)
+if (NOT MSVC)
+    target_compile_options(NBodySim PRIVATE -Wall -Wextra -Werror -Wpedantic -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wstrict-overflow=2 -Wlogical-op -Wmissing-declarations)
+endif()
 
 include(FetchContent)
 FetchContent_Declare(

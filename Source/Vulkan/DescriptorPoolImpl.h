@@ -3,7 +3,7 @@
 #include "Vulkan/DescriptorPool.h"
 #include "DeviceImpl.h"
 
-typedef struct VkDescriptorPool_T* VkDescriptorPool;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {
@@ -31,7 +31,7 @@ namespace VulkanHelper
         void Reset();
     private:
         Device::Impl* m_Device;
-        VkDescriptorPool m_DescriptorPool = nullptr;
+        VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
 
         explicit Impl(Device::Impl* device, VkDescriptorPool descriptorPool)
             : m_Device(device)

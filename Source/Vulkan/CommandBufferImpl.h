@@ -3,7 +3,7 @@
 #include "Vulkan/Semaphore.h"
 #include "Vulkan/Fence.h"
 
-typedef struct VkCommandBuffer_T* VkCommandBuffer;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

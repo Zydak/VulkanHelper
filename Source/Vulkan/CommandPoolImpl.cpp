@@ -7,8 +7,6 @@
 #include "Core/Error.h"
 #include "DeviceImpl.h"
 
-#include <vulkan/vulkan.h>
-
 namespace VulkanHelper
 {
     VulkanHelper::Expected<VulkanHelper::UniquePtr<CommandPool::Impl>, VHResult> CommandPool::Impl::New(Device::Impl* device, Flags flags, uint32_t queueFamilyIndex)
@@ -48,11 +46,11 @@ namespace VulkanHelper
 
     CommandPool::Impl::~Impl()
     {
-        if (m_CommandPool != nullptr)
+        if (m_CommandPool != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying Vulkan Command Pool Implementation");
             vkDestroyCommandPool(m_Device->GetDevice(), m_CommandPool, nullptr);
-            m_CommandPool = nullptr;
+            m_CommandPool = VK_NULL_HANDLE;
             m_Device = nullptr;
         }
     }

@@ -9,7 +9,7 @@
 
 #include "DeviceImpl.h"
 
-typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

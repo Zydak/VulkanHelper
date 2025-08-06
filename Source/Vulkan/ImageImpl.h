@@ -6,7 +6,7 @@
 #include "DeviceImpl.h"
 #include "VulkanMemoryAllocator.h"
 
-typedef struct VkImage_T* VkImage;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

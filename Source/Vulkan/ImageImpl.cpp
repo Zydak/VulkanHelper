@@ -284,7 +284,7 @@ namespace VulkanHelper
     {
         other.m_Device = nullptr;
         other.m_Allocation.Allocation = nullptr;
-        other.m_Allocation.image = nullptr;
+        other.m_Allocation.image = VK_NULL_HANDLE;
     }
 
     Image::Impl& Image::Impl::operator=(Impl&& other) noexcept
@@ -307,7 +307,7 @@ namespace VulkanHelper
 
         other.m_Device = nullptr;
         other.m_Allocation.Allocation = nullptr;
-        other.m_Allocation.image = nullptr;
+        other.m_Allocation.image = VK_NULL_HANDLE;
 
         return *this;
     }
@@ -319,7 +319,7 @@ namespace VulkanHelper
             VH_LOG_INFO("Destroying Image Implementation");
             m_Device->DeallocateImage(m_Allocation);
             m_Allocation.Allocation = nullptr;
-            m_Allocation.image = nullptr;
+            m_Allocation.image = VK_NULL_HANDLE;
         }
         if (m_StagingBufferAllocation.Allocation != nullptr)
         {

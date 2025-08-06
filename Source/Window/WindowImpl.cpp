@@ -52,7 +52,7 @@ namespace VulkanHelper
     {
         other.m_Instance = nullptr;
         other.m_Window = nullptr;
-        other.m_Surface = nullptr;
+        other.m_Surface = VK_NULL_HANDLE;
     }
 
     Window::Impl& Window::Impl::operator=(Impl&& other) noexcept
@@ -65,7 +65,7 @@ namespace VulkanHelper
         m_Window = other.m_Window;
         other.m_Window = nullptr;
         m_Surface = other.m_Surface;
-        other.m_Surface = nullptr;
+        other.m_Surface = VK_NULL_HANDLE;
         m_Name = VulkanHelper::Move(other.m_Name);
         m_Width = other.m_Width;
         m_Height = other.m_Height;
@@ -215,11 +215,6 @@ namespace VulkanHelper
     const char* Window::GetName() const
     {
         return m_Impl->GetName();
-    }
-
-    VkSurfaceKHR Window::GetSurface() const
-    {
-        return m_Impl->GetSurface();
     }
 
     uint32_t Window::GetWidth() const

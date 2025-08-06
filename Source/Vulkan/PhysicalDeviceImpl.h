@@ -4,8 +4,7 @@
 #include "Core/Expected.h"
 #include "Core/Error.h"
 
-typedef struct VkPhysicalDevice_T* VkPhysicalDevice;
-typedef struct VkInstance_T* VkInstance;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

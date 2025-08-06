@@ -144,7 +144,7 @@ namespace VulkanHelper
 
         FunctionLoader::SetInstance(instance);
         
-        VkDebugUtilsMessengerEXT messenger = nullptr;
+        VkDebugUtilsMessengerEXT messenger = VK_NULL_HANDLE;
         #if !defined(NDEBUG)
         Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
@@ -155,8 +155,8 @@ namespace VulkanHelper
     Instance::Impl::Impl(Impl&& other) noexcept
         : m_DebugMessenger(other.m_DebugMessenger), m_Instance(other.m_Instance)
     {
-        other.m_DebugMessenger = nullptr;
-        other.m_Instance = nullptr;
+        other.m_DebugMessenger = VK_NULL_HANDLE;
+        other.m_Instance = VK_NULL_HANDLE;
     }
 
     Instance::Impl& Instance::Impl::operator=(Impl&& other) noexcept
@@ -167,27 +167,27 @@ namespace VulkanHelper
         this->~Impl(); // Clean up current state
 
         m_DebugMessenger = other.m_DebugMessenger;
-        other.m_DebugMessenger = nullptr;
+        other.m_DebugMessenger = VK_NULL_HANDLE;
 
         m_Instance = other.m_Instance;
-        other.m_Instance = nullptr;
+        other.m_Instance = VK_NULL_HANDLE;
 
         return *this;
     }
 
     Instance::Impl::~Impl()
     {
-        if (m_Instance != nullptr)
+        if (m_Instance != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying Vulkan Instance Implementation");
-            if (m_DebugMessenger != nullptr)
+            if (m_DebugMessenger != VK_NULL_HANDLE)
             {
                 Impl::DestroyDebugUtilsMessengerEXT(m_Instance, &m_DebugMessenger);
-                m_DebugMessenger = nullptr;
+                m_DebugMessenger = VK_NULL_HANDLE;
             }
 
             vkDestroyInstance(m_Instance, nullptr);
-            m_Instance = nullptr;
+            m_Instance = VK_NULL_HANDLE;
         }
     }
 

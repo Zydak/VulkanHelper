@@ -6,8 +6,7 @@
 #include "ImageViewImpl.h"
 #include "SamplerImpl.h"
 
-typedef struct VkDescriptorSet_T* VkDescriptorSet;
-typedef struct VkDescriptorSetLayout_T* VkDescriptorSetLayout;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {
@@ -37,8 +36,8 @@ namespace VulkanHelper
 
     private:
         Device::Impl* m_Device;
-        VkDescriptorSet m_DescriptorSet = nullptr;
-        VkDescriptorSetLayout m_DescriptorSetLayout = nullptr;
+        VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
         DescriptorSet::Config m_Config;
 
         explicit Impl(Device::Impl* device, VkDescriptorSet descriptorSet, VkDescriptorSetLayout descriptorSetLayout, const DescriptorSet::Config& config)

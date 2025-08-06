@@ -47,7 +47,7 @@ namespace VulkanHelper
         : m_Device(other.m_Device), m_Sampler(other.m_Sampler)
     {
         other.m_Device = nullptr;
-        other.m_Sampler = nullptr;
+        other.m_Sampler = VK_NULL_HANDLE;
     }
 
     Sampler::Impl& Sampler::Impl::operator=(Impl&& other) noexcept
@@ -60,18 +60,18 @@ namespace VulkanHelper
         m_Device = other.m_Device;
         other.m_Device = nullptr;
         m_Sampler = other.m_Sampler;
-        other.m_Sampler = nullptr;
+        other.m_Sampler = VK_NULL_HANDLE;
 
         return *this;
     }
 
     Sampler::Impl::~Impl()
     {
-        if (m_Sampler != nullptr)
+        if (m_Sampler != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying Vulkan Sampler Implementation");
             vkDestroySampler(m_Device->GetDevice(), m_Sampler, nullptr);
-            m_Sampler = nullptr;
+            m_Sampler = VK_NULL_HANDLE;
             m_Device = nullptr;
         }
     }

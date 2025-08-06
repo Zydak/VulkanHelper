@@ -2,7 +2,9 @@ file(GLOB_RECURSE SOURCES *.cpp ../Include/*.h)
 
 add_library(VulkanHelper STATIC ${SOURCES})
 
-target_compile_options(VulkanHelper PRIVATE -Wall -Wextra -Werror -Wpedantic -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wstrict-overflow=2 -Wlogical-op -Wmissing-declarations)
+if (NOT MSVC)
+    target_compile_options(VulkanHelper PRIVATE -Wall -Wextra -Werror -Wpedantic -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wstrict-overflow=2 -Wlogical-op -Wmissing-declarations)
+endif()
 
 # Libraries
 target_link_libraries(

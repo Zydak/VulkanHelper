@@ -5,7 +5,6 @@
 #include "Core/Expected.h"
 
 struct GLFWwindow;
-typedef struct VkSurfaceKHR_T* VkSurfaceKHR;
 
 namespace VulkanHelper
 {
@@ -115,12 +114,6 @@ namespace VulkanHelper
          * @return The name/title specified at creation
          */
         [[nodiscard]] const char* GetName() const;
-
-        /**
-         * @brief Get the window's Vulkan surface
-         * @return VkSurfaceKHR of the window
-         */
-        [[nodiscard]] VkSurfaceKHR GetSurface() const;
 
         class Impl;
     private:

@@ -340,14 +340,14 @@ namespace VulkanHelper
 
     Pipeline::Impl::~Impl()
     {
-        if (m_Pipeline != nullptr)
+        if (m_Pipeline != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying Pipeline Implementation");
             vkDestroyPipeline(m_Device->GetDevice(), m_Pipeline, nullptr);
             vkDestroyPipelineLayout(m_Device->GetDevice(), m_Layout, nullptr);
             m_Device = nullptr;
-            m_Pipeline = nullptr;
-            m_Layout = nullptr;
+            m_Pipeline = VK_NULL_HANDLE;
+            m_Layout = VK_NULL_HANDLE;
         }
     }
 
@@ -359,8 +359,8 @@ namespace VulkanHelper
         , m_PushConstant(other.m_PushConstant)
     {
         other.m_Device = nullptr;
-        other.m_Pipeline = nullptr;
-        other.m_Layout = nullptr;
+        other.m_Pipeline = VK_NULL_HANDLE;
+        other.m_Layout = VK_NULL_HANDLE;
         other.m_PushConstant = nullptr;
     }
 
@@ -374,9 +374,9 @@ namespace VulkanHelper
         m_Device = other.m_Device;
         other.m_Device = nullptr;
         m_Pipeline = other.m_Pipeline;
-        other.m_Pipeline = nullptr;
+        other.m_Pipeline = VK_NULL_HANDLE;
         m_Layout = other.m_Layout;
-        other.m_Layout = nullptr;
+        other.m_Layout = VK_NULL_HANDLE;
         m_PipelineType = other.m_PipelineType;
         m_PushConstant = other.m_PushConstant;
         other.m_PushConstant = nullptr;

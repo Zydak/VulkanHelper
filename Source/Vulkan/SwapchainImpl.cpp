@@ -284,7 +284,7 @@ namespace VulkanHelper
         Semaphore::Impl* acquireSemaphoreImpl = Semaphore::Impl::GetImplementation(&m_AcquireSemaphores[m_CurrentFrameIndex]);
         VkSemaphore acquireSemaphore = acquireSemaphoreImpl->GetSemaphore();
         
-        return (VHResult)vkAcquireNextImageKHR(m_Device->GetDevice(), m_Swapchain, UINT64_MAX, acquireSemaphore, nullptr, &m_CurrentImageIndex);
+        return (VHResult)vkAcquireNextImageKHR(m_Device->GetDevice(), m_Swapchain, UINT64_MAX, acquireSemaphore, VK_NULL_HANDLE, &m_CurrentImageIndex);
     }
 
     VHResult Swapchain::Impl::Submit(CommandBuffer& commandBuffer)

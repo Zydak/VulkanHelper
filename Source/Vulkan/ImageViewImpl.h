@@ -3,7 +3,7 @@
 
 #include "ImageImpl.h"
 
-typedef struct VkImageView_T* VkImageView;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

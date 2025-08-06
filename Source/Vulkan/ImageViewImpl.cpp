@@ -50,7 +50,7 @@ namespace VulkanHelper
         : m_Image(other.m_Image), m_ImageView(other.m_ImageView), m_ViewType(other.m_ViewType)
     {
         other.m_Image = nullptr;
-        other.m_ImageView = nullptr;
+        other.m_ImageView = VK_NULL_HANDLE;
     }
 
     ImageView::Impl& ImageView::Impl::operator=(Impl&& other) noexcept
@@ -63,7 +63,7 @@ namespace VulkanHelper
         m_Image = other.m_Image;
         other.m_Image = nullptr;
         m_ImageView = other.m_ImageView;
-        other.m_ImageView = nullptr;
+        other.m_ImageView = VK_NULL_HANDLE;
         m_ViewType = other.m_ViewType;
         other.m_ViewType = ViewType::VIEW_UNDEFINED;
 
@@ -72,7 +72,7 @@ namespace VulkanHelper
 
     ImageView::Impl::~Impl()
     {
-        if (m_ImageView != nullptr)
+        if (m_ImageView != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying ImageView Implementation");
             vkDestroyImageView(m_Image->GetDevice()->GetDevice(), m_ImageView, nullptr);

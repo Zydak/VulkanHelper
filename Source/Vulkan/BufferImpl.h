@@ -4,9 +4,6 @@
 #include "Vulkan/Buffer.h"
 #include "DeviceImpl.h"
 
-typedef struct VkBuffer_T* VkBuffer;
-typedef struct VkDeviceMemory_T* VkDeviceMemory;
-
 namespace VulkanHelper
 {
     class Buffer::Impl

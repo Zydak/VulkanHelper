@@ -2,7 +2,7 @@
 #include "Vulkan/Sampler.h"
 #include "Vulkan/Device.h"
 
-typedef struct VkSampler_T* VkSampler;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

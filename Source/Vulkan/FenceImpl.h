@@ -2,7 +2,7 @@
 #include "Vulkan/Fence.h"
 #include "Vulkan/Device.h"
 
-typedef struct VkFence_T* VkFence;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

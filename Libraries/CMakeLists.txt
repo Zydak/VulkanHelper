@@ -62,19 +62,38 @@ FetchContent_MakeAvailable(Vulkan-Headers)
 FetchContent_MakeAvailable(Vulkan-Loader)
 
 # Clone prebuild slang
-set(SLANG_URL "https://github.com/shader-slang/slang/releases/download/v2025.13.2/slang-2025.13.2-linux-x86_64.zip")
-set(SLANG_ZIP "${PROJECT_SOURCE_DIR}/Libraries/slang.zip")
-set(SLANG_DIR "${PROJECT_SOURCE_DIR}/Libraries/slang")
+if (MSVC)
+    set(SLANG_URL "https://github.com/shader-slang/slang/releases/download/v2025.13.2/slang-2025.13.2-windows-x86_64.zip")
 
-# Download only if not already downloaded
-if(NOT EXISTS ${SLANG_ZIP})
-    file(DOWNLOAD
-        ${SLANG_URL}
-        ${SLANG_ZIP}
-        SHOW_PROGRESS
-        STATUS DOWNLOAD_STATUS
-        EXPECTED_HASH SHA256=ca46bacc50b9c426f131928253280512c77d4e9570bc6fb6c2fa60417b130968
-    )
+    set(SLANG_ZIP "${PROJECT_SOURCE_DIR}/Libraries/slang.zip")
+    set(SLANG_DIR "${PROJECT_SOURCE_DIR}/Libraries/slang")
+
+    # Download only if not already downloaded
+    if(NOT EXISTS ${SLANG_ZIP})
+        file(DOWNLOAD
+            ${SLANG_URL}
+            ${SLANG_ZIP}
+            SHOW_PROGRESS
+            STATUS DOWNLOAD_STATUS
+            EXPECTED_HASH SHA256=049ba6023b13c237f26f6bf27f1909c39e518f2b75b7963df8f0ba26f1582421
+        )
+    endif()
+else()
+    set(SLANG_URL "https://github.com/shader-slang/slang/releases/download/v2025.13.2/slang-2025.13.2-linux-x86_64.zip")
+
+    set(SLANG_ZIP "${PROJECT_SOURCE_DIR}/Libraries/slang.zip")
+    set(SLANG_DIR "${PROJECT_SOURCE_DIR}/Libraries/slang")
+
+    # Download only if not already downloaded
+    if(NOT EXISTS ${SLANG_ZIP})
+        file(DOWNLOAD
+            ${SLANG_URL}
+            ${SLANG_ZIP}
+            SHOW_PROGRESS
+            STATUS DOWNLOAD_STATUS
+            EXPECTED_HASH SHA256=ca46bacc50b9c426f131928253280512c77d4e9570bc6fb6c2fa60417b130968
+        )
+    endif()
 endif()
 
 # Extract only if not already extracted
@@ -88,5 +107,4 @@ endif()
 
 add_library(slang INTERFACE)
 target_include_directories(slang SYSTEM INTERFACE "${SLANG_DIR}/include/")
-target_link_directories(slang SYSTEM INTERFACE "${SLANG_DIR}/lib/")
-target_link_libraries(slang INTERFACE libslang.so)
+target_link_libraries(slang INTERFACE "${SLANG_DIR}/lib/slang.lib")

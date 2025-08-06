@@ -1,9 +1,7 @@
 #pragma once
 #include "Vulkan/Instance.h"
 
-struct VkDebugUtilsMessengerCreateInfoEXT;
-typedef struct VkDebugUtilsMessengerEXT_T* VkDebugUtilsMessengerEXT;
-typedef struct VkInstance_T* VkInstance;
+#include <vulkan/vulkan.h>
 
 namespace VulkanHelper
 {

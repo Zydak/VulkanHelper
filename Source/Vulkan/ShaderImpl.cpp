@@ -28,7 +28,7 @@ namespace VulkanHelper
 		compilerOptions[0].name = slang::CompilerOptionName::Optimization;
 		compilerOptions[0].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL };
 
-        std::string searchPath = std::string(std::filesystem::current_path().c_str()) + "/" + shaderSearchPath;
+        std::string searchPath = std::filesystem::current_path().string() + "/" + shaderSearchPath;
         const char* searchPathCStr = searchPath.c_str();
         VH_LOG_DEBUG("slang session search path: {}", searchPath.c_str());
         slang::SessionDesc sessionDesc = {};
@@ -157,11 +157,11 @@ namespace VulkanHelper
 
     Shader::Impl::~Impl()
     {
-        if (m_Shader != nullptr)
+        if (m_Shader != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying Shader Module Implementation");
             vkDestroyShaderModule(m_Device->GetDevice(), m_Shader, nullptr);
-            m_Shader = nullptr;
+            m_Shader = VK_NULL_HANDLE;
             m_Device = nullptr;
         }
     }
@@ -170,7 +170,7 @@ namespace VulkanHelper
         : m_Device(other.m_Device), m_Shader(other.m_Shader), m_Stage(other.m_Stage)
     {
         other.m_Device = nullptr;
-        other.m_Shader = nullptr;
+        other.m_Shader = VK_NULL_HANDLE;
     }
 
     Shader::Impl& Shader::Impl::operator=(Impl&& other) noexcept
@@ -183,7 +183,7 @@ namespace VulkanHelper
         m_Device = other.m_Device;
         other.m_Device = nullptr;
         m_Shader = other.m_Shader;
-        other.m_Shader = nullptr;
+        other.m_Shader = VK_NULL_HANDLE;
         m_Stage = other.m_Stage;
         
         return *this;

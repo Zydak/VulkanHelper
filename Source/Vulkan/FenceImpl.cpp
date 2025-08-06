@@ -35,7 +35,7 @@ namespace VulkanHelper
         : m_Device(other.m_Device), m_Fence(other.m_Fence)
     {
         other.m_Device = nullptr;
-        other.m_Fence = nullptr;
+        other.m_Fence = VK_NULL_HANDLE;
     }
 
     Fence::Impl& Fence::Impl::operator=(Impl&& other) noexcept
@@ -48,18 +48,18 @@ namespace VulkanHelper
         m_Device = other.m_Device;
         other.m_Device = nullptr;
         m_Fence = other.m_Fence;
-        other.m_Fence = nullptr;
+        other.m_Fence = VK_NULL_HANDLE;
 
         return *this;
     }
 
     Fence::Impl::~Impl()
     {
-        if (m_Fence != nullptr)
+        if (m_Fence != VK_NULL_HANDLE)
         {
             VH_LOG_INFO("Destroying Vulkan Fence Implementation");
             vkDestroyFence(m_Device->GetDevice(), m_Fence , nullptr);
-            m_Fence = nullptr;
+            m_Fence = VK_NULL_HANDLE;
             m_Device = nullptr;
         }
     }

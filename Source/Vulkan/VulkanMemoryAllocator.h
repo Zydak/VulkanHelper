@@ -12,13 +12,13 @@ namespace VulkanHelper
     public:
         struct BufferAllocation
         {
-            VkBuffer Buffer = nullptr;
+            VkBuffer Buffer = VK_NULL_HANDLE;
             VmaAllocation Allocation = nullptr;
         };
 
         struct ImageAllocation
         {
-            VkImage image = nullptr;
+            VkImage image = VK_NULL_HANDLE;
             VmaAllocation Allocation = nullptr;
         };
 

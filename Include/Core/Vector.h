@@ -478,16 +478,7 @@ namespace VulkanHelper
             
             void* oldData = m_Data;
             
-            // Use malloc for better portability, alignment should be handled by the allocator for most types
-            if constexpr (alignof(T) <= sizeof(void*))
-            {
-                m_Data = malloc(sizeof(T) * newCapacity);
-            }
-            else
-            {
-                // For types with special alignment requirements, use aligned_alloc if available
-                m_Data = std::aligned_alloc(alignof(T), sizeof(T) * newCapacity);
-            }
+            m_Data = malloc(sizeof(T) * newCapacity);
 
             if (m_Size > 0 && oldData != nullptr)
             {
