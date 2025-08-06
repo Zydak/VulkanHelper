@@ -6,6 +6,7 @@
 #include "Core/Enums.h"
 
 #include "Vulkan/Device.h"
+#include "Vulkan/Buffer.h"
 #include "Vulkan/CommandBuffer.h"
 
 namespace VulkanHelper
@@ -52,7 +53,7 @@ namespace VulkanHelper
         {
             uint32_t Binding;                   ///< Binding index
             uint32_t Stride;                    ///< Size of each vertex in bytes
-            InputRate PerInstance;              ///< Whether data is per-vertex or per-instance
+            VulkanHelper::Mesh::InputRate InputRate;              ///< Whether data is per-vertex or per-instance
         };
 
         /**
@@ -108,6 +109,11 @@ namespace VulkanHelper
              * @note Can be 0 if no indices are used, otherwise must be divisible by sizeof(uint32_t)
              */
             uint32_t IndexDataSize = 0;
+
+            /**
+             * @brief Additional usage flags for the vertex buffer (optional)
+             */
+            VulkanHelper::Buffer::Usage AdditionalUsageFlags = VulkanHelper::Buffer::Usage::NONE;
         };
 
         /**
@@ -169,6 +175,21 @@ namespace VulkanHelper
          * @return Vertex binding description
          */
         [[nodiscard]] VertexBindingDescription GetBindingDescription() const;
+
+        /**
+         * @brief Get the vertex buffer used by this mesh
+         * @return Pointer to the vertex buffer
+         */
+        [[nodiscard]] Buffer* GetVertexBuffer();
+
+        /**
+         * @brief Get the index buffer used by this mesh
+         * @return Pointer to the index buffer, or nullptr if no index buffer is used
+         */
+        [[nodiscard]] Buffer* GetIndexBuffer();
+
+        [[nodiscard]] static VulkanHelper::Vector<VertexAttributeDescription> CreateAttributeDescriptions(const VulkanHelper::Format* formats, uint32_t count);
+        [[nodiscard]] static VertexBindingDescription CreateBindingDescription(uint32_t vertexSize);
 
         class Impl;
     private:

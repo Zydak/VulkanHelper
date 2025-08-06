@@ -44,7 +44,7 @@ namespace VulkanHelper
         }
     }
 
-    Expected<UniquePtr<Image::Impl>, VHResult> Image::Impl::New(Device::Impl* device, uint32_t height, uint32_t width, uint32_t mipCount, uint32_t layerCount, Format format, Usage usage, Tiling tiling, Aspect aspect, Layout initialLayout, bool usePersistentStagingBuffer, bool allowMapping)
+    Expected<UniquePtr<Image::Impl>, VHResult> Image::Impl::New(Device::Impl* device, uint32_t height, uint32_t width, uint32_t mipCount, uint32_t layerCount, Format format, Usage usage, Tiling tiling, Aspect aspect, Layout initialLayout, SampleCount sampleCount, bool usePersistentStagingBuffer, bool allowMapping)
     {
         VH_LOG_INFO("Creating Image Implementation");
 
@@ -108,7 +108,7 @@ namespace VulkanHelper
         imageCreateInfo.tiling = (VkImageTiling)tiling;
         imageCreateInfo.initialLayout = (VkImageLayout)initialLayout;
         imageCreateInfo.usage = (VkImageUsageFlags)usage;
-        imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.samples = (VkSampleCountFlagBits)sampleCount;
         imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         auto image = device->AllocateImage(imageCreateInfo, allowMapping);
@@ -674,6 +674,7 @@ namespace VulkanHelper
             config.Tiling,
             config.Aspect,
             config.InitialLayout,
+            config.SampleCount,
             config.UsePersistentStagingBuffer,
             config.AllowMapping
         );

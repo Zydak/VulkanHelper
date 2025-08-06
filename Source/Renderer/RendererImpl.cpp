@@ -134,6 +134,8 @@ namespace VulkanHelper
             CommandBuffer& commandBuffer,
             const VulkanHelper::Vector<ImageView*>& targetImagesColor,
             const ImageView* targetImageDepth,
+            glm::vec4 clearColor,
+            float clearDepth,
             glm::uvec2 scissorsStart,
             glm::uvec2 scissorsEnd
     )
@@ -194,7 +196,7 @@ namespace VulkanHelper
             info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            info.clearValue = { {{0.1f, 0.1f, 0.1f, 1.0f}} };
+            info.clearValue = { {{clearColor.x, clearColor.y, clearColor.z, clearColor.w}} };
 
             ImageView::Impl* targetImageImpl = ImageView::Impl::GetImplementation(targetImagesColor[i]);
             info.imageView = targetImageImpl->GetImageView();
@@ -209,7 +211,7 @@ namespace VulkanHelper
             depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthAttachment.clearValue = { {{1.0f, 0}} };
+            depthAttachment.clearValue = { {{clearDepth, 0}} };
 
             ImageView::Impl* targetImageImpl = ImageView::Impl::GetImplementation(targetImageDepth);
             depthAttachment.imageView = targetImageImpl->GetImageView();
@@ -322,11 +324,13 @@ namespace VulkanHelper
         CommandBuffer& commandBuffer,
         const VulkanHelper::Vector<ImageView*>& targetImagesColor,
         const ImageView* targetImageDepth,
+        glm::vec4 clearColor,
+        float clearDepth,
         glm::uvec2 scissorsStart,
         glm::uvec2 scissorsEnd
     )
     {
-        m_Impl->BeginRendering(commandBuffer, targetImagesColor, targetImageDepth, scissorsStart, scissorsEnd);
+        m_Impl->BeginRendering(commandBuffer, targetImagesColor, targetImageDepth, clearColor, clearDepth, scissorsStart, scissorsEnd);
     }
 
     void Renderer::EndRendering(CommandBuffer& commandBuffer)

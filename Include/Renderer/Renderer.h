@@ -96,6 +96,8 @@ namespace VulkanHelper
          * @param commandBuffer Command buffer to record commands into
          * @param targetImagesColor Array of color target image views
          * @param targetImageDepth Optional depth target image view
+         * @param clearColor Clear color for the render targets
+         * @param clearDepth Clear depth value for the depth target
          * @param scissorsStart Start coordinates of render area
          * @param scissorsEnd End coordinates of render area
          * @note Must be paired with EndRendering()
@@ -104,6 +106,8 @@ namespace VulkanHelper
             CommandBuffer& commandBuffer,
             const VulkanHelper::Vector<ImageView*>& targetImagesColor,
             const ImageView* targetImageDepth,
+            glm::vec4 clearColor = {0.1f, 0.1f, 0.1f, 1.0f},
+            float clearDepth = 1.0f,
             glm::uvec2 scissorsStart = {0u, 0u},
             glm::uvec2 scissorsEnd = {0u, 0u}
         );

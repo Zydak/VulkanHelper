@@ -217,16 +217,16 @@ namespace VulkanHelper
             }
             else
             {
-                // Create temporary scratch buffer
+                // Create temporary staging buffer
                 auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_SRC);
                 if (!tempScratchResult.HasValue())
                 {
-                    VH_LOG_ERROR("Failed to create temporary scratch buffer for upload");
+                    VH_LOG_ERROR("Failed to create temporary staging buffer for upload");
                     return tempScratchResult.Error();
                 }
                 scratchAllocation = tempScratchResult.Value();
                 useTemporaryStaging = true;
-                VH_LOG_DEBUG("Created temporary scratch buffer for upload");
+                VH_LOG_DEBUG("Created temporary staging buffer for upload");
             }
 
             // Map scratch buffer and copy data
@@ -338,16 +338,16 @@ namespace VulkanHelper
             }
             else
             {
-                // Create temporary scratch buffer
+                // Create temporary staging buffer
                 auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_DST);
                 if (!tempScratchResult.HasValue())
                 {
-                    VH_LOG_ERROR("Failed to create temporary scratch buffer for download");
+                    VH_LOG_ERROR("Failed to create temporary staging buffer for download");
                     return tempScratchResult.Error();
                 }
                 scratchAllocation = tempScratchResult.Value();
                 useTemporaryStaging = true;
-                VH_LOG_DEBUG("Created temporary scratch buffer for download");
+                VH_LOG_DEBUG("Created temporary staging buffer for download");
             }
 
             // Copy from main buffer to scratch buffer using GPU
@@ -526,7 +526,34 @@ namespace VulkanHelper
         return m_Device->AllocateBuffer(stagingBufferInfo, true); // Always CPU mappable
     }
 
-    // Public Buffer class implementations
+    void Buffer::Impl::Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
+    {
+        VkBufferMemoryBarrier bufferBarrier{};
+        bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferBarrier.srcAccessMask = static_cast<VkAccessFlags>(srcAccess);
+        bufferBarrier.dstAccessMask = static_cast<VkAccessFlags>(dstAccess);
+        bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferBarrier.buffer = m_BufferAllocation.Buffer;
+        bufferBarrier.offset = 0;
+        bufferBarrier.size = VK_WHOLE_SIZE;
+
+        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(&cmd);
+        vkCmdPipelineBarrier(
+            cmdImpl->GetCommandBuffer(),
+            static_cast<VkPipelineStageFlags>(srcStage),
+            static_cast<VkPipelineStageFlags>(dstStage),
+            0,
+            0, nullptr,
+            1, &bufferBarrier,
+            0, nullptr
+        );
+    }
+
+    //
+    //  Forward Functions
+    //
+
     Expected<Buffer, VHResult> Buffer::New(const Config& config)
     {
         auto implResult = Impl::New(
@@ -612,5 +639,10 @@ namespace VulkanHelper
     bool Buffer::IsMapped() const
     {
         return m_Impl->IsMapped();
+    }
+
+    void Buffer::Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
+    {
+        m_Impl->Barrier(cmd, srcAccess, dstAccess, srcStage, dstStage);
     }
 }

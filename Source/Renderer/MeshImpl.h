@@ -13,7 +13,7 @@ namespace VulkanHelper
     class Mesh::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize, VulkanHelper::Buffer::Usage AdditionalUsageFlags);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -31,6 +31,13 @@ namespace VulkanHelper
 
         [[nodiscard]] const VulkanHelper::Vector<VertexAttributeDescription>& GetAttributesDescriptions() const;
         [[nodiscard]] VertexBindingDescription GetBindingDescription() const;
+
+        [[nodiscard]] inline Buffer* GetVertexBuffer() { return &m_VertexBuffer; }
+        [[nodiscard]] inline Buffer* GetIndexBuffer() { return m_IndexBuffer.Get(); }
+        [[nodiscard]] inline uint32_t GetVertexSize() const { return m_VertexSize; }
+
+        [[nodiscard]] static VulkanHelper::Vector<VertexAttributeDescription> CreateAttributeDescriptions(const VulkanHelper::Format* formats, uint32_t count);
+        [[nodiscard]] static VertexBindingDescription CreateBindingDescription(uint32_t vertexSize);
 
     private:
         explicit Impl(Device::Impl* device,

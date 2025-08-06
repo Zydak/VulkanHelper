@@ -280,10 +280,10 @@ namespace VulkanHelper
         VkFence frameFence = frameFenceImpl->GetFenceHandle();
         vkWaitForFences(m_Device->GetDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
         vkResetFences(m_Device->GetDevice(), 1, &frameFence);
-
+        
         Semaphore::Impl* acquireSemaphoreImpl = Semaphore::Impl::GetImplementation(&m_AcquireSemaphores[m_CurrentFrameIndex]);
         VkSemaphore acquireSemaphore = acquireSemaphoreImpl->GetSemaphore();
-
+        
         return (VHResult)vkAcquireNextImageKHR(m_Device->GetDevice(), m_Swapchain, UINT64_MAX, acquireSemaphore, nullptr, &m_CurrentImageIndex);
     }
 

@@ -32,6 +32,8 @@ namespace VulkanHelper
             CommandBuffer& commandBuffer,
             const VulkanHelper::Vector<ImageView*>& targetImagesColor,
             const ImageView* targetImageDepth,
+            glm::vec4 clearColor = {0.1f, 0.1f, 0.1f, 1.0f},
+            float clearDepth = 1.0f,
             glm::uvec2 scissorsStart = {0u, 0u},
             glm::uvec2 scissorsEnd = {0u, 0u}
         );

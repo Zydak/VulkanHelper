@@ -11,11 +11,11 @@ FetchContent_MakeAvailable(VulkanHelper)
 
 target_link_libraries(HelloTriangle PRIVATE VulkanHelper)
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
-    target_compile_options(HelloTriangle PRIVATE
-        -fsanitize=address,undefined -g
-    )
-    target_link_options(HelloTriangle PRIVATE
-        -fsanitize=address,undefined
-    )
-endif()
+#if(CMAKE_BUILD_TYPE MATCHES "Debug")
+#    target_compile_options(HelloTriangle PRIVATE
+#        -fsanitize=address,undefined -g
+#    )
+#    target_link_options(HelloTriangle PRIVATE
+#        -fsanitize=address,undefined
+#    )
+#endif()

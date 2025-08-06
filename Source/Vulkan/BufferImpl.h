@@ -89,6 +89,7 @@ namespace VulkanHelper
          */
         VHResult CopyToImage(CommandBuffer& cmd, const Image& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
 
+        void Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
     private:
         Device::Impl* m_Device;
         VulkanMemoryAllocator::BufferAllocation m_BufferAllocation;

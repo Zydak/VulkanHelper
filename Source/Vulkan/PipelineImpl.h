@@ -27,6 +27,18 @@ namespace VulkanHelper
         [[nodiscard]] inline static Pipeline CreatePublicInterface(UniquePtr<Impl>&& impl) { return Pipeline(VulkanHelper::Move(impl)); }
 
         void Bind(CommandBuffer* commandBuffer);
+
+        void Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+
+        [[nodiscard]] inline VkPipeline GetPipeline() const { return m_Pipeline; }
+        [[nodiscard]] inline VkPipelineLayout GetLayout() const { return m_Layout; }
+        [[nodiscard]] inline PipelineType GetPipelineType() const { return m_PipelineType; }
+
+        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+
+        [[nodiscard]] inline const Vector<DescriptorSet::Impl*>& GetDescriptorSets() const { return m_DescriptorSets; }
+        [[nodiscard]] inline PushConstant::Impl* GetPushConstant() const { return m_PushConstant; }
+
     private:
         Device::Impl* m_Device;
         VkPipeline m_Pipeline;

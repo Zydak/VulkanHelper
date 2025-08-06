@@ -64,7 +64,7 @@ namespace VulkanHelper
             slangModule = s_Session->loadModule(moduleName.c_str(), diagnosticsBlob.writeRef());
             if (diagnosticsBlob != nullptr)
             {
-                VH_LOG_ERROR((const char*)diagnosticsBlob->getBufferPointer());
+                VH_LOG_ERROR("{}", (const char*)diagnosticsBlob->getBufferPointer());
             }
             if (!slangModule)
             {
@@ -77,7 +77,10 @@ namespace VulkanHelper
             SlangResult result = slangModule->findEntryPointByName("Main", entryPoint.writeRef());
             
             if (result < 0)
+            {
+                VH_LOG_ERROR("No entry point named 'Main' found in shader module '{}', make sure it is name Main and not main.", filepathStr);
                 return Unexpected(VHResult::NO_SPECIFIED_ENTRY_POINT_FOUND);
+            }
         }
 
         std::array<slang::IComponentType*, 2> componentTypes =

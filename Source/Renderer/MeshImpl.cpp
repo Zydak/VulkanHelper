@@ -11,17 +11,11 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Mesh::Impl>, VHResult> Mesh::Impl::New(Device::Impl* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize)
+    Expected<UniquePtr<Mesh::Impl>, VHResult> Mesh::Impl::New(Device::Impl* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize, VulkanHelper::Buffer::Usage AdditionalUsageFlags)
     {
         if (!vertexAttributes || vertexAttributeCount == 0)
         {
             VH_LOG_ERROR("VertexAttributes cannot be null and VertexAttributeCount must be greater than 0");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
-        if (!vertexData || vertexDataSize == 0)
-        {
-            VH_LOG_ERROR("VertexData cannot be null and VertexDataSize must be greater than 0");
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
@@ -35,7 +29,7 @@ namespace VulkanHelper
         auto vertexBufferResult = Buffer::Impl::New(
             device,
             vertexDataSize,
-            Buffer::Usage::VERTEX_BUFFER | Buffer::Usage::TRANSFER_DST,
+            Buffer::Usage::VERTEX_BUFFER | Buffer::Usage::TRANSFER_DST | AdditionalUsageFlags,
             false, // CpuMapable
             false, // UsePersistentStagingBuffer
             "Mesh Vertex Buffer"
@@ -49,11 +43,14 @@ namespace VulkanHelper
         Buffer vertexBuffer = Move(Buffer::Impl::CreatePublicInterface(Move(vertexBufferResult.Value())));
 
         // Upload vertex data
-        VHResult uploadResult = vertexBuffer.UploadData(vertexData, vertexDataSize, 0, commandBuffer);
-        if (uploadResult != VHResult::OK)
+        if (vertexData != nullptr)
         {
-            VH_LOG_ERROR("Failed to upload vertex data to buffer");
-            return Unexpected(uploadResult);
+            VHResult uploadResult = vertexBuffer.UploadData(vertexData, vertexDataSize, 0, commandBuffer);
+            if (uploadResult != VHResult::OK)
+            {
+                VH_LOG_ERROR("Failed to upload vertex data to buffer");
+                return Unexpected(uploadResult);
+            }
         }
 
         // Calculate vertex count based on vertex attribute sizes
@@ -90,7 +87,7 @@ namespace VulkanHelper
             auto indexBufferResult = Buffer::Impl::New(
                 device,
                 indexDataSize,
-                Buffer::Usage::INDEX_BUFFER | Buffer::Usage::TRANSFER_DST,
+                Buffer::Usage::INDEX_BUFFER | Buffer::Usage::TRANSFER_DST | AdditionalUsageFlags,
                 false, // CpuMapable
                 false, // UsePersistentStagingBuffer
                 "Mesh Index Buffer"
@@ -104,7 +101,7 @@ namespace VulkanHelper
             indexBuffer = UniquePtr<Buffer>(new Buffer(Move(Buffer::Impl::CreatePublicInterface(Move(indexBufferResult.Value())))));
 
             // Upload index data
-            uploadResult = indexBuffer->UploadData(indexData, indexDataSize, 0, commandBuffer);
+            VHResult uploadResult = indexBuffer->UploadData(indexData, indexDataSize, 0, commandBuffer);
             if (uploadResult != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to upload index data to buffer");
@@ -219,8 +216,39 @@ namespace VulkanHelper
         VertexBindingDescription bindingDesc;
         bindingDesc.Binding = 0; // Assuming single binding for simplicity
         bindingDesc.Stride = m_VertexSize;
-        bindingDesc.PerInstance = Mesh::InputRate::VERTEX; // Assuming per-vertex data
+        bindingDesc.InputRate = Mesh::InputRate::VERTEX; // Assuming per-vertex data
 
+        return bindingDesc;
+    }
+
+    VulkanHelper::Vector<Mesh::VertexAttributeDescription> Mesh::Impl::CreateAttributeDescriptions(const VulkanHelper::Format* formats, uint32_t count)
+    {
+        VulkanHelper::Vector<Mesh::VertexAttributeDescription> attributes;
+        attributes.Reserve(count);
+
+        uint32_t vertexSize = 0;
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            uint32_t formatSize = VulkanHelper::GetFormatSize(formats[i]);
+            Mesh::VertexAttributeDescription attr;
+            attr.Location = i;
+            attr.Binding = 0; // Assuming single binding for simplicity
+            attr.Format = formats[i];
+            attr.Offset = vertexSize;
+            vertexSize += formatSize;
+
+            attributes.PushBack(attr);
+        }
+
+        return attributes;
+    }
+
+    Mesh::VertexBindingDescription Mesh::Impl::CreateBindingDescription(uint32_t vertexSize)
+    {
+        VertexBindingDescription bindingDesc;
+        bindingDesc.Binding = 0; // Assuming single binding for simplicity
+        bindingDesc.Stride = vertexSize;
+        bindingDesc.InputRate = Mesh::InputRate::VERTEX;
         return bindingDesc;
     }
     
@@ -246,7 +274,8 @@ namespace VulkanHelper
             config.VertexData,
             config.VertexDataSize,
             config.IndexData,
-            config.IndexDataSize
+            config.IndexDataSize,
+            config.AdditionalUsageFlags
         );
 
         if (!implResult.HasValue())
@@ -301,5 +330,25 @@ namespace VulkanHelper
     Mesh::VertexBindingDescription Mesh::GetBindingDescription() const
     {
         return m_Impl->GetBindingDescription();
+    }
+
+    VulkanHelper::Vector<Mesh::VertexAttributeDescription> Mesh::CreateAttributeDescriptions(const VulkanHelper::Format* formats, uint32_t count)
+    {
+        return Impl::CreateAttributeDescriptions(formats, count);
+    }
+
+    Mesh::VertexBindingDescription Mesh::CreateBindingDescription(uint32_t vertexSize)
+    {
+        return Impl::CreateBindingDescription(vertexSize);
+    }
+
+    Buffer* Mesh::GetVertexBuffer()
+    {
+        return m_Impl->GetVertexBuffer();
+    }
+
+    Buffer* Mesh::GetIndexBuffer()
+    {
+        return m_Impl->GetIndexBuffer();
     }
 }

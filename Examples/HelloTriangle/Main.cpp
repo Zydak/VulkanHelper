@@ -1,17 +1,6 @@
-#include "Core/Error.h"
-#include "Window/Window.h"
-#include "Vulkan/Instance.h"
-#include "Log/Log.h"
-#include "Vulkan/Device.h"
-#include "Vulkan/Image.h"
-#include "Renderer/Renderer.h"
-#include "Renderer/Mesh.h"
+#include "VulkanHelper.h"
 
-#include "Vulkan/Shader.h"
-#include "Vulkan/Pipeline.h"
-#include "Vulkan/Buffer.h"
 #include <filesystem>
-#include "Vulkan/CommandPool.h"
 
 int main()
 {

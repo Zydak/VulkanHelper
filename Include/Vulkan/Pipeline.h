@@ -122,7 +122,34 @@ namespace VulkanHelper
          */
         struct ComputeConfig
         {
-            // TODO: Add compute pipeline configuration
+            /**
+             * @brief The logical device that will own this pipeline
+             * 
+             * @note Must not be nullptr and must outlive this object
+             */
+            VulkanHelper::Device* Device = nullptr;
+
+            /**
+             * @brief Shader used in the pipeline
+             * 
+             * @note Must not be nullptr and must outlive this object
+             */
+            VulkanHelper::Shader* ComputeShader = nullptr;
+
+            /**
+             * @brief Descriptor sets to bind with this pipeline (Optional)
+             * 
+             * @note If not empty, descriptor sets will be automatically bound when the pipeline is bound
+             * @note All descriptor sets must outlive this object
+             */
+            VulkanHelper::Vector<DescriptorSet*> DescriptorSets;
+
+            /**
+             * @brief Push constant (Optional)
+             * 
+             * @note If not nullptr, must outlive this object
+             */
+			VulkanHelper::PushConstant* PushConstant = nullptr;
         };
 
         /**
@@ -184,6 +211,18 @@ namespace VulkanHelper
          * @param commandBuffer The command buffer to bind this pipeline to
          */
         void Bind(CommandBuffer* commandBuffer);
+
+        /**
+         * @brief Dispatches a compute shader with the specified group counts.
+         * 
+         * @param commandBuffer The command buffer to dispatch the compute shader on
+         * @param groupCountX Number of workgroups in the X dimension
+         * @param groupCountY Number of workgroups in the Y dimension
+         * @param groupCountZ Number of workgroups in the Z dimension
+         * 
+         * @note Available only for compute pipelines
+         */
+        void Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
         class Impl;
     private:

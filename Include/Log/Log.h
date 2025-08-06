@@ -114,6 +114,6 @@ namespace VulkanHelper
 #define VH_ASSERT(condition, ...)\
 if (!(condition))\
 {\
-    VH_LOG_FATAL(__VA_ARGS__);\
+    VH_LOG_FATAL("{}", __VA_ARGS__);\
     std::terminate();\
 }

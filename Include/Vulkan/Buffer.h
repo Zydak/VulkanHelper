@@ -27,6 +27,7 @@ namespace VulkanHelper
          */
         enum class Usage
         {
+            NONE = 0,
             TRANSFER_SRC       = 0x00000001,  ///< Source for transfer operations
             TRANSFER_DST       = 0x00000002,  ///< Destination for transfer operations
             UNIFORM_TEXEL_BUFFER = 0x00000004, ///< Uniform texel buffer
@@ -172,6 +173,8 @@ namespace VulkanHelper
          * @return true if mapped
          */
         [[nodiscard]] bool IsMapped() const;
+        
+        void Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
 
         class Impl;
     private:

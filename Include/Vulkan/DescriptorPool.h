@@ -67,13 +67,6 @@ namespace VulkanHelper
              * @note Must be greater than 0
              */
             uint32_t PoolSizeCount = 0;
-
-            /**
-             * @brief Whether individual descriptor sets can be freed back to the pool
-             * @note If false, descriptor sets can only be freed by resetting the entire pool
-             * @note Setting to true may have performance implications but provides more flexibility
-             */
-            bool AllowFreeDescriptorSet = false;
         };
 
         /**

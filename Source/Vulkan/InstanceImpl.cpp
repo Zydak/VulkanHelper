@@ -20,14 +20,29 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityF
 {
 	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 	{
+        if (pCallbackData->pMessageIdName == nullptr || pCallbackData->pMessage == nullptr)
+        {
+            VH_LOG_ERROR("Debug Callback received null message ID or message!");
+            return VK_FALSE;
+        }
 		VH_LOG_INFO("Info: {} - {} : {}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
 	}
 	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 	{
+        if (pCallbackData->pMessageIdName == nullptr || pCallbackData->pMessage == nullptr)
+        {
+            VH_LOG_ERROR("Debug Callback received null message ID or message!");
+            return VK_FALSE;
+        }
 		VH_LOG_ERROR("Error\n\t{} - {} : {}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
 	}
 	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 	{
+        if (pCallbackData->pMessageIdName == nullptr || pCallbackData->pMessage == nullptr)
+        {
+            VH_LOG_ERROR("Debug Callback received null message ID or message!");
+            return VK_FALSE;
+        }
 		VH_LOG_WARN("Warning\n\t{} - {} : {}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
 	}
 	return VK_FALSE;

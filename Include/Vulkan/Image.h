@@ -169,6 +169,12 @@ namespace VulkanHelper
             VulkanHelper::Image::Layout InitialLayout = Layout::UNDEFINED;
 
             /**
+             * @brief Sample count for the image
+             * @note Defaults to COUNT_1_BIT, can be set to other values for multisampling
+             */
+            VulkanHelper::SampleCount SampleCount = SampleCount::COUNT_1_BIT;
+
+            /**
              * @brief Whether to use persistent staging
              * @note Improves performance for frequent CPU writes to GPU-only images, but doubles the memory size cost
              */
