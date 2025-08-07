@@ -159,8 +159,8 @@ namespace VulkanHelper
     {
         if (m_Shader != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Shader Module Implementation");
-            vkDestroyShaderModule(m_Device->GetDevice(), m_Shader, nullptr);
+            VH_LOG_INFO("Queuing Shader Module Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Shader);
             m_Shader = VK_NULL_HANDLE;
             m_Device = nullptr;
         }

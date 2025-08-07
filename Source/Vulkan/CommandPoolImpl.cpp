@@ -48,8 +48,8 @@ namespace VulkanHelper
     {
         if (m_CommandPool != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Vulkan Command Pool Implementation");
-            vkDestroyCommandPool(m_Device->GetDevice(), m_CommandPool, nullptr);
+            VH_LOG_INFO("Queuing Vulkan Command Pool Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_CommandPool);
             m_CommandPool = VK_NULL_HANDLE;
             m_Device = nullptr;
         }

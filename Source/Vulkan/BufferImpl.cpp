@@ -158,13 +158,13 @@ namespace VulkanHelper
             // Deallocate scratch buffer first if it exists
             if (m_ScratchBuffer.Buffer != VK_NULL_HANDLE)
             {
-                m_Device->DeallocateBuffer(m_ScratchBuffer);
+                m_Device->GetDeleteQueue().QueueForDeletion(m_ScratchBuffer);
             }
 
             // Deallocate main buffer
             if (m_BufferAllocation.Buffer != VK_NULL_HANDLE)
             {
-                m_Device->DeallocateBuffer(m_BufferAllocation);
+                m_Device->GetDeleteQueue().QueueForDeletion(m_BufferAllocation);
             }
         }
     }
@@ -256,33 +256,7 @@ namespace VulkanHelper
             vkCmdCopyBuffer(commandBuffer, scratchAllocation.Buffer, m_BufferAllocation.Buffer, 1, &copyRegion);
             
             if (useTemporaryStaging)
-            {
-                // Unfortunately if we're using temporary staging buffer, the copy command has to be executed BEFORE the buffer is dealocated.
-                // Which means the cmd has to end, submit and start again before the staging buffer can be dealocated.
-                VHResult res = cmd->EndRecording();
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't end recording of the command buffer! Make sure it is in recording state!");
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                    return res;
-                }
-                res = cmd->SubmitAndWait();
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't end Submit the command buffer!");
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                    return res;
-                }
-                res = cmd->BeginRecording(VulkanHelper::CommandBuffer::Usage::NONE);
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't begin CommandBuffer recording!");
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                    return res;
-                }
-
-                m_Device->DeallocateBuffer(scratchAllocation);
-            }
+                m_Device->GetDeleteQueue().QueueForDeletion(scratchAllocation);
         }
 
         return VHResult::OK;

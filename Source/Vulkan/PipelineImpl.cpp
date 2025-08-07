@@ -342,9 +342,9 @@ namespace VulkanHelper
     {
         if (m_Pipeline != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Pipeline Implementation");
-            vkDestroyPipeline(m_Device->GetDevice(), m_Pipeline, nullptr);
-            vkDestroyPipelineLayout(m_Device->GetDevice(), m_Layout, nullptr);
+            VH_LOG_INFO("Queuing Pipeline Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Pipeline);
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Layout);
             m_Device = nullptr;
             m_Pipeline = VK_NULL_HANDLE;
             m_Layout = VK_NULL_HANDLE;

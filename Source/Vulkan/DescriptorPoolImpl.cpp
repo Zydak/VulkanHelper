@@ -73,8 +73,8 @@ namespace VulkanHelper
     {
         if (m_DescriptorPool != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Vulkan DescriptorPool Implementation");
-            vkDestroyDescriptorPool(m_Device->GetDevice(), m_DescriptorPool, nullptr);
+            VH_LOG_INFO("Queuing Vulkan DescriptorPool Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_DescriptorPool);
             m_DescriptorPool = VK_NULL_HANDLE;
             m_Device = nullptr;
         }

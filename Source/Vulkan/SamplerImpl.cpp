@@ -69,8 +69,8 @@ namespace VulkanHelper
     {
         if (m_Sampler != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Vulkan Sampler Implementation");
-            vkDestroySampler(m_Device->GetDevice(), m_Sampler, nullptr);
+            VH_LOG_INFO("Queuing Vulkan Sampler Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Sampler);
             m_Sampler = VK_NULL_HANDLE;
             m_Device = nullptr;
         }

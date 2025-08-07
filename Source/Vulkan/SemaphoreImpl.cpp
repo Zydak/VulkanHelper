@@ -48,8 +48,8 @@ namespace VulkanHelper
     {
         if (m_Semaphore != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Vulkan Semaphore Implementation");
-            vkDestroySemaphore(m_Device->GetDevice(), m_Semaphore , nullptr);
+            VH_LOG_INFO("Queuing Vulkan Semaphore Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Semaphore);
             m_Semaphore = VK_NULL_HANDLE;
             m_Device = nullptr;
         }

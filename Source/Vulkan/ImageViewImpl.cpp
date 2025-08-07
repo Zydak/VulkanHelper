@@ -74,8 +74,8 @@ namespace VulkanHelper
     {
         if (m_ImageView != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying ImageView Implementation");
-            vkDestroyImageView(m_Image->GetDevice()->GetDevice(), m_ImageView, nullptr);
+            VH_LOG_INFO("Queuing ImageView Implementation for deletion");
+            m_Image->GetDevice()->GetDeleteQueue().QueueForDeletion(m_ImageView);
         }
     }
 

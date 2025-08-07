@@ -41,8 +41,8 @@ namespace VulkanHelper
     {
         if (m_DescriptorSetLayout != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Vulkan DescriptorSet Implementation");
-            vkDestroyDescriptorSetLayout(m_Device->GetDevice(), m_DescriptorSetLayout, nullptr);
+            VH_LOG_INFO("Queuing Vulkan DescriptorSet Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_DescriptorSetLayout);
             m_DescriptorSetLayout = VK_NULL_HANDLE;
             m_DescriptorSet = VK_NULL_HANDLE;
             m_Device = nullptr;

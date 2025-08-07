@@ -85,6 +85,8 @@ namespace VulkanHelper
 
     Expected<CommandBuffer*, VHResult> Renderer::Impl::BeginFrame()
     {
+        m_Device->GetDeleteQueue().Update();
+        
         VHResult res = m_Swapchain.AcquireNextImage();
         if (res == VHResult::OUT_OF_DATE_KHR)
         {

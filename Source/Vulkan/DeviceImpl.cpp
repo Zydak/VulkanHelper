@@ -110,8 +110,12 @@ namespace VulkanHelper
         }
 
         VulkanMemoryAllocator allocator = VulkanMemoryAllocator::New(device, instance->GetInstance(), physicalDevice.GetDevice()).Value();
-
-        return UniquePtr<Impl>(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator)));
+        
+        // Create the Device::Impl first, then initialize the DeleteQueue with proper allocator pointer
+        UniquePtr<Impl> deviceImpl(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator)));
+        deviceImpl->InitializeDeleteQueue(3); // 3 frames delay
+        
+        return deviceImpl;
     }
 
     Device::Impl::~Impl()
@@ -120,11 +124,19 @@ namespace VulkanHelper
         {
             VH_LOG_INFO("Destroying device implementation");
 
+            // Flush all pending deletions before destroying the device
+            m_DeleteQueue.Flush();
+
             m_Allocator.~VulkanMemoryAllocator(); // Allocator has to be destroyed before the device
 
             vkDestroyDevice(m_Device, nullptr);
             m_Device = nullptr;
         }
+    }
+
+    void Device::Impl::InitializeDeleteQueue(uint32_t framesDelay)
+    {
+        m_DeleteQueue = DeleteQueue(m_Device, &m_Allocator, framesDelay);
     }
 
     Device::Impl::Impl(Impl&& other) noexcept
@@ -133,6 +145,7 @@ namespace VulkanHelper
         , m_PhysicalDevice(Move(other.m_PhysicalDevice))
         , m_QueueFamilyIndices(Move(other.m_QueueFamilyIndices))
         , m_Allocator(Move(other.m_Allocator))
+        , m_DeleteQueue(Move(other.m_DeleteQueue))
     {
         other.m_Device = nullptr;
     }
@@ -151,6 +164,7 @@ namespace VulkanHelper
         m_PhysicalDevice = Move(other.m_PhysicalDevice);
         m_QueueFamilyIndices = Move(other.m_QueueFamilyIndices);
         m_Allocator = Move(other.m_Allocator);
+        m_DeleteQueue = Move(other.m_DeleteQueue);
 
         return *this;
     }

@@ -317,13 +317,13 @@ namespace VulkanHelper
         if (m_Allocation.Allocation != nullptr)
         {
             VH_LOG_INFO("Destroying Image Implementation");
-            m_Device->DeallocateImage(m_Allocation);
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Allocation);
             m_Allocation.Allocation = nullptr;
             m_Allocation.image = VK_NULL_HANDLE;
         }
         if (m_StagingBufferAllocation.Allocation != nullptr)
         {
-            m_Device->DeallocateBuffer(m_StagingBufferAllocation);
+            m_Device->GetDeleteQueue().QueueForDeletion(m_StagingBufferAllocation);
         }
     }
 
@@ -475,35 +475,7 @@ namespace VulkanHelper
                 TransitionImageLayout(originalLayout, *cmd, 0, m_LayerCount);
 
             if (usingTemporaryStagingBuffer)
-            {
-                // Unfortunately if we're using temporary staging buffer, the copy command has to be executed BEFORE the buffer is dealocated.
-                // Which means the cmd has to end, submit and start again before the staging buffer can be dealocated.
-                VHResult res = cmd->EndRecording();
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't end recording of the command buffer!");
-                    m_Device->DeallocateBuffer(stagingBufferAllocation);
-                    return res;
-                }
-
-                res = cmd->SubmitAndWait();
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't submit the command buffer!");
-                    m_Device->DeallocateBuffer(stagingBufferAllocation);
-                    return res;
-                }
-
-                res = cmd->BeginRecording(CommandBuffer::Usage::NONE);
-                if (res != VHResult::OK)
-                {
-                    VH_LOG_ERROR("Couldn't begin CommandBuffer recording!");
-                    m_Device->DeallocateBuffer(stagingBufferAllocation);
-                    return res;
-                }
-
-                m_Device->DeallocateBuffer(stagingBufferAllocation);
-            }
+                m_Device->GetDeleteQueue().QueueForDeletion(stagingBufferAllocation);
         }
 
         return VHResult::OK;

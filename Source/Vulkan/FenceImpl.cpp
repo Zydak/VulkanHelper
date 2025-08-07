@@ -57,8 +57,8 @@ namespace VulkanHelper
     {
         if (m_Fence != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Vulkan Fence Implementation");
-            vkDestroyFence(m_Device->GetDevice(), m_Fence , nullptr);
+            VH_LOG_INFO("Queuing Vulkan Fence Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Fence);
             m_Fence = VK_NULL_HANDLE;
             m_Device = nullptr;
         }

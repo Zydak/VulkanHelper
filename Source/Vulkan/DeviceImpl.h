@@ -6,6 +6,7 @@
 #include "VulkanMemoryAllocator.h"
 
 #include "PhysicalDeviceImpl.h"
+#include "DeleteQueue.h"
 
 namespace VulkanHelper
 {
@@ -73,13 +74,27 @@ namespace VulkanHelper
          * @param allocation Allocation to unmap.
          */
         void UnmapMemory(const VmaAllocation& allocation);
+
+        /**
+         * @brief Get the delete queue for deferred object destruction.
+         *
+         * @return Reference to the delete queue.
+         */
+        [[nodiscard]] inline DeleteQueue& GetDeleteQueue() { return m_DeleteQueue; }
+
     private:
+
+        /**
+         * @brief Initialize the delete queue after the device is constructed.
+         */
+        void InitializeDeleteQueue(uint32_t framesDelay);
 
         Instance::Impl* m_Instance;
         VkDevice m_Device = nullptr;
         PhysicalDevice::Impl m_PhysicalDevice;
         QueueFamilyIndices m_QueueFamilyIndices = {};
         VulkanHelper::VulkanMemoryAllocator m_Allocator;
+        DeleteQueue m_DeleteQueue;
 
         explicit Impl(
             Instance::Impl* instance,
@@ -93,6 +108,7 @@ namespace VulkanHelper
             , m_PhysicalDevice(Move(physicalDevice))
             , m_QueueFamilyIndices(Move(indices))
             , m_Allocator(Move(allocator))
+            , m_DeleteQueue(VK_NULL_HANDLE, nullptr, 0) // Will be properly initialized later
         {}
 
         [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice::Impl& physicalDevice, const VulkanHelper::Vector<Window::Impl*>& windows);

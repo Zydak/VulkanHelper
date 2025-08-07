@@ -230,8 +230,8 @@ namespace VulkanHelper
     {
         if (m_Swapchain != VK_NULL_HANDLE)
         {
-            VH_LOG_INFO("Destroying Vulkan Swapchain Implementation");
-            vkDestroySwapchainKHR(m_Device->GetDevice(), m_Swapchain, nullptr);
+            VH_LOG_INFO("Queuing Vulkan Swapchain Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Swapchain);
             m_Swapchain = VK_NULL_HANDLE;
         }
     }
@@ -291,7 +291,7 @@ namespace VulkanHelper
     {
         Semaphore* acquireSemaphore = &m_AcquireSemaphores[m_CurrentFrameIndex];
         Semaphore* submitSemaphore = &m_SubmitSemaphores[m_CurrentImageIndex];
-        Semaphore::Impl* submitSemaphoreImpl = Semaphore::Impl::GetImplementation(&m_SubmitSemaphores[m_CurrentImageIndex]);
+        Semaphore::Impl* submitSemaphoreImpl = Semaphore::Impl::GetImplementation(submitSemaphore);
         VkSemaphore submitSemaphoreVk = submitSemaphoreImpl->GetSemaphore();
 
         VHResult res = commandBuffer.Submit(PipelineStages::COLOR_ATTACHMENT_OUTPUT_BIT, acquireSemaphore, submitSemaphore, &m_FrameFences[m_CurrentFrameIndex]);

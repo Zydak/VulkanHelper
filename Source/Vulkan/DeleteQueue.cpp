@@ -1,0 +1,305 @@
+#include "DeleteQueue.h"
+#include "Log/Log.h"
+
+#include <vulkan/vulkan.h>
+
+namespace VulkanHelper
+{
+    DeleteQueue::DeleteQueue(VkDevice device, VulkanMemoryAllocator* memoryAllocator, uint32_t framesDelay)
+        : m_Device(device), m_FramesDelay(framesDelay), m_MemoryAllocator(memoryAllocator)
+    {
+        VH_LOG_INFO("DeleteQueue created with {} frames delay", m_FramesDelay);
+    }
+
+    DeleteQueue::~DeleteQueue()
+    {
+        if (!m_DeletionQueue.Empty())
+        {
+            VH_LOG_WARN("DeleteQueue destroyed with {} pending deletions, flushing remaining objects", m_DeletionQueue.Size());
+            Flush();
+        }
+        VH_LOG_INFO("DeleteQueue destroyed");
+    }
+
+    DeleteQueue::DeleteQueue(DeleteQueue&& other) noexcept
+        : m_Device(other.m_Device)
+        , m_FramesDelay(other.m_FramesDelay)
+        , m_DeletionQueue(std::move(other.m_DeletionQueue))
+        , m_MemoryAllocator(other.m_MemoryAllocator)
+    {
+        other.m_Device = VK_NULL_HANDLE;
+        other.m_FramesDelay = 0;
+    }
+
+    DeleteQueue& DeleteQueue::operator=(DeleteQueue&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        this->~DeleteQueue(); // Clean up current state
+
+        m_Device = other.m_Device;
+        m_FramesDelay = other.m_FramesDelay;
+        m_DeletionQueue = std::move(other.m_DeletionQueue);
+        m_MemoryAllocator = other.m_MemoryAllocator;
+
+        other.m_Device = VK_NULL_HANDLE;
+        other.m_FramesDelay = 0;
+        other.m_MemoryAllocator = nullptr;
+
+        return *this;
+    }
+
+    void DeleteQueue::Update()
+    {
+        if (m_DeletionQueue.Empty())
+            return;
+
+        // Process items from back to front to avoid invalidating indices during removal
+        for (size_t i = m_DeletionQueue.Size(); i > 0; i--)
+        {
+            size_t index = i - 1;
+            DeletionItem& item = m_DeletionQueue[index];
+            
+            if (item.FramesToWait == 0)
+            {
+                DestroyObject(item);
+                
+                // Remove the processed item by moving the last item to this position
+                if (index != m_DeletionQueue.Size() - 1)
+                {
+                    m_DeletionQueue[index] = VulkanHelper::Move(m_DeletionQueue[m_DeletionQueue.Size() - 1]);
+                }
+                m_DeletionQueue.PopBack();
+            }
+            else
+            {
+                --item.FramesToWait;
+            }
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkBuffer buffer)
+    {
+        if (buffer != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER, (uint64_t)buffer, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkImage image)
+    {
+        if (image != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE, (uint64_t)image, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkImageView imageView)
+    {
+        if (imageView != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_VIEW, (uint64_t)imageView, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkSampler sampler)
+    {
+        if (sampler != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::SAMPLER, (uint64_t)sampler, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkPipeline pipeline)
+    {
+        if (pipeline != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE, (uint64_t)pipeline, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkPipelineLayout pipelineLayout)
+    {
+        if (pipelineLayout != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE_LAYOUT, (uint64_t)pipelineLayout, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkDescriptorSetLayout descriptorSetLayout)
+    {
+        if (descriptorSetLayout != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkDescriptorPool descriptorPool)
+    {
+        if (descriptorPool != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_POOL, (uint64_t)descriptorPool, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkCommandPool commandPool)
+    {
+        if (commandPool != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::COMMAND_POOL, (uint64_t)commandPool, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkFence fence)
+    {
+        if (fence != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::FENCE, (uint64_t)fence, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkSemaphore semaphore)
+    {
+        if (semaphore != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::SEMAPHORE, (uint64_t)semaphore, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkSwapchainKHR swapchain)
+    {
+        if (swapchain != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::SWAPCHAIN, (uint64_t)swapchain, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VkShaderModule shaderModule)
+    {
+        if (shaderModule != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::SHADER_MODULE, (uint64_t)shaderModule, m_FramesDelay);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VulkanMemoryAllocator::BufferAllocation allocation)
+    {
+        if (allocation.Buffer != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER_ALLOCATION, (uint64_t)allocation.Buffer, m_FramesDelay, allocation.Allocation);
+        }
+    }
+
+    void DeleteQueue::QueueForDeletion(VulkanMemoryAllocator::ImageAllocation allocation)
+    {
+        if (allocation.image != VK_NULL_HANDLE)
+        {
+            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_ALLOCATION, (uint64_t)allocation.image, m_FramesDelay, allocation.Allocation);
+        }
+    }
+
+    void DeleteQueue::Flush()
+    {
+        if (m_Device == nullptr)
+        {
+            VH_LOG_ERROR("DeleteQueue::Flush: Device is null, cannot destroy objects");
+            return;
+        }
+
+        VH_LOG_INFO("Flushing DeleteQueue with {} pending objects", m_DeletionQueue.Size());
+
+        for (const auto& item : m_DeletionQueue)
+        {
+            DestroyObject(item);
+        }
+        
+        m_DeletionQueue.Clear();
+    }
+
+    void DeleteQueue::DestroyObject(const DeletionItem& item)
+    {
+        if (m_Device == nullptr)
+        {
+            VH_LOG_ERROR("DeleteQueue::DestroyObject: Device is null");
+            return;
+        }
+
+        switch (item.Type)
+        {
+            case ObjectType::BUFFER:
+                vkDestroyBuffer(m_Device, (VkBuffer)item.Handle, nullptr);
+                break;
+
+            case ObjectType::IMAGE:
+                vkDestroyImage(m_Device, (VkImage)item.Handle, nullptr);
+                break;
+
+            case ObjectType::IMAGE_VIEW:
+                vkDestroyImageView(m_Device, (VkImageView)item.Handle, nullptr);
+                break;
+
+            case ObjectType::SAMPLER:
+                vkDestroySampler(m_Device, (VkSampler)item.Handle, nullptr);
+                break;
+
+            case ObjectType::PIPELINE:
+                vkDestroyPipeline(m_Device, (VkPipeline)item.Handle, nullptr);
+                break;
+
+            case ObjectType::PIPELINE_LAYOUT:
+                vkDestroyPipelineLayout(m_Device, (VkPipelineLayout)item.Handle, nullptr);
+                break;
+
+            case ObjectType::DESCRIPTOR_SET_LAYOUT:
+                vkDestroyDescriptorSetLayout(m_Device, (VkDescriptorSetLayout)item.Handle, nullptr);
+                break;
+
+            case ObjectType::DESCRIPTOR_POOL:
+                vkDestroyDescriptorPool(m_Device, (VkDescriptorPool)item.Handle, nullptr);
+                break;
+
+            case ObjectType::COMMAND_POOL:
+                vkDestroyCommandPool(m_Device, (VkCommandPool)item.Handle, nullptr);
+                break;
+
+            case ObjectType::FENCE:
+                vkDestroyFence(m_Device, (VkFence)item.Handle, nullptr);
+                break;
+
+            case ObjectType::SEMAPHORE:
+                vkDestroySemaphore(m_Device, (VkSemaphore)item.Handle, nullptr);
+                break;
+
+            case ObjectType::SWAPCHAIN:
+                vkDestroySwapchainKHR(m_Device, (VkSwapchainKHR)item.Handle, nullptr);
+                break;
+
+            case ObjectType::SHADER_MODULE:
+                vkDestroyShaderModule(m_Device, (VkShaderModule)item.Handle, nullptr);
+                break;
+
+            case ObjectType::BUFFER_ALLOCATION:
+                {
+                    VulkanMemoryAllocator::BufferAllocation allocation{};
+                    allocation.Buffer = (VkBuffer)item.Handle;
+                    allocation.Allocation = item.Allocation;
+                    m_MemoryAllocator->DeallocateBuffer(allocation);
+                }
+                break;
+
+            case ObjectType::IMAGE_ALLOCATION:
+                {
+                    VulkanMemoryAllocator::ImageAllocation allocation{};
+                    allocation.image = (VkImage)item.Handle;
+                    allocation.Allocation = item.Allocation;
+                    m_MemoryAllocator->DeallocateImage(allocation);
+                }
+                break;
+
+            default:
+                VH_ASSERT(false, "DeleteQueue::DestroyObject: Unknown object type");
+                break;
+        }
+    }
+}
