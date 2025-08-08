@@ -195,11 +195,11 @@ namespace VulkanHelper
             break;
         case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
             srcAccess |= 0;
-            srcStage |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            srcStage |= 0;
             break;
         case VK_IMAGE_LAYOUT_UNDEFINED:
             srcAccess = 0;
-            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            srcStage = 0;
             break;
         default:
             VH_ASSERT(false, "Transition for your src layout is not implemented yet!");

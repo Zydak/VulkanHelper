@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 #include <tuple>
+#include <array>
 
 static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Image, VulkanHelper::ImageView> CreateImages(VulkanHelper::Device& device, VulkanHelper::Window& window)
 {
@@ -88,7 +89,7 @@ int main()
 
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
 
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 2}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
 
     VulkanHelper::Shader::InitializeSession("../../../ModelViewer/Shaders/");
 
