@@ -6,7 +6,7 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Vector<Shader::Impl*> shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, Vector<DescriptorSet::Impl*> descriptorSets, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format> colorFormats, Format depthFormat, SampleCount sampleCount)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Vector<Shader::Impl*>&& shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, Vector<DescriptorSet::Impl*>&& descriptorSets, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format>&& colorFormats, Format depthFormat, SampleCount sampleCount)
     {
         VH_LOG_INFO("Creating Graphics Pipeline Implementation");
 
@@ -480,7 +480,7 @@ namespace VulkanHelper
 
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
-            shaders,
+            Move(shaders),
             config.AttributeDesc,
             config.BindingDesc,
             config.PolygonMode,
@@ -489,10 +489,10 @@ namespace VulkanHelper
             config.DepthTestEnable,
             config.DepthClamp,
             config.BlendingEnable,
-            descriptorSets,
+            Move(descriptorSets),
             pushConstant,
             config.ColorAttachmentCount,
-            config.ColorFormats,
+            Move(config.ColorFormats.Clone()),
             config.DepthFormat,
             config.SampleCount
         );

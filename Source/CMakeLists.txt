@@ -15,6 +15,8 @@ target_link_libraries(
     glfw
     slang
     VulkanMemoryAllocator
+    assimp
+    stb
 )
 
 target_link_libraries(

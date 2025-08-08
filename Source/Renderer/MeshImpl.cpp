@@ -206,11 +206,6 @@ namespace VulkanHelper
         }
     }
 
-    const VulkanHelper::Vector<Mesh::VertexAttributeDescription>& Mesh::Impl::GetAttributesDescriptions() const
-    {
-        return m_VertexAttributes;
-    }
-
     Mesh::VertexBindingDescription Mesh::Impl::GetBindingDescription() const
     {
         VertexBindingDescription bindingDesc;
@@ -286,6 +281,10 @@ namespace VulkanHelper
         return Mesh{ Move(implResult.Value()) };
     }
 
+    //
+    //  Forward Functions
+    //
+
     Mesh::Mesh(Mesh&& other) noexcept
         : m_Impl(Move(other.m_Impl))
     {
@@ -322,7 +321,7 @@ namespace VulkanHelper
         m_Impl->Draw(commandBuffer, instanceCount, firstInstance);
     }
 
-    const VulkanHelper::Vector<Mesh::VertexAttributeDescription>& Mesh::GetAttributesDescriptions() const
+    const VulkanHelper::Vector<Mesh::VertexAttributeDescription>* Mesh::GetAttributesDescriptions() const
     {
         return m_Impl->GetAttributesDescriptions();
     }

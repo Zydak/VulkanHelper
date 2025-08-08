@@ -5,6 +5,9 @@
 #include "Vulkan/Swapchain.h"
 #include "Vulkan/CommandPool.h"
 #include "Vulkan/ImageView.h"
+
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_RIGHT_HANDED
 #include <glm/glm.hpp>
 
 namespace VulkanHelper

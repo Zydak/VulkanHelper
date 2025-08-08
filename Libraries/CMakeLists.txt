@@ -47,6 +47,18 @@ FetchContent_Declare(
     GIT_TAG v3.3.0
 )
 
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG v6.0.2
+)
+
+FetchContent_Declare(
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG f58f558c120e9b32c217290b80bad1a0729fbb2c
+)
+
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 
@@ -56,12 +68,17 @@ suppress_warnings(fmt)
 FetchContent_MakeAvailable(glm)
 suppress_warnings(glm)
 
+FetchContent_MakeAvailable(assimp)
+suppress_warnings(assimp)
+
+FetchContent_MakeAvailable(stb)
+
 FetchContent_MakeAvailable(VulkanMemoryAllocator)
 
 FetchContent_MakeAvailable(Vulkan-Headers)
 FetchContent_MakeAvailable(Vulkan-Loader)
 
-# Clone prebuild slang
+# Clone prebuilt slang
 if (MSVC)
     set(SLANG_URL "https://github.com/shader-slang/slang/releases/download/v2025.13.2/slang-2025.13.2-windows-x86_64.zip")
 
@@ -113,3 +130,6 @@ if (MSVC)
 else()
     target_link_libraries(slang INTERFACE "${SLANG_DIR}/lib/libslang.so")
 endif()
+
+add_library(stb INTERFACE)
+target_include_directories(stb SYSTEM INTERFACE "${PROJECT_SOURCE_DIR}/Libraries/stb-src/")

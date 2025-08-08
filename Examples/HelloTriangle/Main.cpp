@@ -80,7 +80,7 @@ int main()
     pipelineConfig.Shaders.PushBack(&vertexShader);
     pipelineConfig.Shaders.PushBack(&fragShader);
     pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
-    pipelineConfig.AttributeDesc = &triangleMesh.GetAttributesDescriptions();
+    pipelineConfig.AttributeDesc = triangleMesh.GetAttributesDescriptions();
     pipelineConfig.BindingDesc = triangleMesh.GetBindingDescription();
     
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();

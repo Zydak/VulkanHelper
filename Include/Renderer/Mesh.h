@@ -168,7 +168,7 @@ namespace VulkanHelper
          * @brief Get vertex attribute descriptions for the mesh
          * @return Vector of vertex attribute descriptions
          */
-        [[nodiscard]] const VulkanHelper::Vector<VertexAttributeDescription>& GetAttributesDescriptions() const;
+        [[nodiscard]] const VulkanHelper::Vector<VertexAttributeDescription>* GetAttributesDescriptions() const;
         
         /**
          * @brief Get vertex binding description for the mesh

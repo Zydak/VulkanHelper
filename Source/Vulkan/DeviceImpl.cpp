@@ -12,7 +12,7 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*> windows, Instance::Impl* instance)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*>&& windows, Instance::Impl* instance)
     {
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
@@ -264,7 +264,7 @@ namespace VulkanHelper
 
         auto implResult = Impl::New(
             *PhysicalDevice::Impl::GetImplementation(&config.PhysicalDevice),
-            windows,
+            Move(windows),
             Instance::Impl::GetImplementation(config.Instance)
         );
         if (!implResult.HasValue())

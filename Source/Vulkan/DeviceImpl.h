@@ -13,7 +13,7 @@ namespace VulkanHelper
     class Device::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*> windows, Instance::Impl* instance);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*>&& windows, Instance::Impl* instance);
         ~Impl();
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;

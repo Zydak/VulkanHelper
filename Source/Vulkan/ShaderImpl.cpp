@@ -32,6 +32,7 @@ namespace VulkanHelper
         const char* searchPathCStr = searchPath.c_str();
         VH_LOG_DEBUG("slang session search path: {}", searchPath.c_str());
         slang::SessionDesc sessionDesc = {};
+        sessionDesc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
         sessionDesc.targets = &targetDesc;
         sessionDesc.targetCount = 1;
         sessionDesc.searchPaths = &searchPathCStr;

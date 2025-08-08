@@ -104,6 +104,8 @@ namespace VulkanHelper
          * @param offset Destination offset in bytes
          * @param cmd Command buffer for GPU transfers (required for non-mappable buffers)
          * @return VHResult::OK on success
+         * 
+         * @note If you pass a command buffer in, you must ensure it is executed before the end of the frame.
          */
         [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset = 0, CommandBuffer* cmd = nullptr);
 

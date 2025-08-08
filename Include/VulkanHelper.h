@@ -14,6 +14,10 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Mesh.h"
 
+// Utility
+#include "Utility/ThreadPool.h"
+#include "Utility/AssetImporter.h"
+
 // Vulkan
 #include "Vulkan/Buffer.h"
 #include "Vulkan/CommandBuffer.h"

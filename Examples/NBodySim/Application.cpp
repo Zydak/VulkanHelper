@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <vector>
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_RIGHT_HANDED
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -144,8 +146,7 @@ Application Application::New()
     graphicsPipelineConfig.Shaders.PushBack(&vertexShader);
     graphicsPipelineConfig.Shaders.PushBack(&fragmentShader);
 
-    VulkanHelper::Vector<VulkanHelper::Mesh::VertexAttributeDescription> attributeDescriptions = pointsMesh.GetAttributesDescriptions();
-    graphicsPipelineConfig.AttributeDesc = &attributeDescriptions;
+    graphicsPipelineConfig.AttributeDesc = pointsMesh.GetAttributesDescriptions();
     graphicsPipelineConfig.BindingDesc = pointsMesh.GetBindingDescription();
     graphicsPipelineConfig.PolygonMode = VulkanHelper::PolygonMode::FILL;
     graphicsPipelineConfig.Topology = VulkanHelper::PrimitiveTopology::POINT_LIST;

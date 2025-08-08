@@ -243,6 +243,8 @@ namespace VulkanHelper
          * @param offset Offset in the image to start writing.
          * @param cmd Command buffer for GPU operations (required for non-mappable images).
          * @return VHResult::OK on success, or an error code on failure.
+         * 
+         * @note If you pass a command buffer in, you must ensure it is executed before the end of the frame.
          */
         VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
 
@@ -257,6 +259,30 @@ namespace VulkanHelper
          */
         VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr) const;
 
+        /**
+         * @brief Copies data from another image to this image.
+         *
+         * @param srcImage Source image to copy from.
+         * @param commandBuffer Command buffer to record the copy operation.
+         * @param srcBaseLayer Base layer in the source image to start copying from.
+         * @param dstBaseLayer Base layer in this image to start copying to.
+         * @param layerCount Number of layers to copy.
+         * @return VHResult::OK on success, or an error code on failure.
+         */
+        [[nodiscard]] VHResult CopyFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+
+        /**
+         * @brief Blits data from another image to this image.
+         *
+         * @param srcImage Source image to blit from.
+         * @param commandBuffer Command buffer to record the blit operation.
+         * @param srcBaseLayer Base layer in the source image to start blitting from.
+         * @param dstBaseLayer Base layer in this image to start blitting to.
+         * @param layerCount Number of layers to blit.
+         * @return VHResult::OK on success, or an error code on failure.
+         */
+        [[nodiscard]] VHResult BlitFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+        
         /**
          * @brief Map image memory for CPU access
          * @return Expected containing pointer to mapped memory or an error code

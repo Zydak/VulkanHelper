@@ -7,10 +7,8 @@ set(CMAKE_CXX_COMPILER g++)
 
 project(Examples)
 
-# Project name (used in path)
 set(PROJECT_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 
-# Multi-config (Windows/MSVC) setups
 if(CMAKE_CONFIGURATION_TYPES)
     foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
         string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG_UPPER)
@@ -19,7 +17,6 @@ if(CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${PROJECT_OUTPUT_DIR}/${OUTPUTCONFIG})
     endforeach()
 else()
-    # Single-config (Linux, Makefiles, Ninja)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_OUTPUT_DIR}/${CMAKE_BUILD_TYPE})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_OUTPUT_DIR}/${CMAKE_BUILD_TYPE})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_OUTPUT_DIR}/${CMAKE_BUILD_TYPE})
@@ -27,3 +24,4 @@ endif()
 
 add_subdirectory(HelloTriangle)
 add_subdirectory(NBodySim)
+add_subdirectory(ModelViewer)

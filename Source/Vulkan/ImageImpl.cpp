@@ -174,11 +174,11 @@ namespace VulkanHelper
             break;
         case VK_IMAGE_LAYOUT_GENERAL:
             srcAccess |= VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-            srcStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            srcStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
             break;
         case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
             srcAccess |= VK_ACCESS_SHADER_READ_BIT;
-            srcStage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            srcStage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
             break;
         case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
             srcAccess |= VK_ACCESS_TRANSFER_READ_BIT;
@@ -193,6 +193,10 @@ namespace VulkanHelper
             srcAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             srcStage |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
             break;
+        case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+            srcAccess |= 0;
+            srcStage |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            break;
         case VK_IMAGE_LAYOUT_UNDEFINED:
             srcAccess = 0;
             srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -206,11 +210,11 @@ namespace VulkanHelper
         {
         case VK_IMAGE_LAYOUT_GENERAL:
             dstAccess |= VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-            dstStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            dstStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
             break;
         case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
             dstAccess |= VK_ACCESS_SHADER_READ_BIT;
-            dstStage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            dstStage |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
             break;
         case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
             dstAccess |= VK_ACCESS_TRANSFER_READ_BIT;
@@ -630,6 +634,61 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
+    VHResult Image::Impl::CopyFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
+    {
+        CommandBuffer::Impl* cmdBufImpl = CommandBuffer::Impl::GetImplementation(&commandBuffer);
+        VkCommandBuffer vkCmd = cmdBufImpl->GetCommandBuffer();
+
+        VkImageCopy copyRegion{};
+        copyRegion.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(m_Aspect);
+        copyRegion.srcSubresource.mipLevel = 0;
+        copyRegion.srcSubresource.baseArrayLayer = srcBaseLayer;
+        copyRegion.srcSubresource.layerCount = layerCount;
+        copyRegion.srcOffset = {0, 0, 0};
+        
+        copyRegion.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(m_Aspect);
+        copyRegion.dstSubresource.mipLevel = 0;
+        copyRegion.dstSubresource.baseArrayLayer = dstBaseLayer;
+        copyRegion.dstSubresource.layerCount = layerCount;
+        copyRegion.dstOffset = {0, 0, 0};
+        
+        copyRegion.extent.width = m_Width;
+        copyRegion.extent.height = m_Height;
+        copyRegion.extent.depth = 1;
+
+        vkCmdCopyImage(vkCmd, srcImage.m_Impl->m_Allocation.image, (VkImageLayout)srcImage.m_Impl->GetLayout(),
+                       m_Allocation.image, (VkImageLayout)m_Layout, 1, &copyRegion);
+
+        return VHResult::OK;
+    }
+
+    VHResult Image::Impl::BlitFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
+    {
+        CommandBuffer::Impl* cmdBufImpl = CommandBuffer::Impl::GetImplementation(&commandBuffer);
+        VkCommandBuffer vkCmd = cmdBufImpl->GetCommandBuffer();
+
+        VkImageBlit blitRegion{};
+        blitRegion.srcSubresource.aspectMask = static_cast<VkImageAspectFlags>(srcImage.m_Impl->GetAspect());
+        blitRegion.srcSubresource.mipLevel = 0;
+        blitRegion.srcSubresource.baseArrayLayer = srcBaseLayer;
+        blitRegion.srcSubresource.layerCount = layerCount;
+        blitRegion.srcOffsets[0] = {0, 0, 0};
+        blitRegion.srcOffsets[1] = {static_cast<int32_t>(srcImage.GetWidth()), static_cast<int32_t>(srcImage.GetHeight()), 1};
+
+        blitRegion.dstSubresource.aspectMask = static_cast<VkImageAspectFlags>(m_Aspect);
+        blitRegion.dstSubresource.mipLevel = 0;
+        blitRegion.dstSubresource.baseArrayLayer = dstBaseLayer;
+        blitRegion.dstSubresource.layerCount = layerCount;
+        blitRegion.dstOffsets[0] = {0, 0, 0};
+        blitRegion.dstOffsets[1] = {static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 1};
+
+        vkCmdBlitImage(vkCmd, srcImage.m_Impl->m_Allocation.image, (VkImageLayout)srcImage.m_Impl->GetLayout(),
+                       m_Allocation.image, (VkImageLayout)m_Layout, 1, &blitRegion,
+                       VK_FILTER_LINEAR);
+
+        return VHResult::OK;
+    }
+
     //
     //  Forward Functions
     //
@@ -710,7 +769,7 @@ namespace VulkanHelper
         return m_Impl->DownloadData(data, size, offset, cmd);
     }
 
-    [[nodiscard]] Expected<void*, VHResult> Image::Map()
+    Expected<void*, VHResult> Image::Map()
     {
         return m_Impl->Map();
     }
@@ -718,5 +777,15 @@ namespace VulkanHelper
     void Image::Unmap()
     {
         return m_Impl->Unmap();
+    }
+
+    VHResult Image::CopyFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
+    {
+        return m_Impl->CopyFromImage(srcImage, commandBuffer, srcBaseLayer, dstBaseLayer, layerCount);
+    }
+
+    VHResult Image::BlitFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
+    {
+        return m_Impl->BlitFromImage(srcImage, commandBuffer, srcBaseLayer, dstBaseLayer, layerCount);
     }
 }

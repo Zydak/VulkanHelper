@@ -92,51 +92,15 @@ namespace VulkanHelper
             m_Capacity = 0;
         }
 
-        /**
-         * @brief Copy constructor. Creates a deep copy of another vector.
-         * @param other The vector to copy from.
-         */
-        Vector(const Vector& other)
-            : m_Data(nullptr), m_Size(0), m_Capacity(0)
+        Vector<T> Clone() const
         {
-            if (other.m_Size > 0)
+            Vector<T> copy;
+            copy.Resize(m_Size);
+            for (size_t i = 0; i < m_Size; i++)
             {
-                ChangeCapacity(other.m_Capacity);
-                m_Size = other.m_Size;
-                for (size_t i = 0; i < m_Size; i++)
-                {
-                    ConstructAt(i, other[i]);
-                }
+                copy[i] = (*this)[i];
             }
-        }
-
-        /**
-         * @brief Copy assignment operator. Replaces the contents with a copy of another vector.
-         * @param other The vector to copy from.
-         * @return Reference to this vector.
-         */
-        Vector& operator=(const Vector& other)
-        {
-            if (this == &other)
-                return *this;
-
-            Clear();
-            free(m_Data);
-            m_Data = nullptr;
-            m_Size = 0;
-            m_Capacity = 0;
-
-            if (other.m_Size > 0)
-            {
-                ChangeCapacity(other.m_Capacity);
-                m_Size = other.m_Size;
-                for (size_t i = 0; i < m_Size; i++)
-                {
-                    ConstructAt(i, other[i]);
-                }
-            }
-
-            return *this;
+            return copy;
         }
 
         /**

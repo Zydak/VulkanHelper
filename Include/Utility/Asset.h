@@ -1,0 +1,97 @@
+#pragma once
+
+#include "Core/UniquePtr.h"
+#include "Core/Error.h"
+#include "Core/Expected.h"
+#include "Core/Enums.h"
+#include "Core/Vector.h"
+
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_RIGHT_HANDED
+#include "glm/glm.hpp"
+
+namespace VulkanHelper
+{
+    struct Vertex
+    {
+        glm::vec3 Position;
+        glm::vec3 Normal;
+        glm::vec2 TexCoord;
+    };
+
+    struct MeshAsset
+    {
+        VulkanHelper::Vector<Vertex> Vertices;
+        VulkanHelper::Vector<uint32_t> Indices;
+
+        MeshAsset() = default;
+        MeshAsset(const MeshAsset&) = delete;
+        MeshAsset& operator=(const MeshAsset&) = delete;
+
+        MeshAsset(MeshAsset&& other)
+            : Vertices(VulkanHelper::Move(other.Vertices)), Indices(VulkanHelper::Move(other.Indices))
+        {}
+
+        MeshAsset& operator=(MeshAsset&& other)
+        {
+            if (this == &other)
+                return *this;
+
+            Vertices = VulkanHelper::Move(other.Vertices);
+            Indices = VulkanHelper::Move(other.Indices);
+
+            return *this;
+        }
+
+    };
+
+    struct TextureAsset
+    {
+        VulkanHelper::Vector<uint8_t> Data;
+        uint32_t Width = 0;
+        uint32_t Height = 0;
+        uint32_t Channels = 0;
+
+        TextureAsset() = default;
+        TextureAsset(const TextureAsset&) = delete;
+        TextureAsset& operator=(const TextureAsset&) = delete;
+        TextureAsset(TextureAsset&& other)
+            : Data(VulkanHelper::Move(other.Data)), Width(other.Width), Height(other.Height), Channels(other.Channels)
+        {
+            other.Width = 0;
+            other.Height = 0;
+            other.Channels = 0;
+        }
+
+        TextureAsset& operator=(TextureAsset&& other)
+        {
+            if (this == &other)
+                return *this;
+
+            Data = VulkanHelper::Move(other.Data);
+            Width = other.Width;
+            Height = other.Height;
+            Channels = other.Channels;
+
+            other.Width = 0;
+            other.Height = 0;
+            other.Channels = 0;
+
+            return *this;
+        }
+    };
+
+    struct MaterialAsset
+    {
+        glm::vec3 BaseColor = glm::vec3(1.0f);
+        // TODO for later, don't care now.
+    };
+
+    struct SceneAsset
+    {
+        VulkanHelper::Vector<MeshAsset> Meshes;
+        VulkanHelper::Vector<TextureAsset> AlbedoTextures;
+        VulkanHelper::Vector<MaterialAsset> Materials;
+        VulkanHelper::Vector<glm::mat4> Cameras;
+    };
+}

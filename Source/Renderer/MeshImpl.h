@@ -29,7 +29,7 @@ namespace VulkanHelper
         void Bind(CommandBuffer* commandBuffer) const;
         void Draw(CommandBuffer* commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const;
 
-        [[nodiscard]] const VulkanHelper::Vector<VertexAttributeDescription>& GetAttributesDescriptions() const;
+        [[nodiscard]] inline const VulkanHelper::Vector<VertexAttributeDescription>* GetAttributesDescriptions() const { return &m_VertexAttributes; };
         [[nodiscard]] VertexBindingDescription GetBindingDescription() const;
 
         [[nodiscard]] inline Buffer* GetVertexBuffer() { return &m_VertexBuffer; }
