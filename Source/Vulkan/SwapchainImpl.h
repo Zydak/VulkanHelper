@@ -16,7 +16,7 @@ namespace VulkanHelper
     class Swapchain::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, Window::Impl* window, Swapchain::Impl* previousSwapchain, uint32_t maxFramesInFlight);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, Window::Impl* window, Swapchain::Impl* previousSwapchain);
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -33,7 +33,6 @@ namespace VulkanHelper
         [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() { return &m_ImageViews[m_CurrentImageIndex]; };
 
         [[nodiscard]] inline uint32_t GetCurrentFrameIndex() const { return m_CurrentFrameIndex; }
-        [[nodiscard]] inline uint32_t GetFramesInFlight() const { return m_FramesInFlight; }
 
         [[nodiscard]] inline Format GetSwapchainImageFormat() const { return m_Images[0].GetFormat(); }
 
@@ -46,25 +45,23 @@ namespace VulkanHelper
         Impl(
             Device::Impl* device,
             VkSwapchainKHR swapchain,
-            uint32_t maxFramesInFlight,
             uint32_t currentFrameIndex,
             uint32_t imageCount,
             uint32_t currentImageIndex,
             VulkanHelper::Vector<Image>&& images,
             VulkanHelper::Vector<ImageView>&& imageViews,
-            VulkanHelper::Vector<Fence>&& frameFences,
+            Fence&& frameFence,
             VulkanHelper::Vector<Semaphore>&& acquireSemaphores,
             VulkanHelper::Vector<Semaphore>&& submitSemaphores
         )
             : m_Device(device),
               m_Swapchain(swapchain),
-              m_FramesInFlight(maxFramesInFlight),
               m_CurrentFrameIndex(currentFrameIndex),
               m_ImageCount(imageCount),
               m_CurrentImageIndex(currentImageIndex),
               m_Images(VulkanHelper::Move(images)),
               m_ImageViews(VulkanHelper::Move(imageViews)),
-              m_FrameFences(VulkanHelper::Move(frameFences)),
+              m_FrameFence(VulkanHelper::Move(frameFence)),
               m_AcquireSemaphores(VulkanHelper::Move(acquireSemaphores)),
               m_SubmitSemaphores(VulkanHelper::Move(submitSemaphores))
         {}
@@ -72,14 +69,14 @@ namespace VulkanHelper
         VulkanHelper::Device::Impl* m_Device;
         VkSwapchainKHR m_Swapchain;
 
-        uint32_t m_FramesInFlight;
         uint32_t m_CurrentFrameIndex;
         uint32_t m_ImageCount;
         uint32_t m_CurrentImageIndex;
 
         VulkanHelper::Vector<Image> m_Images;
         VulkanHelper::Vector<ImageView> m_ImageViews;
-        VulkanHelper::Vector<Fence> m_FrameFences;
+
+        Fence m_FrameFence;
         VulkanHelper::Vector<Semaphore> m_AcquireSemaphores;
         VulkanHelper::Vector<Semaphore> m_SubmitSemaphores;
     };

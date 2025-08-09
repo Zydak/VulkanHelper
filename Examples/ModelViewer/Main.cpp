@@ -9,7 +9,7 @@
 #include <tuple>
 #include <array>
 
-static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Image, VulkanHelper::ImageView> CreateImages(VulkanHelper::Device& device, VulkanHelper::Window& window)
+static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Image, VulkanHelper::ImageView> CreateImages(VulkanHelper::Device& device, VulkanHelper::Window& window, VulkanHelper::CommandBuffer& commandBuffer)
 {
     VulkanHelper::Image::Config colorImageConfig{};
     colorImageConfig.Device = &device;
@@ -21,6 +21,10 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
     colorImageConfig.Aspect = VulkanHelper::Image::Aspect::COLOR_BIT;
     colorImageConfig.SampleCount = VulkanHelper::SampleCount::COUNT_1_BIT;
     auto outColorImage = VulkanHelper::Image::New(colorImageConfig).Value();
+    outColorImage.TransitionImageLayout(
+        VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL,
+        commandBuffer
+    );
 
     auto outColorImageView = VulkanHelper::ImageView::New({
         &outColorImage,
@@ -85,11 +89,11 @@ int main()
         }
     }
 
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 600, 600, "Example Project", "", true}).Value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 800, 800, "Example Project", "", true}).Value();
 
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
 
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
 
     VulkanHelper::Shader::InitializeSession("../../../ModelViewer/Shaders/");
 
@@ -143,9 +147,6 @@ int main()
         &textureImage,
         VulkanHelper::ImageView::ViewType::VIEW_2D
     }).Value();
-
-    (void)initializationCmd.EndRecording();
-    (void)initializationCmd.SubmitAndWait();
 
     VulkanHelper::PushConstant pushConstant = VulkanHelper::PushConstant::New({
         VulkanHelper::ShaderStages::VERTEX_BIT,
@@ -201,7 +202,10 @@ int main()
     
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
 
-    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window);
+    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window, initializationCmd);
+
+    (void)initializationCmd.EndRecording();
+    (void)initializationCmd.SubmitAndWait();
 
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
     glm::mat4 model = glm::mat4(1.0f); // Identity matrix for model transformation
@@ -230,18 +234,21 @@ int main()
         static glm::vec2 lastWindowSize = {window.GetWidth(), window.GetHeight()};
         if (lastWindowSize.x != window.GetWidth() || lastWindowSize.y != window.GetHeight())
         {
+            VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin command buffer recording");
             colorImageView.~ImageView();
             colorImage.~Image();
             depthImageView.~ImageView();
             depthImage.~Image();
-            std::tie(colorImage, colorImageView, depthImage, depthImageView) = CreateImages(device, window);
+            std::tie(colorImage, colorImageView, depthImage, depthImageView) = CreateImages(device, window, initializationCmd);
 
             float aspect = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight());
             projection = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 
             lastWindowSize = {window.GetWidth(), window.GetHeight()};
-        }
 
+            VH_ASSERT(initializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");
+            VH_ASSERT(initializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit command buffer");
+        }
 
         VulkanHelper::CommandBuffer* commandBuffer = renderer.BeginFrame().Value();
 

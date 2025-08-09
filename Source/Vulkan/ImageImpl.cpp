@@ -195,7 +195,7 @@ namespace VulkanHelper
             break;
         case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
             srcAccess |= 0;
-            srcStage |= 0;
+            srcStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             break;
         case VK_IMAGE_LAYOUT_UNDEFINED:
             srcAccess = 0;
@@ -237,8 +237,8 @@ namespace VulkanHelper
             dstStage |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
             break;
         case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-            dstAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            dstStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dstAccess |= 0;
+            dstStage |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             break;
         case VK_IMAGE_LAYOUT_UNDEFINED:
             VH_ASSERT(false, "Trying to convert to layout undefined, Don't do that!");

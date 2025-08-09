@@ -16,17 +16,14 @@
 #include "ImageImpl.h"
 #include "Window/Window.h"
 
+#include "CommandPoolImpl.h"
+#include "CommandBufferImpl.h"
+
 namespace VulkanHelper
 {
     // TODO: REALLY beffy function, needs to be split up
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Swapchain::Impl>, VHResult> Swapchain::Impl::New(Device::Impl* device, Window::Impl* window, Swapchain::Impl* previousSwapchain, uint32_t maxFramesInFlight)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Swapchain::Impl>, VHResult> Swapchain::Impl::New(Device::Impl* device, Window::Impl* window, Swapchain::Impl* previousSwapchain)
     {
-        if (maxFramesInFlight == 0)
-        {
-            VH_LOG_ERROR("Invalid Swapchain configuration: MaxFramesInFlight must be greater than 0.");
-            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
         const PhysicalDevice::Impl& physicalDeviceImpl = device->GetPhysicalDevice();
 
         // Get surface capabilities
@@ -90,9 +87,6 @@ namespace VulkanHelper
         VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR; // Just use FIFO
 
         uint32_t imageCount = surfaceCapabilities.minImageCount + 1; // Use one more than minimum
-        if (imageCount < maxFramesInFlight)
-            imageCount = maxFramesInFlight; // Ensure we have enough images
-
         if (imageCount > surfaceCapabilities.maxImageCount && surfaceCapabilities.maxImageCount > 0)
         {
             VH_LOG_ERROR("Requested image count exceeds maximum supported by surface! Check your MaxFramesInFlight setting, it's probably too high.");
@@ -100,22 +94,18 @@ namespace VulkanHelper
         }
 
         // Create fences and semaphores for synchronization
-        VulkanHelper::Vector<Fence> frameFences;
         VulkanHelper::Vector<Semaphore> acquireSemaphores;
         VulkanHelper::Vector<Semaphore> submitSemaphores;
 
-        for (size_t i = 0; i < maxFramesInFlight; i++)
+        auto fenceResult = Fence::Impl::New(device, true);
+        if (!fenceResult.HasValue())
         {
-            auto fence = Fence::Impl::New(device, true);
-            if (!fence.HasValue())
-            {
-                VH_LOG_ERROR("Failed to create fence for swapchain implementation");
-                return VulkanHelper::Unexpected(fence.Error());
-            }
-            frameFences.PushBack(Fence::Impl::CreatePublicInterface(VulkanHelper::Move(fence.Value())));
+            VH_LOG_ERROR("Failed to create fence for swapchain implementation");
+            return VulkanHelper::Unexpected(fenceResult.Error());
         }
+        Fence frameFence = Fence::Impl::CreatePublicInterface(VulkanHelper::Move(fenceResult.Value()));
 
-        for (size_t i = 0; i < maxFramesInFlight; i++)
+        for (size_t i = 0; i < 2; i++)
         {
             auto semaphore = Semaphore::Impl::New(device);
             if (!semaphore.HasValue())
@@ -181,6 +171,11 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
+        // Buffer for layout transition
+        UniquePtr<CommandPool::Impl> commandPool = CommandPool::Impl::New(device, CommandPool::Flags::TRANSIENT_BIT, device->GetQueueFamilyIndices().GraphicsFamily).Value();
+        CommandBuffer commandBuffer = commandPool->AllocateCommandBuffer(CommandBuffer::Level::PRIMARY).Value();
+        VH_ASSERT(commandBuffer.BeginRecording(CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin command buffer recording");
+
         VulkanHelper::Vector<Image> images;
         VulkanHelper::Vector<ImageView> imageViews;
         for (size_t i = 0; i < swapchainImages.Size(); i++)
@@ -198,6 +193,7 @@ namespace VulkanHelper
             ));
 
             Image image(VulkanHelper::Move(imageImpl));
+            image.TransitionImageLayout(Image::Layout::PRESENT_SRC_KHR, commandBuffer);
             images.PushBack(VulkanHelper::Move(image));
 
             auto imageView = ImageView::New({&images[i], ImageView::ViewType::VIEW_2D});
@@ -210,17 +206,18 @@ namespace VulkanHelper
 
             imageViews.PushBack(Move(imageView.Value()));
         }
+        VH_ASSERT(commandBuffer.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");
+        VH_ASSERT(commandBuffer.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit command buffer");
 
         return VulkanHelper::UniquePtr(new Swapchain::Impl{
             device,
             swapchain,
-            maxFramesInFlight,
             0, // Start at frame 0
             imageCount,
             0, // Start at image 0
             VulkanHelper::Move(images),
             VulkanHelper::Move(imageViews),
-            VulkanHelper::Move(frameFences),
+            VulkanHelper::Move(frameFence),
             VulkanHelper::Move(acquireSemaphores),
             VulkanHelper::Move(submitSemaphores)
         });
@@ -239,11 +236,10 @@ namespace VulkanHelper
     Swapchain::Impl::Impl(Impl&& other) noexcept
         : m_Device(other.m_Device),
           m_Swapchain(other.m_Swapchain),
-          m_FramesInFlight(other.m_FramesInFlight),
           m_CurrentFrameIndex(other.m_CurrentFrameIndex),
           m_ImageCount(other.m_ImageCount),
           m_CurrentImageIndex(other.m_CurrentImageIndex),
-          m_FrameFences(VulkanHelper::Move(other.m_FrameFences)),
+          m_FrameFence(VulkanHelper::Move(other.m_FrameFence)),
           m_AcquireSemaphores(VulkanHelper::Move(other.m_AcquireSemaphores)),
           m_SubmitSemaphores(VulkanHelper::Move(other.m_SubmitSemaphores))
     {
@@ -260,11 +256,10 @@ namespace VulkanHelper
 
         m_Device = other.m_Device;
         m_Swapchain = other.m_Swapchain;
-        m_FramesInFlight = other.m_FramesInFlight;
         m_CurrentFrameIndex = other.m_CurrentFrameIndex;
         m_ImageCount = other.m_ImageCount;
         m_CurrentImageIndex = other.m_CurrentImageIndex;
-        m_FrameFences = VulkanHelper::Move(other.m_FrameFences);
+        m_FrameFence = VulkanHelper::Move(other.m_FrameFence);
         m_AcquireSemaphores = VulkanHelper::Move(other.m_AcquireSemaphores);
         m_SubmitSemaphores = VulkanHelper::Move(other.m_SubmitSemaphores);
 
@@ -276,11 +271,7 @@ namespace VulkanHelper
 
     VHResult Swapchain::Impl::AcquireNextImage()
     {
-        Fence::Impl* frameFenceImpl = Fence::Impl::GetImplementation(&m_FrameFences[m_CurrentFrameIndex]);
-        VkFence frameFence = frameFenceImpl->GetFenceHandle();
-        vkWaitForFences(m_Device->GetDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
-        vkResetFences(m_Device->GetDevice(), 1, &frameFence);
-        
+
         Semaphore::Impl* acquireSemaphoreImpl = Semaphore::Impl::GetImplementation(&m_AcquireSemaphores[m_CurrentFrameIndex]);
         VkSemaphore acquireSemaphore = acquireSemaphoreImpl->GetSemaphore();
         
@@ -289,12 +280,19 @@ namespace VulkanHelper
 
     VHResult Swapchain::Impl::Submit(CommandBuffer& commandBuffer)
     {
-        Semaphore* acquireSemaphore = &m_AcquireSemaphores[m_CurrentFrameIndex];
-        Semaphore* submitSemaphore = &m_SubmitSemaphores[m_CurrentImageIndex];
-        Semaphore::Impl* submitSemaphoreImpl = Semaphore::Impl::GetImplementation(submitSemaphore);
+        Semaphore::Impl* submitSemaphoreImpl = Semaphore::Impl::GetImplementation(&m_SubmitSemaphores[m_CurrentImageIndex]);
         VkSemaphore submitSemaphoreVk = submitSemaphoreImpl->GetSemaphore();
 
-        VHResult res = commandBuffer.Submit(PipelineStages::COLOR_ATTACHMENT_OUTPUT_BIT, acquireSemaphore, submitSemaphore, &m_FrameFences[m_CurrentFrameIndex]);
+        Vector<Semaphore*> waitSemaphores;
+        waitSemaphores.PushBack(&m_AcquireSemaphores[m_CurrentFrameIndex]);
+
+        Vector<Semaphore*> submitSemaphores;
+        submitSemaphores.PushBack(&m_SubmitSemaphores[m_CurrentImageIndex]);
+
+        VkFence fence = Fence::Impl::GetImplementation(&m_FrameFence)->GetFenceHandle();
+        vkWaitForFences(m_Device->GetDevice(), 1, &fence, VK_TRUE, UINT64_MAX);
+        vkResetFences(m_Device->GetDevice(), 1, &fence);
+        VHResult res = commandBuffer.Submit(PipelineStages::COLOR_ATTACHMENT_OUTPUT_BIT, waitSemaphores.Data(), waitSemaphores.Size(), submitSemaphores.Data(), submitSemaphores.Size(), &m_FrameFence);
         if (res != VHResult::OK)
         {
             return res;
@@ -317,7 +315,7 @@ namespace VulkanHelper
             return res;
         }
 
-        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_FramesInFlight;
+        m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % 2;
 
         return VHResult::OK;
     }
@@ -343,8 +341,7 @@ namespace VulkanHelper
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
             Window::Impl::GetImplementation(config.Window),
-            previousSwapchainImpl,
-            config.MaxFramesInFlight
+            previousSwapchainImpl
         );
         if (!implResult.HasValue())
         {
@@ -404,11 +401,6 @@ namespace VulkanHelper
     uint32_t Swapchain::GetCurrentFrameIndex() const
     {
         return m_Impl->GetCurrentFrameIndex();
-    }
-
-    uint32_t Swapchain::GetFramesInFlightCount() const
-    {
-        return m_Impl->GetFramesInFlight();
     }
 
     Format Swapchain::GetSwapchainImageFormat() const

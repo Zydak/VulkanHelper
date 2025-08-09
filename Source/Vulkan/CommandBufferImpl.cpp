@@ -58,7 +58,7 @@ namespace VulkanHelper
 
     VHResult CommandBuffer::Impl::SubmitAndWait()
     {
-        VHResult res = Submit(PipelineStages::NONE, nullptr, nullptr, nullptr);
+        VHResult res = Submit(PipelineStages::NONE, nullptr, 0, nullptr, 0, nullptr);
         if (res != VHResult::OK)
             return res;
 
@@ -70,7 +70,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult CommandBuffer::Impl::Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence)
+    VHResult CommandBuffer::Impl::Submit(PipelineStages waitStage, Semaphore** waitSemaphore, uint32_t waitSemaphoreCount, Semaphore** signalSemaphores, uint32_t signalSemaphoreCount, Fence* fence)
     {
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -78,23 +78,31 @@ namespace VulkanHelper
         submitInfo.pCommandBuffers = &m_CommandBuffer;
 
         VkPipelineStageFlags waitStageVk = VK_PIPELINE_STAGE_NONE;
-        if (waitSemaphore != nullptr)
+        Vector<VkSemaphore> waitSemaphoresVk(waitSemaphoreCount, VK_NULL_HANDLE);
+        if (waitSemaphoreCount != 0)
         {
-            Semaphore::Impl* waitSemaphoreImpl = Semaphore::Impl::GetImplementation(waitSemaphore);
-            submitInfo.waitSemaphoreCount = 1;
-            VkSemaphore waitSemaphoreVk = waitSemaphoreImpl->GetSemaphore();
-            submitInfo.pWaitSemaphores = &waitSemaphoreVk;
-
+            for (uint32_t i = 0; i < waitSemaphoreCount; i++)
+            {
+                Semaphore::Impl* waitSemaphoreImpl = Semaphore::Impl::GetImplementation(waitSemaphore[i]);
+                waitSemaphoresVk[i] = waitSemaphoreImpl->GetSemaphore();
+            }
+            submitInfo.pWaitSemaphores = waitSemaphoresVk.Data();
+            
             waitStageVk = (VkPipelineStageFlags)waitStage;
+            submitInfo.waitSemaphoreCount = waitSemaphoreCount;
             submitInfo.pWaitDstStageMask = &waitStageVk;
         }
 
-        if (signalSemaphore != nullptr)
+        Vector<VkSemaphore> submitSemaphores(signalSemaphoreCount, VK_NULL_HANDLE);
+        if (signalSemaphoreCount > 0)
         {
-            Semaphore::Impl* signalSemaphoreImpl = Semaphore::Impl::GetImplementation(signalSemaphore);
-            submitInfo.signalSemaphoreCount = 1;
-            VkSemaphore signalSemaphoreVk = signalSemaphoreImpl->GetSemaphore();
-            submitInfo.pSignalSemaphores = &signalSemaphoreVk;
+            for (uint32_t i = 0; i < signalSemaphoreCount; i++)
+            {
+                Semaphore::Impl* signalSemaphoreImpl = Semaphore::Impl::GetImplementation(signalSemaphores[i]);
+                submitSemaphores[i] = signalSemaphoreImpl->GetSemaphore();
+            }
+            submitInfo.pSignalSemaphores = submitSemaphores.Data();
+            submitInfo.signalSemaphoreCount = signalSemaphoreCount;
         }
 
         VkFence fenceVk = VK_NULL_HANDLE;
@@ -160,8 +168,8 @@ namespace VulkanHelper
         return m_Impl->SubmitAndWait();
     }
 
-    VHResult CommandBuffer::Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence)
+    VHResult CommandBuffer::Submit(PipelineStages waitStage, Semaphore** waitSemaphore, uint32_t waitSemaphoreCount, Semaphore** signalSemaphores, uint32_t signalSemaphoreCount, Fence* fence)
     {
-        return m_Impl->Submit(waitStage, waitSemaphore, signalSemaphore, fence);
+        return m_Impl->Submit(waitStage, waitSemaphore, waitSemaphoreCount, signalSemaphores, signalSemaphoreCount, fence);
     }
 }

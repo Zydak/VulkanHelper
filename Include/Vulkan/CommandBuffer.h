@@ -111,7 +111,7 @@ namespace VulkanHelper
         * @param fence Fence to signal after execution (can be nullptr).
         * @return VHResult indicating success or failure.
         */
-        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence);
+        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore** waitSemaphores, uint32_t waitSemaphoreCount, Semaphore** signalSemaphores, uint32_t signalSemaphoreCount, Fence* fence);
 
         class Impl;
     private:

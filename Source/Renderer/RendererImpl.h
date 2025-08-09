@@ -23,7 +23,7 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, Window::Impl* window, uint32_t framesInFlight);
+        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, Window::Impl* window);
 
         [[nodiscard]] inline static Impl* GetImplementation(const Renderer* publicInterface) { return publicInterface->m_Impl.Get(); }
         [[nodiscard]] inline static Renderer CreatePublicInterface(UniquePtr<Impl>&& impl) { return Renderer(VulkanHelper::Move(impl)); }

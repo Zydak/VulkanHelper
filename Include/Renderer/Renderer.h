@@ -40,12 +40,6 @@ namespace VulkanHelper
              * @note Must not be nullptr and must outlive the renderer
              */
             VulkanHelper::Window* Window = nullptr;
-
-            /**
-             * @brief Number of frames that can be rendered simultaneously
-             * @note Must be at least 1. Use 2 for double buffering, 3 for triple buffering
-             */
-            uint32_t FramesInFlight = 1;
         };
 
         /**

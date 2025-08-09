@@ -132,7 +132,7 @@ namespace VulkanHelper
             {
                 glm::vec3 position = glm::vec3(
                     mesh->mVertices[i].x,
-                    -mesh->mVertices[i].y,
+                    -mesh->mVertices[i].y, // Assimp uses +Y-up, Vulkan uses -Y-up, so invert Y or the model will be mirrored
                     mesh->mVertices[i].z
                 );
                 
@@ -146,7 +146,7 @@ namespace VulkanHelper
             {
                 glm::vec3 normal = glm::vec3(
                     mesh->mNormals[i].x,
-                    -mesh->mNormals[i].y,
+                    -mesh->mNormals[i].y, // Assimp uses +Y-up, Vulkan uses -Y-up, so invert Y or the model will be mirrored
                     mesh->mNormals[i].z
                 );
                 

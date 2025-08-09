@@ -39,11 +39,6 @@ namespace VulkanHelper
              * @brief The previous swapchain to be reused (Optional)
              */
             VulkanHelper::Swapchain* PreviousSwapchain = nullptr;
-
-            /**
-             * @brief Number of frames that can be rendered simultaneously
-             */
-            uint32_t MaxFramesInFlight = 2;
         };
 
         /**
@@ -92,11 +87,6 @@ namespace VulkanHelper
          * @brief Gets the index of the current frame being rendered.
          */
         [[nodiscard]] uint32_t GetCurrentFrameIndex() const;
-
-        /**
-         * @brief Gets the maximum number of frames that can be processed simultaneously.
-         */
-        [[nodiscard]] uint32_t GetFramesInFlightCount() const;
 
         /**
          * @brief Gets the image format used by the swapchain.

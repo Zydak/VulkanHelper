@@ -30,7 +30,7 @@ int main()
 
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
 
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
 
     VulkanHelper::Shader::InitializeSession("../../../HelloTriangle/Shaders/");
 

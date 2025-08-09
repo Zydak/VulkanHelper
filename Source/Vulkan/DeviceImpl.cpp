@@ -24,6 +24,7 @@ namespace VulkanHelper
 
         VulkanHelper::Vector<const char*> extensions;
         extensions.PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+        extensions.PushBack(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
 
         VkPhysicalDeviceFeatures2 features{};
         features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -36,8 +37,13 @@ namespace VulkanHelper
         device11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
         device11Features.shaderDrawParameters = true;
 
+        VkPhysicalDeviceSynchronization2FeaturesKHR sync2Features{};
+        sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
+        sync2Features.synchronization2 = VK_TRUE;
+
         features.pNext = &dynamicRenderingFeatures;
         dynamicRenderingFeatures.pNext = &device11Features;
+        device11Features.pNext = &sync2Features;
 
         if (!windows.Empty())
         {

@@ -25,7 +25,7 @@ namespace VulkanHelper
         [[nodiscard]] VHResult EndRecording();
 
         [[nodiscard]] VHResult SubmitAndWait();
-        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore* waitSemaphore, Semaphore* signalSemaphore, Fence* fence);
+        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore** waitSemaphore, uint32_t waitSemaphoreCount, Semaphore** signalSemaphore, uint32_t signalSemaphoreCount, Fence* fence);
 
         [[nodiscard]] inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffer; }
     private:

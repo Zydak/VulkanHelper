@@ -15,9 +15,9 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Renderer::Impl>, VHResult> Renderer::Impl::New(Device::Impl* device, Window::Impl* window, uint32_t framesInFlight)
+    Expected<UniquePtr<Renderer::Impl>, VHResult> Renderer::Impl::New(Device::Impl* device, Window::Impl* window)
     {
-        auto swapchain = Swapchain::Impl::New(device, window, nullptr, framesInFlight);
+        auto swapchain = Swapchain::Impl::New(device, window, nullptr);
         if (!swapchain.HasValue())
         {
             VH_LOG_ERROR("Couldn't create swapchain!");
@@ -33,7 +33,7 @@ namespace VulkanHelper
         }
 
         Vector<CommandBuffer> commandBuffers;
-        for (uint32_t i = 0; i < framesInFlight; i++)
+        for (uint32_t i = 0; i < 2; i++)
         {
             CommandBuffer cmdBuf = commandPool.Value()->AllocateCommandBuffer({}).Value();
             commandBuffers.PushBack(Move(cmdBuf)); // Allocate cmdBuffer for each frame
@@ -242,7 +242,7 @@ namespace VulkanHelper
         m_Device->WaitUntilIdle();
         Swapchain oldSwapchain = VulkanHelper::Move(m_Swapchain);
 
-        auto swapchainResult = Swapchain::Impl::New(m_Device, m_Window, Swapchain::Impl::GetImplementation(&oldSwapchain), oldSwapchain.GetFramesInFlightCount());
+        auto swapchainResult = Swapchain::Impl::New(m_Device, m_Window, Swapchain::Impl::GetImplementation(&oldSwapchain));
         if (!swapchainResult.HasValue())
         {
             VH_LOG_ERROR("Failed to recreate swapchain");
@@ -273,8 +273,7 @@ namespace VulkanHelper
 
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
-            Window::Impl::GetImplementation(config.Window),
-            config.FramesInFlight
+            Window::Impl::GetImplementation(config.Window)
         );
 
         if (!implResult.HasValue())

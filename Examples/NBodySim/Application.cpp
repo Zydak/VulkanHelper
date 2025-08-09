@@ -53,7 +53,7 @@ Application Application::New()
 
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, std::move(windows), &instance}).Value();
 
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window, 1}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
 
     VulkanHelper::CommandPool::Config cmdPoolConfig;
     cmdPoolConfig.Device = &device;
@@ -179,7 +179,7 @@ void Application::Run()
     while (!m_Window.WantsToClose())
     {
         m_Window.PollEvents();
-
+        
         VulkanHelper::CommandBuffer* cmd = m_Renderer.BeginFrame().Value();
 
         m_Pipeline.Bind(cmd);
