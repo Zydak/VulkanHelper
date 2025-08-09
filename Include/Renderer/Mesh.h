@@ -96,7 +96,7 @@ namespace VulkanHelper
              * @brief Size of vertex data in bytes
              * @note Must be greater than 0 and evenly divisible by vertex size
              */
-            uint32_t VertexDataSize = 0;
+            uint64_t VertexDataSize = 0;
 
             /**
              * @brief Pointer to index data to upload (optional)
@@ -108,7 +108,7 @@ namespace VulkanHelper
              * @brief Size of index data in bytes (optional)
              * @note Can be 0 if no indices are used, otherwise must be divisible by sizeof(uint32_t)
              */
-            uint32_t IndexDataSize = 0;
+            uint64_t IndexDataSize = 0;
 
             /**
              * @brief Additional usage flags for the vertex buffer (optional)

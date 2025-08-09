@@ -1,18 +1,14 @@
 #include "VulkanHelper.h"
 
-#include <filesystem>
+#include <array>
 
 int main()
 {
-    VH_LOG_INFO("Current working directory: {}", std::filesystem::current_path().string());
+    // Initialize Vulkan instance and select a suitable physical device
     VulkanHelper::Instance instance = VulkanHelper::Instance::New({true}).Value();
     VulkanHelper::Vector<const char*> extensions;
     auto physicalDevices = instance.GetSuitablePhysicalDevices();
-    if (physicalDevices.Empty())
-    {
-        VH_LOG_FATAL("No suitable physical devices found!");
-        return -1;
-    }
+    VH_ASSERT(!physicalDevices.Empty(), "No suitable physical devices found!");
 
     // Prefer a discrete GPU if available
     VulkanHelper::PhysicalDevice* selectedDevice = &physicalDevices[0];
@@ -26,19 +22,24 @@ int main()
         }
     }
 
+    // Create a window for rendering
     VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 600, 600, "Example Project", "", true}).Value();
 
+    // Create a Vulkan logical device
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
 
+    // Create a renderer for the window
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
 
+    // Compile shaders
     VulkanHelper::Shader::InitializeSession("../../../HelloTriangle/Shaders/");
-
     VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "TriangleVertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
     VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({&device, "TriangleFragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
 
+    // Command buffer is needed for some initialization tasks, it has to be submitted before rendering
     VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({&device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
     VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
+    VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin recording initialization command buffer");
     
     struct Vertex {
         float position[3];
@@ -52,29 +53,29 @@ int main()
     };
     
     uint32_t indices[] = {0, 1, 2};
-    
-    VulkanHelper::Format vertexAttributes[] = {
+
+    std::array<VulkanHelper::Format, 2> vertexAttributes = {
         VulkanHelper::Format::R32G32B32_SFLOAT, // Position
         VulkanHelper::Format::R32G32B32_SFLOAT  // Color
     };
     
     VulkanHelper::Mesh::Config meshConfig{};
     meshConfig.Device = &device;
-    meshConfig.VertexAttributes = vertexAttributes;
-    meshConfig.VertexAttributeCount = 2;
+    meshConfig.VertexAttributes = vertexAttributes.data();
+    meshConfig.VertexAttributeCount = vertexAttributes.size();
     meshConfig.VertexData = vertices;
-    meshConfig.VertexDataSize = sizeof(vertices);
+    meshConfig.VertexDataSize = sizeof(Vertex) * 3;
     meshConfig.IndexData = indices;
-    meshConfig.IndexDataSize = sizeof(indices);
+    meshConfig.IndexDataSize = sizeof(uint32_t) * 3;
     meshConfig.CommandBuffer = &initializationCmd;
 
-    (void)initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
     VulkanHelper::Mesh triangleMesh = VulkanHelper::Mesh::New(meshConfig).Value();
-    (void)initializationCmd.EndRecording();
-    (void)initializationCmd.SubmitAndWait();
 
-    VH_LOG_INFO("Created triangle mesh successfully!");
+    // Submit the command buffer to initialize the mesh
+    VH_ASSERT(initializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end recording initialization command buffer");
+    VH_ASSERT(initializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit initialization command buffer");
 
+    // Create a graphics pipeline for rendering the triangle
     VulkanHelper::Pipeline::GraphicsConfig pipelineConfig{};
     pipelineConfig.Device = &device;
     pipelineConfig.Shaders.PushBack(&vertexShader);

@@ -76,6 +76,7 @@ namespace VulkanHelper
         {
             VH_ASSERT(m_Image != nullptr, "Image can't be nullptr when destroying ImageView Implementation");
             VH_LOG_INFO("Queuing ImageView Implementation for deletion");
+            VH_ASSERT(m_Image->GetImage() != VK_NULL_HANDLE, "Image has been destroyed before ImageView Implementation. You must ensure that all image views are destroyed before the image itself.");
             m_Image->GetDevice()->GetDeleteQueue().QueueForDeletion(m_ImageView);
         }
     }
