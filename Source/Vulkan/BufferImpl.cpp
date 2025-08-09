@@ -14,7 +14,7 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Buffer::Impl>, VHResult> Buffer::Impl::New(Device::Impl* device, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName)
+    Expected<Buffer::Impl, VHResult> Buffer::Impl::New(Device::Impl* device, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, uint32_t minAlignment, const char* debugName)
     {
         VH_LOG_INFO("Creating Vulkan Buffer Implementation");
 
@@ -39,7 +39,7 @@ namespace VulkanHelper
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         // Allocate buffer using device allocator
-        auto allocationResult = device->AllocateBuffer(bufferInfo, cpuMapable);
+        auto allocationResult = device->AllocateBuffer(bufferInfo, cpuMapable, minAlignment);
         if (!allocationResult.HasValue())
         {
             VH_LOG_ERROR("Failed to allocate buffer using VulkanMemoryAllocator");
@@ -76,10 +76,10 @@ namespace VulkanHelper
             VkBufferCreateInfo scratchBufferInfo{};
             scratchBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
             scratchBufferInfo.size = size;
-            scratchBufferInfo.usage = static_cast<VkBufferUsageFlags>(Usage::TRANSFER_SRC | Usage::TRANSFER_DST);
+            scratchBufferInfo.usage = static_cast<VkBufferUsageFlags>(Usage::TRANSFER_SRC_BIT | Usage::TRANSFER_DST_BIT);
             scratchBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-            auto scratchAllocationResult = device->AllocateBuffer(scratchBufferInfo, true); // Always CPU mappable
+            auto scratchAllocationResult = device->AllocateBuffer(scratchBufferInfo, true, minAlignment); // Always CPU mappable
             if (!scratchAllocationResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to allocate scratch buffer using VulkanMemoryAllocator");
@@ -90,14 +90,14 @@ namespace VulkanHelper
             scratchBuffer = scratchAllocationResult.Value();
         }
 
-        auto impl = UniquePtr<Impl>(new Impl(
+        auto impl = Impl(
             device,
             bufferAllocation,
             size,
             usage,
             cpuMapable,
             scratchBuffer
-        ));
+        );
 
         return impl;
     }
@@ -218,7 +218,7 @@ namespace VulkanHelper
             else
             {
                 // Create temporary staging buffer
-                auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_SRC);
+                auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_SRC_BIT);
                 if (!tempScratchResult.HasValue())
                 {
                     VH_LOG_ERROR("Failed to create temporary staging buffer for upload");
@@ -313,7 +313,7 @@ namespace VulkanHelper
             else
             {
                 // Create temporary staging buffer
-                auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_DST);
+                auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_DST_BIT);
                 if (!tempScratchResult.HasValue())
                 {
                     VH_LOG_ERROR("Failed to create temporary staging buffer for download");
@@ -421,22 +421,21 @@ namespace VulkanHelper
         m_MappedData = nullptr;
     }
 
-    VHResult Buffer::Impl::CopyFrom(CommandBuffer& cmd, const Buffer& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
+    VHResult Buffer::Impl::CopyFrom(CommandBuffer& cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
     {
         CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(&cmd);
         VkCommandBuffer commandBuffer = cmdImpl->GetCommandBuffer();
 
-        Buffer::Impl* sourceImpl = Buffer::Impl::GetImplementation(&source);
-        VkBuffer srcBuffer = sourceImpl->GetBuffer();
+        VkBuffer srcBuffer = source.GetBuffer();
 
         // If size is UINT64_MAX (equivalent to VK_WHOLE_SIZE), use the minimum of the two buffer sizes
         if (size == UINT64_MAX)
         {
-            size = (sourceImpl->GetSize() < m_Size) ? sourceImpl->GetSize() : m_Size;
+            size = (source.GetSize() < m_Size) ? source.GetSize() : m_Size;
             size -= (srcOffset > dstOffset) ? srcOffset : dstOffset;
         }
 
-        if (srcOffset + size > sourceImpl->GetSize())
+        if (srcOffset + size > source.GetSize())
         {
             VH_LOG_ERROR("Source copy range exceeds source buffer size");
             return VHResult::WRONG_ARGUMENTS;
@@ -458,28 +457,27 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult Buffer::Impl::CopyToImage(CommandBuffer& cmd, const Image& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
+    VHResult Buffer::Impl::CopyToImage(CommandBuffer& cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
     {
         CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(&cmd);
         VkCommandBuffer commandBuffer = cmdImpl->GetCommandBuffer();
 
-        Image::Impl* imageImpl = Image::Impl::GetImplementation(&dst);
-        VkImage dstImage = imageImpl->GetImage();
+        VkImage dstImage = dst.GetImage();
 
         VkBufferImageCopy region{};
         region.bufferOffset = bufferOffset;
         region.bufferRowLength = bufferRowLength;
         region.bufferImageHeight = bufferImageHeight;
-        
-        region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(imageImpl->GetAspect());
+
+        region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(dst.GetAspect());
         region.imageSubresource.mipLevel = 0;
         region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = imageImpl->GetLayerCount();
-        
+        region.imageSubresource.layerCount = dst.GetLayerCount();
+
         region.imageOffset = {0, 0, 0};
         region.imageExtent = {
-            imageImpl->GetWidth(),
-            imageImpl->GetHeight(),
+            dst.GetWidth(),
+            dst.GetHeight(),
             1
         };
 
@@ -524,6 +522,15 @@ namespace VulkanHelper
         );
     }
 
+    [[nodiscard]] VkDeviceAddress Buffer::Impl::GetDeviceAddress() const
+    {
+        VkBufferDeviceAddressInfo bufferDeviceAddressInfo{};
+        bufferDeviceAddressInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+        bufferDeviceAddressInfo.buffer = m_BufferAllocation.Buffer;
+
+        return vkGetBufferDeviceAddress(m_Device->GetDevice(), &bufferDeviceAddressInfo);
+    }
+
     //
     //  Forward Functions
     //
@@ -536,6 +543,7 @@ namespace VulkanHelper
             config.Usage,
             config.CpuMapable,
             config.UsePersistentStagingBuffer,
+            config.MinAlignment,
             config.DebugName
         );
 
@@ -544,7 +552,7 @@ namespace VulkanHelper
             return Unexpected(implResult.Error());
         }
 
-        return Buffer{ Move(implResult.Value()) };
+        return Buffer{ Move(UniquePtr<Impl>(new Impl(Move(implResult.Value())))) };
     }
 
     Buffer::Buffer(Buffer&& other) noexcept
@@ -592,12 +600,12 @@ namespace VulkanHelper
 
     VHResult Buffer::CopyFrom(CommandBuffer& cmd, const Buffer& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
     {
-        return m_Impl->CopyFrom(cmd, source, srcOffset, dstOffset, size);
+        return m_Impl->CopyFrom(cmd, *Buffer::Impl::GetImplementation(&source), srcOffset, dstOffset, size);
     }
 
     VHResult Buffer::CopyToImage(CommandBuffer& cmd, const Image& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
     {
-        return m_Impl->CopyToImage(cmd, dst, bufferOffset, bufferRowLength, bufferImageHeight);
+        return m_Impl->CopyToImage(cmd, *Image::Impl::GetImplementation(&dst), bufferOffset, bufferRowLength, bufferImageHeight);
     }
 
     uint64_t Buffer::GetSize() const

@@ -13,7 +13,7 @@ namespace VulkanHelper
     class Device::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*>&& windows, Instance::Impl* instance);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*>&& windows, Instance::Impl* instance, bool requestRTSupport = false);
         ~Impl();
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -35,7 +35,7 @@ namespace VulkanHelper
          * @param allowCpuAccess Whether to create memory mappable or not.
          * @return Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> Buffer allocation on success, or error on failure.
          */
-        [[nodiscard]] VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowCpuAccess = false);
+        [[nodiscard]] VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowCpuAccess = false, uint32_t alignment = 1);
 
         /**
          * @brief Allocate an image using the device's memory allocator.
@@ -82,6 +82,20 @@ namespace VulkanHelper
          */
         [[nodiscard]] inline DeleteQueue& GetDeleteQueue() { return m_DeleteQueue; }
 
+        /**
+         * @brief Get the physical device properties.
+         *
+         * @return Reference to the physical device properties structure.
+         */
+        [[nodiscard]] inline const VkPhysicalDeviceProperties2& GetPhysicalDeviceProperties() const { return m_PhysicalDeviceProperties; }
+
+        /**
+         * @brief Get the ray tracing properties of the physical device.
+         *
+         * @return Reference to the ray tracing properties structure.
+         */
+        [[nodiscard]] inline const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRayTracingProperties() const { return m_RayTracingProperties; }
+
     private:
 
         /**
@@ -96,12 +110,17 @@ namespace VulkanHelper
         VulkanHelper::VulkanMemoryAllocator m_Allocator;
         DeleteQueue m_DeleteQueue;
 
+        VkPhysicalDeviceProperties2 m_PhysicalDeviceProperties = {};
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_RayTracingProperties = {};
+
         explicit Impl(
             Instance::Impl* instance,
             VkDevice device,
             PhysicalDevice::Impl&& physicalDevice,
             QueueFamilyIndices&& indices,
-            VulkanHelper::VulkanMemoryAllocator&& allocator
+            VulkanHelper::VulkanMemoryAllocator&& allocator,
+            VkPhysicalDeviceProperties2&& physicalDeviceProperties,
+            VkPhysicalDeviceRayTracingPipelinePropertiesKHR&& rayTracingProperties
         )
             : m_Instance(instance)
             , m_Device(device)
@@ -109,6 +128,8 @@ namespace VulkanHelper
             , m_QueueFamilyIndices(Move(indices))
             , m_Allocator(Move(allocator))
             , m_DeleteQueue(VK_NULL_HANDLE, nullptr, 0) // Will be properly initialized later
+            , m_PhysicalDeviceProperties(Move(physicalDeviceProperties))
+            , m_RayTracingProperties(Move(rayTracingProperties))
         {}
 
         [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice::Impl& physicalDevice, const VulkanHelper::Vector<Window::Impl*>& windows);

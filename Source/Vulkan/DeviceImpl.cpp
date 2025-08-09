@@ -12,7 +12,7 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*>&& windows, Instance::Impl* instance)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*>&& windows, Instance::Impl* instance, bool requestRTSupport)
     {
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
@@ -116,9 +116,22 @@ namespace VulkanHelper
         }
 
         VulkanMemoryAllocator allocator = VulkanMemoryAllocator::New(device, instance->GetInstance(), physicalDevice.GetDevice()).Value();
+
+        VkPhysicalDeviceProperties2 physicalDeviceProperties = {};
+        physicalDeviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties = {};
+        rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+        rayTracingProperties.pNext = nullptr;
+        if (requestRTSupport)
+        {
+            physicalDeviceProperties.pNext = &rayTracingProperties;
+        }
+
+        vkGetPhysicalDeviceProperties2(physicalDevice.GetDevice(), &physicalDeviceProperties);
         
         // Create the Device::Impl first, then initialize the DeleteQueue with proper allocator pointer
-        UniquePtr<Impl> deviceImpl(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator)));
+        UniquePtr<Impl> deviceImpl(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator), Move(physicalDeviceProperties), Move(rayTracingProperties)));
         deviceImpl->InitializeDeleteQueue(3); // 3 frames delay
         
         return deviceImpl;
@@ -225,9 +238,9 @@ namespace VulkanHelper
     }
 
     VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> 
-    Device::Impl::AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowCpuAccess)
+    Device::Impl::AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowCpuAccess, uint32_t alignment)
     {
-        return m_Allocator.AllocateBuffer(bufferInfo, allowCpuAccess);
+        return m_Allocator.AllocateBuffer(bufferInfo, allowCpuAccess, alignment);
     }
 
     VulkanHelper::Expected<VulkanMemoryAllocator::ImageAllocation, VHResult> 
@@ -271,7 +284,8 @@ namespace VulkanHelper
         auto implResult = Impl::New(
             *PhysicalDevice::Impl::GetImplementation(&config.PhysicalDevice),
             Move(windows),
-            Instance::Impl::GetImplementation(config.Instance)
+            Instance::Impl::GetImplementation(config.Instance),
+            true
         );
         if (!implResult.HasValue())
         {

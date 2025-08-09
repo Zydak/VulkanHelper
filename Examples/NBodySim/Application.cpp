@@ -80,7 +80,7 @@ Application Application::New()
     pointsMeshConfig.VertexAttributeCount = 2;
     pointsMeshConfig.VertexAttributes = vertexAttributes;
     pointsMeshConfig.CommandBuffer = &initializationCmd;
-    pointsMeshConfig.AdditionalUsageFlags = VulkanHelper::Buffer::Usage::STORAGE_BUFFER;
+    pointsMeshConfig.AdditionalUsageFlags = VulkanHelper::Buffer::Usage::STORAGE_BUFFER_BIT | VulkanHelper::Buffer::Usage::VERTEX_BUFFER_BIT;
     VulkanHelper::Mesh pointsMesh = VulkanHelper::Mesh::New(pointsMeshConfig).Value();
     
     //

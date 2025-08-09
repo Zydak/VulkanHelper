@@ -29,9 +29,10 @@ namespace VulkanHelper
         auto vertexBufferResult = Buffer::Impl::New(
             device,
             vertexDataSize,
-            Buffer::Usage::VERTEX_BUFFER | Buffer::Usage::TRANSFER_DST | AdditionalUsageFlags,
+            Buffer::Usage::VERTEX_BUFFER_BIT | Buffer::Usage::TRANSFER_DST_BIT | AdditionalUsageFlags,
             false, // CpuMapable
             false, // UsePersistentStagingBuffer
+            1, // Minimum alignment
             "Mesh Vertex Buffer"
         );
         if (!vertexBufferResult.HasValue())
@@ -40,7 +41,7 @@ namespace VulkanHelper
             return Unexpected(vertexBufferResult.Error());
         }
 
-        Buffer vertexBuffer = Move(Buffer::Impl::CreatePublicInterface(Move(vertexBufferResult.Value())));
+        Buffer vertexBuffer = Move(Buffer::Impl::CreatePublicInterface(Move(UniquePtr<Buffer::Impl>(new Buffer::Impl(Move(vertexBufferResult.Value()))))));
 
         // Upload vertex data
         if (vertexData != nullptr)
@@ -87,9 +88,10 @@ namespace VulkanHelper
             auto indexBufferResult = Buffer::Impl::New(
                 device,
                 indexDataSize,
-                Buffer::Usage::INDEX_BUFFER | Buffer::Usage::TRANSFER_DST | AdditionalUsageFlags,
+                Buffer::Usage::INDEX_BUFFER_BIT | Buffer::Usage::TRANSFER_DST_BIT | AdditionalUsageFlags,
                 false, // CpuMapable
                 false, // UsePersistentStagingBuffer
+                1, // Minimum alignment
                 "Mesh Index Buffer"
             );
             if (!indexBufferResult.HasValue())
@@ -98,7 +100,8 @@ namespace VulkanHelper
                 return Unexpected(indexBufferResult.Error());
             }
 
-            indexBuffer = UniquePtr<Buffer>(new Buffer(Move(Buffer::Impl::CreatePublicInterface(Move(indexBufferResult.Value())))));
+            // :<
+            indexBuffer = UniquePtr<Buffer>(new Buffer(Move(Buffer::Impl::CreatePublicInterface(Move(UniquePtr<Buffer::Impl>(new Buffer::Impl(Move(indexBufferResult.Value()))))))));
 
             // Upload index data
             VHResult uploadResult = indexBuffer->UploadData(indexData, indexDataSize, 0, commandBuffer);

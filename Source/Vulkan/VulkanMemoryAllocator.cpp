@@ -4,6 +4,8 @@
 #include "VulkanMemoryAllocator.h"
 #include "Log/Log.h"
 
+#include "Utility/Utility.h"
+
 namespace VulkanHelper
 {
     Expected<VulkanMemoryAllocator, VHResult> VulkanMemoryAllocator::New(VkDevice device, VkInstance instance, VkPhysicalDevice physicalDevice)
@@ -81,7 +83,7 @@ namespace VulkanHelper
     }
 
     VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> 
-    VulkanMemoryAllocator::AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowMapping)
+    VulkanMemoryAllocator::AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowMapping, uint32_t alignment)
     {
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
@@ -89,7 +91,7 @@ namespace VulkanHelper
             allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
         BufferAllocation allocation = {};
-        VkResult result = vmaCreateBuffer(m_Allocator, &bufferInfo, &allocInfo, &allocation.Buffer, &allocation.Allocation, nullptr);
+        VkResult result = vmaCreateBufferWithAlignment(m_Allocator, &bufferInfo, &allocInfo, alignment, &allocation.Buffer, &allocation.Allocation, nullptr);
 
         if (result != VK_SUCCESS)
         {

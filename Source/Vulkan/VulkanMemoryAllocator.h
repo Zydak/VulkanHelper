@@ -39,7 +39,7 @@ namespace VulkanHelper
          * @param allowMapping Whether to create memory mapable or not.
          * @return Expected<BufferAllocation, VHResult> Buffer allocation on success, or error on failure.
          */
-        VulkanHelper::Expected<BufferAllocation, VHResult> AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowMapping = false);
+        VulkanHelper::Expected<BufferAllocation, VHResult> AllocateBuffer(const VkBufferCreateInfo& bufferInfo, bool allowMapping = false, uint32_t alignment = 1);
 
         /**
          * @brief Allocate an image with the specified memory usage.

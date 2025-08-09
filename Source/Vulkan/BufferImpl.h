@@ -3,13 +3,14 @@
 #include "Core/Enums.h"
 #include "Vulkan/Buffer.h"
 #include "DeviceImpl.h"
+#include "ImageImpl.h"
 
 namespace VulkanHelper
 {
     class Buffer::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, const char* debugName);
+        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, uint32_t minAlignment, const char* debugName);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -27,6 +28,8 @@ namespace VulkanHelper
         [[nodiscard]] inline uint64_t GetSize() const { return m_Size; }
         [[nodiscard]] inline Usage GetUsage() const { return m_Usage; }
         [[nodiscard]] inline bool IsMapped() const { return m_MappedData != nullptr; }
+
+        [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
 
         /**
          * @brief Upload data to the buffer.
@@ -72,7 +75,7 @@ namespace VulkanHelper
          * @param size Size to copy.
          * @return VHResult::OK on success, or an error code on failure.
          */
-        VHResult CopyFrom(CommandBuffer& cmd, const Buffer& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
+        VHResult CopyFrom(CommandBuffer& cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
 
         /**
          * @brief Copy buffer data to an image using GPU commands.
@@ -84,7 +87,7 @@ namespace VulkanHelper
          * @param bufferImageHeight Buffer image height.
          * @return VHResult::OK on success, or an error code on failure.
          */
-        VHResult CopyToImage(CommandBuffer& cmd, const Image& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
+        VHResult CopyToImage(CommandBuffer& cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
 
         void Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
     private:

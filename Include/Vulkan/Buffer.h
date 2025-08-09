@@ -28,15 +28,19 @@ namespace VulkanHelper
         enum class Usage
         {
             NONE = 0,
-            TRANSFER_SRC       = 0x00000001,  ///< Source for transfer operations
-            TRANSFER_DST       = 0x00000002,  ///< Destination for transfer operations
-            UNIFORM_TEXEL_BUFFER = 0x00000004, ///< Uniform texel buffer
-            STORAGE_TEXEL_BUFFER = 0x00000008, ///< Storage texel buffer
-            UNIFORM_BUFFER     = 0x00000010,  ///< Uniform buffer for shader input
-            STORAGE_BUFFER     = 0x00000020,  ///< Storage buffer for shader read/write
-            INDEX_BUFFER       = 0x00000040,  ///< Index buffer for drawing
-            VERTEX_BUFFER      = 0x00000080,  ///< Vertex buffer for drawing
-            INDIRECT_BUFFER    = 0x00000100,  ///< Buffer for indirect draw commands
+            TRANSFER_SRC_BIT            = 0x00000001,  ///< Source for transfer operations
+            TRANSFER_DST_BIT            = 0x00000002,  ///< Destination for transfer operations
+            UNIFORM_TEXEL_BUFFER_BIT    = 0x00000004, ///< Uniform texel buffer
+            STORAGE_TEXEL_BUFFER_BIT    = 0x00000008, ///< Storage texel buffer
+            UNIFORM_BUFFER_BIT          = 0x00000010,  ///< Uniform buffer for shader input
+            STORAGE_BUFFER_BIT          = 0x00000020,  ///< Storage buffer for shader read/write
+            INDEX_BUFFER_BIT            = 0x00000040,  ///< Index buffer for drawing
+            VERTEX_BUFFER_BIT           = 0x00000080,  ///< Vertex buffer for drawing
+            INDIRECT_BUFFER_BIT         = 0x00000100,  ///< Buffer for indirect draw commands
+
+            ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT = 0x00080000, ///< Read-only input for acceleration structure builds
+            ACCELERATION_STRUCTURE_STORAGE_BIT = 0x00100000, ///< Storage for acceleration structures
+            SHADER_BINDING_TABLE_BIT = 0x00000400, ///< Shader binding table for ray tracing
             UNDEFINED = 0x7FFFFFFF           ///< Invalid usage
         };
 
@@ -62,7 +66,7 @@ namespace VulkanHelper
              * @brief Usage flags for the buffer
              * @note Must not be Usage::UNDEFINED
              */
-            VulkanHelper::Buffer::Usage Usage = Usage::VERTEX_BUFFER;
+            VulkanHelper::Buffer::Usage Usage = Usage::UNDEFINED;
 
             /**
              * @brief Whether buffer memory can be mapped
@@ -75,6 +79,8 @@ namespace VulkanHelper
              * @note Improves performance for frequent CPU writes to GPU-only buffers, but doubles the memory size cost
              */
             bool UsePersistentStagingBuffer = false;
+
+            uint32_t MinAlignment = 1; ///< Minimum alignment for buffer allocation
 
             /**
              * @brief Optional debug name
