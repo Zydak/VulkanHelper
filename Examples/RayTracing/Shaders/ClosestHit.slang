@@ -1,0 +1,5 @@
+[shader("closesthit")]
+void Main()
+{
+    
+}

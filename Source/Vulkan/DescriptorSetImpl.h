@@ -38,13 +38,18 @@ namespace VulkanHelper
         Device::Impl* m_Device;
         VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
-        DescriptorSet::Config m_Config;
+        Vector<DescriptorSet::BindingDescription> m_BindingDescriptions;
 
-        explicit Impl(Device::Impl* device, VkDescriptorSet descriptorSet, VkDescriptorSetLayout descriptorSetLayout, const DescriptorSet::Config& config)
+        explicit Impl(
+            Device::Impl* device,
+            VkDescriptorSet descriptorSet,
+            VkDescriptorSetLayout descriptorSetLayout,
+            Vector<DescriptorSet::BindingDescription>&& bindingDescriptions
+        )
             : m_Device(device)
             , m_DescriptorSet(descriptorSet)
             , m_DescriptorSetLayout(descriptorSetLayout)
-            , m_Config(config)
+            , m_BindingDescriptions(Move(bindingDescriptions))
         {}
     };
 }

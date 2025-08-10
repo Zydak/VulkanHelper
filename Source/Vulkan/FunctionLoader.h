@@ -31,6 +31,20 @@ namespace VulkanHelper
             return func(device, pipeline, firstGroup, groupCount, dataSize, pData);
         }
 
+        static inline VkResult vkCreateRayTracingPipelinesKHR(VkDevice device, VkDeferredOperationKHR deferredOperation, VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkRayTracingPipelineCreateInfoKHR* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines)
+        {
+            static auto func = (PFN_vkCreateRayTracingPipelinesKHR)vkGetInstanceProcAddr(m_Instance, "vkCreateRayTracingPipelinesKHR");
+            VH_ASSERT(func != nullptr, "vkCreateRayTracingPipelinesKHR not Present!");
+            return func(device, deferredOperation, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+        }
+
+        static inline void vkCmdTraceRaysKHR(VkCommandBuffer commandBuffer, const VkStridedDeviceAddressRegionKHR* pRaygenShaderBindingTable, const VkStridedDeviceAddressRegionKHR* pMissShaderBindingTable, const VkStridedDeviceAddressRegionKHR* pHitShaderBindingTable, const VkStridedDeviceAddressRegionKHR* pCallableShaderBindingTable, uint32_t width, uint32_t height, uint32_t depth)
+        {
+            static auto func = (PFN_vkCmdTraceRaysKHR)vkGetInstanceProcAddr(m_Instance, "vkCmdTraceRaysKHR");
+            VH_ASSERT(func != nullptr, "vkCmdTraceRaysKHR not Present!");
+            return func(commandBuffer, pRaygenShaderBindingTable, pMissShaderBindingTable, pHitShaderBindingTable, pCallableShaderBindingTable, width, height, depth);
+        }
+
     private:
         inline static VkInstance m_Instance;
     };

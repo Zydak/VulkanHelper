@@ -138,6 +138,7 @@ namespace VulkanHelper
             const ImageView* targetImageDepth,
             glm::vec4 clearColor,
             float clearDepth,
+            const ImageView* resolveImageView,
             glm::uvec2 scissorsStart,
             glm::uvec2 scissorsEnd
     )
@@ -199,6 +200,13 @@ namespace VulkanHelper
             info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             info.clearValue = { {{clearColor.x, clearColor.y, clearColor.z, clearColor.w}} };
+            info.resolveMode = VK_RESOLVE_MODE_NONE;
+            if (resolveImageView != nullptr)
+            {
+                info.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+                info.resolveImageView = ImageView::Impl::GetImplementation(resolveImageView)->GetImageView();
+                info.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
 
             ImageView::Impl* targetImageImpl = ImageView::Impl::GetImplementation(targetImagesColor[i]);
             info.imageView = targetImageImpl->GetImageView();
@@ -327,11 +335,12 @@ namespace VulkanHelper
         const ImageView* targetImageDepth,
         glm::vec4 clearColor,
         float clearDepth,
+        const ImageView* resolveImageView,
         glm::uvec2 scissorsStart,
         glm::uvec2 scissorsEnd
     )
     {
-        m_Impl->BeginRendering(commandBuffer, targetImagesColor, targetImageDepth, clearColor, clearDepth, scissorsStart, scissorsEnd);
+        m_Impl->BeginRendering(commandBuffer, targetImagesColor, targetImageDepth, clearColor, clearDepth, resolveImageView, scissorsStart, scissorsEnd);
     }
 
     void Renderer::EndRendering(CommandBuffer& commandBuffer)

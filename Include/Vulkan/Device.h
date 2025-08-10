@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Error.h"
 #include "Core/UniquePtr.h"
+#include "Core/Enums.h"
 #include "Vulkan/PhysicalDevice.h"
 #include "Instance.h"
 
@@ -96,6 +97,11 @@ namespace VulkanHelper
          * @brief Wait for all device operations to complete
          */
         void WaitUntilIdle() const;
+
+        /**
+         * @brief Get max sample count supported by the device
+         */
+        [[nodiscard]] SampleCount GetMaxSampleCount() const;
 
         class Impl;
     private:

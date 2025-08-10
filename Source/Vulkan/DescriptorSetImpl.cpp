@@ -34,7 +34,18 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        return VulkanHelper::UniquePtr<Impl>(new Impl(device, descriptorSet, descriptorSetLayout, config));
+        VulkanHelper::Vector<DescriptorSet::BindingDescription> bindingDescriptions;
+        for (uint32_t i = 0; i < config.BindingCount; i++)
+        {
+            if (config.Bindings[i].DescriptorsCount == 0 || config.Bindings[i].StageFlags == ShaderStages::UNDEFINED || config.Bindings[i].Type == DescriptorType::UNDEFINED)
+            {
+                VH_LOG_ERROR("Invalid binding description at index {}: Binding, DescriptorsCount, StageFlags, and Type must be set.", i);
+                return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            bindingDescriptions.PushBack(config.Bindings[i]);
+        }
+
+        return VulkanHelper::UniquePtr<Impl>(new Impl(device, descriptorSet, descriptorSetLayout, Move(bindingDescriptions)));
     }
 
     DescriptorSet::Impl::~Impl()
@@ -53,7 +64,7 @@ namespace VulkanHelper
         : m_Device(other.m_Device)
         , m_DescriptorSet(other.m_DescriptorSet)
         , m_DescriptorSetLayout(other.m_DescriptorSetLayout)
-        , m_Config(other.m_Config)
+        , m_BindingDescriptions(Move(other.m_BindingDescriptions))
     {
         other.m_Device = nullptr;
         other.m_DescriptorSet = VK_NULL_HANDLE;
@@ -73,7 +84,7 @@ namespace VulkanHelper
         other.m_DescriptorSet = VK_NULL_HANDLE;
         m_DescriptorSetLayout = other.m_DescriptorSetLayout;
         other.m_DescriptorSetLayout = VK_NULL_HANDLE;
-        m_Config = other.m_Config;
+        m_BindingDescriptions = Move(other.m_BindingDescriptions);
 
         return *this;
     }
@@ -87,13 +98,13 @@ namespace VulkanHelper
         DescriptorType expectedType = DescriptorType::UNDEFINED;
         uint32_t descriptorCount = 0;
 
-        for (uint32_t i = 0; i < m_Config.BindingCount; i++)
+        for (uint32_t i = 0; i < m_BindingDescriptions.Size(); i++)
         {
-            if (m_Config.Bindings[i].Binding == binding)
+            if (m_BindingDescriptions[i].Binding == binding)
             {
                 bindingFound = true;
-                expectedType = m_Config.Bindings[i].Type;
-                descriptorCount = m_Config.Bindings[i].DescriptorsCount;
+                expectedType = m_BindingDescriptions[i].Type;
+                descriptorCount = m_BindingDescriptions[i].DescriptorsCount;
                 break;
             }
         }
@@ -151,13 +162,13 @@ namespace VulkanHelper
         DescriptorType expectedType = DescriptorType::UNDEFINED;
         uint32_t descriptorCount = 0;
 
-        for (uint32_t i = 0; i < m_Config.BindingCount; ++i)
+        for (uint32_t i = 0; i < m_BindingDescriptions.Size(); ++i)
         {
-            if (m_Config.Bindings[i].Binding == binding)
+            if (m_BindingDescriptions[i].Binding == binding)
             {
                 bindingFound = true;
-                expectedType = m_Config.Bindings[i].Type;
-                descriptorCount = m_Config.Bindings[i].DescriptorsCount;
+                expectedType = m_BindingDescriptions[i].Type;
+                descriptorCount = m_BindingDescriptions[i].DescriptorsCount;
                 break;
             }
         }
@@ -220,13 +231,13 @@ namespace VulkanHelper
         DescriptorType expectedType = DescriptorType::UNDEFINED;
         uint32_t descriptorCount = 0;
 
-        for (uint32_t i = 0; i < m_Config.BindingCount; ++i)
+        for (uint32_t i = 0; i < m_BindingDescriptions.Size(); ++i)
         {
-            if (m_Config.Bindings[i].Binding == binding)
+            if (m_BindingDescriptions[i].Binding == binding)
             {
                 bindingFound = true;
-                expectedType = m_Config.Bindings[i].Type;
-                descriptorCount = m_Config.Bindings[i].DescriptorsCount;
+                expectedType = m_BindingDescriptions[i].Type;
+                descriptorCount = m_BindingDescriptions[i].DescriptorsCount;
                 break;
             }
         }

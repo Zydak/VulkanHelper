@@ -4,60 +4,19 @@
 #include "PushConstantImpl.h"
 #include "DescriptorSetImpl.h"
 
+#include "FunctionLoader.h"
+
 namespace VulkanHelper
 {
     VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Vector<Shader::Impl*>&& shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, Vector<DescriptorSet::Impl*>&& descriptorSets, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format>&& colorFormats, Format depthFormat, SampleCount sampleCount)
     {
-        VH_LOG_INFO("Creating Graphics Pipeline Implementation");
-
-        if (device == nullptr)
+        auto layoutRes = CreatePipelineLayout(device, descriptorSets, pushConstant);
+        if (!layoutRes.HasValue())
         {
-            VH_LOG_ERROR("Device Cannot be nullptr!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
+            VH_LOG_ERROR("Failed to create pipeline layout");
+            return Unexpected(layoutRes.Error());
         }
-
-        VkPipelineLayoutCreateInfo layoutInfo{};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
-        // Handle descriptor sets
-        VulkanHelper::Vector<VkDescriptorSetLayout> descriptorSetLayouts;
-        if (!descriptorSets.Empty())
-        {
-            descriptorSetLayouts.Reserve(descriptorSets.Size());
-            for (size_t i = 0; i < descriptorSets.Size(); ++i)
-            {
-                descriptorSetLayouts.PushBack(descriptorSets[i]->GetDescriptorSetLayout());
-            }
-            layoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.Size());
-            layoutInfo.pSetLayouts = descriptorSetLayouts.Data();
-        }
-        else
-        {
-            layoutInfo.setLayoutCount = 0;
-            layoutInfo.pSetLayouts = nullptr;
-        }
-
-        // Handle push constants
-        VkPushConstantRange pushConstantRange{};
-        if (pushConstant != nullptr)
-        {
-            pushConstantRange = pushConstant->GetVkPushConstantRange();
-            layoutInfo.pushConstantRangeCount = 1;
-            layoutInfo.pPushConstantRanges = &pushConstantRange;
-        }
-        else
-        {
-            layoutInfo.pushConstantRangeCount = 0;
-            layoutInfo.pPushConstantRanges = nullptr;
-        }
-
-        VkPipelineLayout pipelineLayout;
-        VkResult res = vkCreatePipelineLayout(device->GetDevice(), &layoutInfo, nullptr, &pipelineLayout);
-        if (res != VK_SUCCESS)
-        {
-            VH_LOG_ERROR("Couldn't create pipeline layout!");
-            return Unexpected((VHResult)res);
-        }
+        VkPipelineLayout pipelineLayout = layoutRes.Value();
 
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
         inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -228,32 +187,15 @@ namespace VulkanHelper
 		graphicsPipelineInfo.basePipelineIndex = -1;
 
         VkPipeline pipeline;
-        res = vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &pipeline);
+        VkResult res = vkCreateGraphicsPipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &pipeline);
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, VulkanHelper::Move(descriptorSets), pushConstant));
+        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr)));
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(const ComputeConfig& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Shader::Impl* computeShader, Vector<DescriptorSet::Impl*>&& descriptorSets, PushConstant::Impl* pushConstant)
     {
-        VH_LOG_INFO("Creating Compute Pipeline Implementation");
-
-        if (config.Device == nullptr)
-        {
-            VH_LOG_ERROR("Device cannot be nullptr!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
-        if (config.ComputeShader == nullptr)
-        {
-            VH_LOG_ERROR("ComputeShader cannot be nullptr!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
-        Device::Impl* device = Device::Impl::GetImplementation(config.Device);
-        Shader::Impl* computeShader = Shader::Impl::GetImplementation(config.ComputeShader);
-
         // Validate that the shader is indeed a compute shader
         if (computeShader->GetShaderStage() != VK_SHADER_STAGE_COMPUTE_BIT)
         {
@@ -261,54 +203,13 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        VkPipelineLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-
-        // Handle descriptor sets
-        VulkanHelper::Vector<VkDescriptorSetLayout> descriptorSetLayouts;
-        VulkanHelper::Vector<DescriptorSet::Impl*> descriptorSets;
-        if (!config.DescriptorSets.Empty())
+        auto layoutRes = CreatePipelineLayout(device, descriptorSets, pushConstant);
+        if (!layoutRes.HasValue())
         {
-            descriptorSetLayouts.Reserve(config.DescriptorSets.Size());
-            descriptorSets.Reserve(config.DescriptorSets.Size());
-            for (size_t i = 0; i < config.DescriptorSets.Size(); ++i)
-            {
-                DescriptorSet::Impl* descriptorSetImpl = DescriptorSet::Impl::GetImplementation(config.DescriptorSets[i]);
-                descriptorSetLayouts.PushBack(descriptorSetImpl->GetDescriptorSetLayout());
-                descriptorSets.PushBack(descriptorSetImpl);
-            }
-            layoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.Size());
-            layoutInfo.pSetLayouts = descriptorSetLayouts.Data();
+            VH_LOG_ERROR("Failed to create pipeline layout");
+            return Unexpected(layoutRes.Error());
         }
-        else
-        {
-            layoutInfo.setLayoutCount = 0;
-            layoutInfo.pSetLayouts = nullptr;
-        }
-
-        // Handle push constants
-        VkPushConstantRange pushConstantRange{};
-        PushConstant::Impl* pushConstant = nullptr;
-        if (config.PushConstant != nullptr)
-        {
-            pushConstant = PushConstant::Impl::GetImplementation(config.PushConstant);
-            pushConstantRange = pushConstant->GetVkPushConstantRange();
-            layoutInfo.pushConstantRangeCount = 1;
-            layoutInfo.pPushConstantRanges = &pushConstantRange;
-        }
-        else
-        {
-            layoutInfo.pushConstantRangeCount = 0;
-            layoutInfo.pPushConstantRanges = nullptr;
-        }
-
-        VkPipelineLayout pipelineLayout;
-        VkResult res = vkCreatePipelineLayout(device->GetDevice(), &layoutInfo, nullptr, &pipelineLayout);
-        if (res != VK_SUCCESS)
-        {
-            VH_LOG_ERROR("Couldn't create compute pipeline layout!");
-            return Unexpected((VHResult)res);
-        }
+        VkPipelineLayout pipelineLayout = layoutRes.Value();
 
         // Create compute pipeline
         VkComputePipelineCreateInfo computePipelineInfo{};
@@ -319,7 +220,7 @@ namespace VulkanHelper
         computePipelineInfo.basePipelineIndex = -1;
 
         VkPipeline pipeline;
-        res = vkCreateComputePipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &pipeline);
+        VkResult res = vkCreateComputePipelines(device->GetDevice(), VK_NULL_HANDLE, 1, &computePipelineInfo, nullptr, &pipeline);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Couldn't create compute pipeline!");
@@ -327,15 +228,113 @@ namespace VulkanHelper
             return Unexpected((VHResult)res);
         }
 
-        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Compute, VulkanHelper::Move(descriptorSets), pushConstant));
+        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Compute, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr)));
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(const RayTracingConfig& config)
+    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(
+        Device::Impl* device,
+        Vector<Shader::Impl*>&& RayGenShaders,
+        Vector<Shader::Impl*>&& HitShaders,
+        Vector<Shader::Impl*>&& MissShaders,
+        Vector<DescriptorSet::Impl*>&& descriptorSets,
+        PushConstant::Impl* pushConstant,
+        CommandBuffer& cmd
+    )
     {
         VH_LOG_INFO("Creating RayTracing Pipeline Implementation");
 
-        (void)config;
-        return Unexpected(VHResult::NOT_IMPLEMENTED);
+        auto layoutRes = CreatePipelineLayout(device, descriptorSets, pushConstant);
+        if (!layoutRes.HasValue())
+        {
+            VH_LOG_ERROR("Failed to create pipeline layout");
+            return Unexpected(layoutRes.Error());
+        }
+        VkPipelineLayout pipelineLayout = layoutRes.Value();
+
+        VulkanHelper::Vector<VkPipelineShaderStageCreateInfo> shaderStages;
+        shaderStages.Reserve(RayGenShaders.Size() + HitShaders.Size() + MissShaders.Size());
+        for (auto& shader : RayGenShaders)
+            shaderStages.PushBack(shader->GetShaderStageCreateInfo());
+        for (auto& shader : HitShaders)
+            shaderStages.PushBack(shader->GetShaderStageCreateInfo());
+        for (auto& shader : MissShaders)
+            shaderStages.PushBack(shader->GetShaderStageCreateInfo());
+
+        VulkanHelper::Vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups;
+        shaderGroups.Reserve(RayGenShaders.Size() + HitShaders.Size() + MissShaders.Size());
+        uint32_t stageIndex = 0;
+        for (size_t i = 0; i < RayGenShaders.Size(); i++)
+        {
+            VkRayTracingShaderGroupCreateInfoKHR groupInfo{};
+            groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+            groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+            groupInfo.generalShader = stageIndex;
+            groupInfo.closestHitShader = VK_SHADER_UNUSED_KHR;
+            groupInfo.anyHitShader = VK_SHADER_UNUSED_KHR;
+            groupInfo.intersectionShader = VK_SHADER_UNUSED_KHR;
+            shaderGroups.PushBack(groupInfo);
+
+            stageIndex++;
+        }
+
+        for (size_t i = 0; i < HitShaders.Size(); i++)
+        {
+            VkRayTracingShaderGroupCreateInfoKHR groupInfo{};
+            groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+            groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+            groupInfo.generalShader = VK_SHADER_UNUSED_KHR;
+            groupInfo.closestHitShader = stageIndex;
+            groupInfo.anyHitShader = VK_SHADER_UNUSED_KHR;
+            groupInfo.intersectionShader = VK_SHADER_UNUSED_KHR;
+            shaderGroups.PushBack(groupInfo);
+
+            stageIndex++;
+        }
+
+        for (size_t i = 0; i < MissShaders.Size(); i++)
+        {
+            VkRayTracingShaderGroupCreateInfoKHR groupInfo{};
+            groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+            groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+            groupInfo.generalShader = stageIndex;
+            groupInfo.closestHitShader = VK_SHADER_UNUSED_KHR;
+            groupInfo.anyHitShader = VK_SHADER_UNUSED_KHR;
+            groupInfo.intersectionShader = VK_SHADER_UNUSED_KHR;
+            shaderGroups.PushBack(groupInfo);
+
+            stageIndex++;
+        }
+
+        VkRayTracingPipelineCreateInfoKHR rayTracingPipelineInfo{};
+        rayTracingPipelineInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+        rayTracingPipelineInfo.stageCount = (uint32_t)shaderStages.Size();
+        rayTracingPipelineInfo.pStages = shaderStages.Data();
+        rayTracingPipelineInfo.groupCount = (uint32_t)shaderGroups.Size();
+        rayTracingPipelineInfo.pGroups = shaderGroups.Data();
+        rayTracingPipelineInfo.maxPipelineRayRecursionDepth = 1; // Don't support recursion, it's way slower than loop based ray tracing
+        rayTracingPipelineInfo.layout = pipelineLayout;
+        rayTracingPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+        rayTracingPipelineInfo.basePipelineIndex = -1;
+
+        VkPipeline pipeline;
+        VkResult res = FunctionLoader::vkCreateRayTracingPipelinesKHR(device->GetDevice(), VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &rayTracingPipelineInfo, nullptr, &pipeline);
+        if (res != VK_SUCCESS)
+        {
+            VH_LOG_ERROR("Couldn't create ray tracing pipeline!");
+            vkDestroyPipelineLayout(device->GetDevice(), pipelineLayout, nullptr);
+            return Unexpected((VHResult)res);
+        }
+
+        auto sbtRes = SBT::New(device, pipeline, (uint32_t)RayGenShaders.Size(), (uint32_t)MissShaders.Size(), (uint32_t)HitShaders.Size(), cmd);
+        if (!sbtRes)
+        {
+            VH_LOG_ERROR("Couldn't create SBT!");
+            vkDestroyPipeline(device->GetDevice(), pipeline, nullptr);
+            return Unexpected(sbtRes.Error());
+        }
+        UniquePtr<SBT> sbt(new SBT(Move(sbtRes.Value())));
+
+        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::RayTracing, VulkanHelper::Move(descriptorSets), pushConstant, Move(sbt)));
     }
 
     Pipeline::Impl::~Impl()
@@ -456,22 +455,107 @@ namespace VulkanHelper
         vkCmdDispatch(cmdImpl->GetCommandBuffer(), groupCountX, groupCountY, groupCountZ);
     }
 
+    Expected<VkPipelineLayout, VHResult> Pipeline::Impl::CreatePipelineLayout(Device::Impl* device, const Vector<DescriptorSet::Impl*>& descriptorSets, PushConstant::Impl* pushConstant)
+    {
+        VkPipelineLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+        // Handle descriptor sets
+        VulkanHelper::Vector<VkDescriptorSetLayout> descriptorSetLayouts;
+        if (!descriptorSets.Empty())
+        {
+            descriptorSetLayouts.Reserve(descriptorSets.Size());
+            for (size_t i = 0; i < descriptorSets.Size(); ++i)
+            {
+                descriptorSetLayouts.PushBack(descriptorSets[i]->GetDescriptorSetLayout());
+            }
+            layoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.Size());
+            layoutInfo.pSetLayouts = descriptorSetLayouts.Data();
+        }
+        else
+        {
+            layoutInfo.setLayoutCount = 0;
+            layoutInfo.pSetLayouts = nullptr;
+        }
+
+        // Handle push constants
+        VkPushConstantRange pushConstantRange{};
+        if (pushConstant != nullptr)
+        {
+            pushConstantRange = pushConstant->GetVkPushConstantRange();
+            layoutInfo.pushConstantRangeCount = 1;
+            layoutInfo.pPushConstantRanges = &pushConstantRange;
+        }
+        else
+        {
+            layoutInfo.pushConstantRangeCount = 0;
+            layoutInfo.pPushConstantRanges = nullptr;
+        }
+
+        VkPipelineLayout pipelineLayout;
+        VkResult res = vkCreatePipelineLayout(device->GetDevice(), &layoutInfo, nullptr, &pipelineLayout);
+        if (res != VK_SUCCESS)
+        {
+            VH_LOG_ERROR("Couldn't create pipeline layout!");
+            return Unexpected((VHResult)res);
+        }
+
+        return pipelineLayout;
+    }
+
+    void Pipeline::Impl::RayTrace(CommandBuffer* commandBuffer, uint32_t width, uint32_t height, uint32_t depth)
+    {
+        VH_ASSERT(m_PipelineType == Pipeline::PipelineType::RayTracing, "RayTrace can only be called on ray tracing pipelines!");
+
+        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(commandBuffer);
+        FunctionLoader::vkCmdTraceRaysKHR(
+            cmdImpl->GetCommandBuffer(),
+            m_SBT->GetRgenRegionPtr(),
+            m_SBT->GetMissRegionPtr(),
+            m_SBT->GetHitRegionPtr(),
+            m_SBT->GetHitRegionPtr(), // Pass hit region as callable, callable shaders are not supported yet but vulkan needs something to point to. So PLEASE don't use callable shaders
+            width,
+            height,
+            depth
+        );
+    }
+
     //
     // Forward functions
     //
     
     VulkanHelper::Expected<Pipeline, VHResult> Pipeline::New(const GraphicsConfig& config)
     {
-        VulkanHelper::Vector<Shader::Impl*> shaders(config.Shaders.Size());
-        for (size_t i = 0; i < config.Shaders.Size(); i++)
-            shaders[i] = Shader::Impl::GetImplementation(config.Shaders[i]);
+        VH_LOG_INFO("Creating Graphics Pipeline Implementation");
+
+        if (config.Device == nullptr)
+        {
+            VH_LOG_ERROR("Device Cannot be nullptr!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        VulkanHelper::Vector<Shader::Impl*> shaders;
+        shaders.Reserve(config.Shaders.Size());
+        for (auto& shader : config.Shaders)
+        {
+            if (shader == nullptr)
+            {
+                VH_LOG_ERROR("Shader cannot be nullptr!");
+                return Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            shaders.PushBack(Shader::Impl::GetImplementation(shader));
+        }
 
         VulkanHelper::Vector<DescriptorSet::Impl*> descriptorSets;
-        if (!config.DescriptorSets.Empty())
+        descriptorSets.Reserve(config.DescriptorSets.Size());
+        for (auto& descriptorSet : config.DescriptorSets)
         {
-            descriptorSets.Reserve(config.DescriptorSets.Size());
-            for (size_t i = 0; i < config.DescriptorSets.Size(); i++)
-                descriptorSets.PushBack(DescriptorSet::Impl::GetImplementation(config.DescriptorSets[i]));
+            if (descriptorSet == nullptr)
+            {
+                VH_LOG_ERROR("Descriptor Set cannot be nullptr!");
+                return Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            descriptorSets.PushBack(DescriptorSet::Impl::GetImplementation(descriptorSet));
         }
 
         PushConstant::Impl* pushConstant = nullptr;
@@ -507,7 +591,42 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Pipeline, VHResult> Pipeline::New(const ComputeConfig& config)
     {
-        auto implResult = Impl::New(config);
+        VH_LOG_INFO("Creating Compute Pipeline Implementation");
+
+        if (config.Device == nullptr)
+        {
+            VH_LOG_ERROR("Device cannot be nullptr!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        if (config.ComputeShader == nullptr)
+        {
+            VH_LOG_ERROR("ComputeShader cannot be nullptr!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        VulkanHelper::Vector<DescriptorSet::Impl*> descriptorSets;
+        descriptorSets.Reserve(config.DescriptorSets.Size());
+        for (auto& descriptorSet : config.DescriptorSets)
+        {
+            if (descriptorSet == nullptr)
+            {
+                VH_LOG_ERROR("Descriptor Set cannot be nullptr!");
+                return Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            descriptorSets.PushBack(DescriptorSet::Impl::GetImplementation(descriptorSet));
+        }
+
+        PushConstant::Impl* pushConstant = nullptr;
+        if (config.PushConstant != nullptr)
+            pushConstant = PushConstant::Impl::GetImplementation(config.PushConstant);
+
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            Shader::Impl::GetImplementation(config.ComputeShader), 
+            Move(descriptorSets),
+            pushConstant
+        );
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());
@@ -518,7 +637,81 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Pipeline, VHResult> Pipeline::New(const RayTracingConfig& config)
     {
-        auto implResult = Impl::New(config);
+        VH_LOG_INFO("Creating Compute Pipeline Implementation");
+
+        if (config.Device == nullptr)
+        {
+            VH_LOG_ERROR("Device cannot be nullptr!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        if (config.CommandBuffer == nullptr)
+        {
+            VH_LOG_ERROR("CommandBuffer cannot be nullptr!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
+        VulkanHelper::Vector<Shader::Impl*> rayGenShaders;
+        rayGenShaders.Reserve(config.RayGenShaders.Size());
+        for (auto& shader : config.RayGenShaders)
+        {
+            if (shader == nullptr)
+            {
+                VH_LOG_ERROR("Ray Generation shader cannot be nullptr!");
+                return Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            rayGenShaders.PushBack(Shader::Impl::GetImplementation(shader));
+        }
+
+        VulkanHelper::Vector<Shader::Impl*> hitShaders;
+        hitShaders.Reserve(config.HitShaders.Size());
+        for (auto& shader : config.HitShaders)
+        {
+            if (shader == nullptr)
+            {
+                VH_LOG_ERROR("Hit shader cannot be nullptr!");
+                return Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            hitShaders.PushBack(Shader::Impl::GetImplementation(shader));
+        }
+
+        VulkanHelper::Vector<Shader::Impl*> missShaders;
+        missShaders.Reserve(config.MissShaders.Size());
+        for (auto& shader : config.MissShaders)
+        {
+            if (shader == nullptr)
+            {
+                VH_LOG_ERROR("Miss shader cannot be nullptr!");
+                return Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            missShaders.PushBack(Shader::Impl::GetImplementation(shader));
+        }
+        
+        PushConstant::Impl* pushConstant = nullptr;
+        if (config.PushConstant != nullptr)
+            pushConstant = PushConstant::Impl::GetImplementation(config.PushConstant);
+
+        VulkanHelper::Vector<DescriptorSet::Impl*> descriptorSets;
+        descriptorSets.Reserve(config.DescriptorSets.Size());
+        for (auto& descriptorSet : config.DescriptorSets)
+        {
+            if (descriptorSet == nullptr)
+            {
+                VH_LOG_ERROR("Descriptor Set cannot be nullptr!");
+                return Unexpected(VHResult::WRONG_ARGUMENTS);
+            }
+            descriptorSets.PushBack(DescriptorSet::Impl::GetImplementation(descriptorSet));
+        }
+
+        auto implResult = Impl::New(
+            Device::Impl::GetImplementation(config.Device),
+            Move(rayGenShaders),
+            Move(hitShaders),
+            Move(missShaders),
+            Move(descriptorSets),
+            pushConstant,
+            *config.CommandBuffer
+        );
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());
@@ -562,5 +755,10 @@ namespace VulkanHelper
     void Pipeline::Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         m_Impl->Dispatch(commandBuffer, groupCountX, groupCountY, groupCountZ);
+    }
+
+    void Pipeline::RayTrace(CommandBuffer* commandBuffer, uint32_t width, uint32_t height, uint32_t depth)
+    {
+        m_Impl->RayTrace(commandBuffer, width, height, depth);
     }
 }

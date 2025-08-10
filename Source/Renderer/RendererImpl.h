@@ -37,6 +37,7 @@ namespace VulkanHelper
             const ImageView* targetImageDepth,
             glm::vec4 clearColor = {0.1f, 0.1f, 0.1f, 1.0f},
             float clearDepth = 1.0f,
+            const ImageView* resolveImageView = nullptr,
             glm::uvec2 scissorsStart = {0u, 0u},
             glm::uvec2 scissorsEnd = {0u, 0u}
         );

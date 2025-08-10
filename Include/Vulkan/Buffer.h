@@ -38,6 +38,8 @@ namespace VulkanHelper
             VERTEX_BUFFER_BIT           = 0x00000080,  ///< Vertex buffer for drawing
             INDIRECT_BUFFER_BIT         = 0x00000100,  ///< Buffer for indirect draw commands
 
+            SHADER_DEVICE_ADDRESS_BIT = 0x00020000ULL, ///< You can get a device address for this buffer
+
             ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT = 0x00080000, ///< Read-only input for acceleration structure builds
             ACCELERATION_STRUCTURE_STORAGE_BIT = 0x00100000, ///< Storage for acceleration structures
             SHADER_BINDING_TABLE_BIT = 0x00000400, ///< Shader binding table for ray tracing

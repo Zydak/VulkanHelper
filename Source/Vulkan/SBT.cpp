@@ -56,7 +56,7 @@ namespace VulkanHelper
         VulkanHelper::Buffer::Impl stagingBuffer = VulkanHelper::Buffer::Impl::New(
             device,
             sbtSize,
-            VulkanHelper::Buffer::Usage::TRANSFER_DST_BIT | VulkanHelper::Buffer::Usage::SHADER_BINDING_TABLE_BIT,
+            VulkanHelper::Buffer::Usage::TRANSFER_SRC_BIT | VulkanHelper::Buffer::Usage::SHADER_BINDING_TABLE_BIT,
             true, // CPU mappable for staging
             false, // No persistent staging buffer
             bufferBaseAlignment, // Minimum alignment
@@ -99,7 +99,7 @@ namespace VulkanHelper
         VulkanHelper::Buffer::Impl sbtBuffer = VulkanHelper::Buffer::Impl::New(
             device,
             sbtSize,
-            VulkanHelper::Buffer::Usage::SHADER_BINDING_TABLE_BIT | VulkanHelper::Buffer::Usage::TRANSFER_DST_BIT,
+            Buffer::Usage::SHADER_BINDING_TABLE_BIT | Buffer::Usage::TRANSFER_DST_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
             false, // Not CPU mappable
             false, // No persistent staging buffer
             bufferBaseAlignment, // Minimum alignment
@@ -146,6 +146,6 @@ namespace VulkanHelper
 
     SBT::~SBT()
     {
-        VH_LOG_DEBUG("Destroying SBT Implementation");
+        
     }
 }

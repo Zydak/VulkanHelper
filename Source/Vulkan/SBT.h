@@ -24,6 +24,10 @@ namespace VulkanHelper
         [[nodiscard]] inline VkStridedDeviceAddressRegionKHR GetMissRegion() const { return m_MissRegion; }
         [[nodiscard]] inline VkStridedDeviceAddressRegionKHR GetHitRegion() const { return m_HitRegion; }
 
+        [[nodiscard]] inline const VkStridedDeviceAddressRegionKHR* GetRgenRegionPtr() const { return &m_RgenRegion; }
+        [[nodiscard]] inline const VkStridedDeviceAddressRegionKHR* GetMissRegionPtr() const { return &m_MissRegion; }
+        [[nodiscard]] inline const VkStridedDeviceAddressRegionKHR* GetHitRegionPtr() const { return &m_HitRegion; }
+
     private:
         Buffer::Impl m_SBTBuffer;
 

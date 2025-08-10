@@ -1,8 +1,6 @@
 #include "Application.h"
 #include "Core/Error.h"
 
-static VulkanHelper::SampleCount s_SampleCount;
-
 static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Image, VulkanHelper::ImageView> CreateImages(
     VulkanHelper::Device& device,
     VulkanHelper::Window& window,
@@ -15,13 +13,13 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
     colorImageConfig.Width = window.GetWidth();
     colorImageConfig.Height = window.GetHeight();
     colorImageConfig.Format = format;
-    colorImageConfig.Usage = VulkanHelper::Image::Usage::COLOR_ATTACHMENT_BIT | VulkanHelper::Image::Usage::TRANSFER_SRC_BIT;
+    colorImageConfig.Usage = VulkanHelper::Image::Usage::STORAGE_BIT | VulkanHelper::Image::Usage::TRANSFER_SRC_BIT;
     colorImageConfig.Tiling = VulkanHelper::Image::Tiling::OPTIMAL;
     colorImageConfig.Aspect = VulkanHelper::Image::Aspect::COLOR_BIT;
-    colorImageConfig.SampleCount = s_SampleCount;
+    colorImageConfig.SampleCount = VulkanHelper::SampleCount::COUNT_1_BIT;
     auto outColorImage = VulkanHelper::Image::New(colorImageConfig).Value();
     outColorImage.TransitionImageLayout(
-        VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL,
+        VulkanHelper::Image::Layout::GENERAL,
         commandBuffer
     );
 
@@ -38,7 +36,7 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
     depthImageConfig.Usage = VulkanHelper::Image::Usage::DEPTH_STENCIL_ATTACHMENT_BIT;
     depthImageConfig.Tiling = VulkanHelper::Image::Tiling::OPTIMAL;
     depthImageConfig.Aspect = VulkanHelper::Image::Aspect::DEPTH_BIT;
-    depthImageConfig.SampleCount = s_SampleCount;
+    depthImageConfig.SampleCount = VulkanHelper::SampleCount::COUNT_1_BIT;
     auto outDepthImage = VulkanHelper::Image::New(depthImageConfig).Value();
 
     auto outDepthImageView = VulkanHelper::ImageView::New({
@@ -80,19 +78,17 @@ Application Application::New()
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
 
-    s_SampleCount = device.GetMaxSampleCount();
-    if (s_SampleCount > VulkanHelper::SampleCount::COUNT_4_BIT)
-    {
-        s_SampleCount = VulkanHelper::SampleCount::COUNT_4_BIT;
-    }
+    VulkanHelper::Shader::InitializeSession("../../../RayTracing/Shaders/");
 
-    VulkanHelper::Shader::InitializeSession("../../../ModelViewer/Shaders/");
-
-    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "Vertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
-    VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({&device, "Fragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
+    VulkanHelper::Shader rgenShader = VulkanHelper::Shader::New({&device, "RayGen.slang", VulkanHelper::ShaderStages::RAYGEN_BIT}).Value();
+    VulkanHelper::Shader hitShader = VulkanHelper::Shader::New({&device, "ClosestHit.slang", VulkanHelper::ShaderStages::CLOSEST_HIT_BIT}).Value();
+    VulkanHelper::Shader missShader = VulkanHelper::Shader::New({&device, "Miss.slang", VulkanHelper::ShaderStages::MISS_BIT}).Value();
 
     VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({&device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
     VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
+
+    VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin recording initialization command buffer");
+    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window, initializationCmd, renderer.GetSwapchainImageFormat());
 
     std::array<VulkanHelper::Format, 3> vertexAttributes = {
         VulkanHelper::Format::R32G32B32_SFLOAT, // Position
@@ -110,34 +106,7 @@ Application Application::New()
     meshConfig.IndexDataSize = scene.Value().Meshes[0].Indices.Size() * sizeof(uint32_t);
     meshConfig.CommandBuffer = &initializationCmd;
 
-    VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin recording initialization command buffer");
     VulkanHelper::Mesh loadedMesh = VulkanHelper::Mesh::New(meshConfig).Value();
-
-    // Mesh texture image
-    VulkanHelper::Image::Config textureImageConfig{};
-    textureImageConfig.Device = &device;
-    textureImageConfig.Width = scene.Value().AlbedoTextures[0].Width;
-    textureImageConfig.Height = scene.Value().AlbedoTextures[0].Height;
-    textureImageConfig.Format = VulkanHelper::Format::R8G8B8A8_UNORM;
-    textureImageConfig.Usage = VulkanHelper::Image::Usage::SAMPLED_BIT | VulkanHelper::Image::Usage::TRANSFER_DST_BIT;
-    textureImageConfig.Tiling = VulkanHelper::Image::Tiling::OPTIMAL;
-    textureImageConfig.Aspect = VulkanHelper::Image::Aspect::COLOR_BIT;
-    VulkanHelper::Image textureImage = VulkanHelper::Image::New(textureImageConfig).Value();
-    textureImage.UploadData(
-        scene.Value().AlbedoTextures[0].Data.Data(),
-        scene.Value().AlbedoTextures[0].Data.Size() * sizeof(uint8_t),
-        0,
-        &initializationCmd
-    );
-    textureImage.TransitionImageLayout(
-        VulkanHelper::Image::Layout::SHADER_READ_ONLY_OPTIMAL,
-        initializationCmd
-    );
-
-    VulkanHelper::ImageView textureImageView = VulkanHelper::ImageView::New({
-        &textureImage,
-        VulkanHelper::ImageView::ViewType::VIEW_2D
-    }).Value();
 
     VulkanHelper::PushConstant pushConstant = VulkanHelper::PushConstant::New({
         VulkanHelper::ShaderStages::VERTEX_BIT,
@@ -145,20 +114,9 @@ Application Application::New()
         sizeof(glm::mat4)
     }).Value();
 
-    // Sampler
-
-    VulkanHelper::Sampler::Config samplerConfig{};
-    samplerConfig.Device = &device;
-    samplerConfig.AddressMode = VulkanHelper::Sampler::AddressMode::REPEAT;
-    samplerConfig.MinFilter = VulkanHelper::Sampler::Filter::LINEAR;
-    samplerConfig.MagFilter = VulkanHelper::Sampler::Filter::LINEAR;
-    samplerConfig.MipmapMode = VulkanHelper::Sampler::MipmapMode::LINEAR;
-    VulkanHelper::Sampler sampler = VulkanHelper::Sampler::New(samplerConfig).Value();
-
     // Descriptor set
-    std::array<VulkanHelper::DescriptorPool::PoolSize, 2> poolSizes = {
-        VulkanHelper::DescriptorPool::PoolSize{VulkanHelper::DescriptorType::SAMPLED_IMAGE, 1},
-        VulkanHelper::DescriptorPool::PoolSize{VulkanHelper::DescriptorType::SAMPLER, 1}
+    std::array<VulkanHelper::DescriptorPool::PoolSize, 1> poolSizes = {
+        VulkanHelper::DescriptorPool::PoolSize{VulkanHelper::DescriptorType::STORAGE_IMAGE, 1},
     };
     
     VulkanHelper::DescriptorPool::Config descriptorPoolConfig{};
@@ -168,33 +126,26 @@ Application Application::New()
     descriptorPoolConfig.PoolSizeCount = poolSizes.size();
     VulkanHelper::DescriptorPool descriptorPool = VulkanHelper::DescriptorPool::New(descriptorPoolConfig).Value();
 
-    std::array<VulkanHelper::DescriptorSet::BindingDescription, 2> bindingDescriptions = {
-        VulkanHelper::DescriptorSet::BindingDescription{0, 1, VulkanHelper::ShaderStages::FRAGMENT_BIT, VulkanHelper::DescriptorType::SAMPLED_IMAGE},
-        VulkanHelper::DescriptorSet::BindingDescription{1, 1, VulkanHelper::ShaderStages::FRAGMENT_BIT, VulkanHelper::DescriptorType::SAMPLER}
+    std::array<VulkanHelper::DescriptorSet::BindingDescription, 1> bindingDescriptions = {
+        VulkanHelper::DescriptorSet::BindingDescription{0, 1, VulkanHelper::ShaderStages::RAYGEN_BIT, VulkanHelper::DescriptorType::STORAGE_IMAGE},
     };
     VulkanHelper::DescriptorSet::Config descriptorSetConfig{};
     descriptorSetConfig.Bindings = bindingDescriptions.data();
     descriptorSetConfig.BindingCount = bindingDescriptions.size();
 
     VulkanHelper::DescriptorSet descriptorSet = descriptorPool.AllocateDescriptorSet(descriptorSetConfig).Value();
-    VH_ASSERT(descriptorSet.AddImage(0, 0, textureImageView, VulkanHelper::Image::Layout::SHADER_READ_ONLY_OPTIMAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
-    VH_ASSERT(descriptorSet.AddSampler(1, 0, sampler) == VulkanHelper::VHResult::OK, "Failed to add sampler to descriptor set");
+    VH_ASSERT(descriptorSet.AddImage(0, 0, colorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
 
-    VulkanHelper::Pipeline::GraphicsConfig pipelineConfig{};
+    VulkanHelper::Pipeline::RayTracingConfig pipelineConfig{};
     pipelineConfig.Device = &device;
-    pipelineConfig.Shaders.PushBack(&vertexShader);
-    pipelineConfig.Shaders.PushBack(&fragShader);
-    pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
-    pipelineConfig.AttributeDesc = loadedMesh.GetAttributesDescriptions();
-    pipelineConfig.BindingDesc = loadedMesh.GetBindingDescription();
+    pipelineConfig.RayGenShaders.PushBack(&rgenShader);
+    pipelineConfig.HitShaders.PushBack(&hitShader);
+    pipelineConfig.MissShaders.PushBack(&missShader);
     pipelineConfig.PushConstant = &pushConstant;
-    pipelineConfig.DepthTestEnable = true;
     pipelineConfig.DescriptorSets.PushBack(&descriptorSet);
-    pipelineConfig.SampleCount = s_SampleCount;
+    pipelineConfig.CommandBuffer = &initializationCmd;
 
-    VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
-
-    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window, initializationCmd, renderer.GetSwapchainImageFormat());
+    VulkanHelper::Pipeline rtPipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
 
     VH_ASSERT(initializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end recording initialization command buffer");
     VH_ASSERT(initializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit initialization command buffer");
@@ -204,19 +155,17 @@ Application Application::New()
         std::move(window),
         std::move(device),
         std::move(renderer),
-        std::move(vertexShader),
-        std::move(fragShader),
-        std::move(pipeline),
+        std::move(rgenShader),
+        std::move(hitShader),
+        std::move(missShader),
+        std::move(rtPipeline),
         std::move(loadedMesh),
         std::move(descriptorPool),
         std::move(descriptorSet),
-        std::move(textureImage),
-        std::move(textureImageView),
         std::move(depthImage),
         std::move(depthImageView),
         std::move(colorImage),
         std::move(colorImageView),
-        std::move(sampler),
         std::move(pushConstant),
         std::move(commandPool),
         std::move(initializationCmd)
@@ -257,6 +206,7 @@ void Application::Run()
             m_DepthImageView.~ImageView();
             m_DepthImage.~Image();
             std::tie(m_ColorImage, m_ColorImageView, m_DepthImage, m_DepthImageView) = CreateImages(m_Device, m_Window, m_InitializationCmd, m_Renderer.GetSwapchainImageFormat());
+            VH_ASSERT(m_TextureSet.AddImage(0, 0, m_ColorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
 
             float aspect = static_cast<float>(m_Window.GetWidth()) / static_cast<float>(m_Window.GetHeight());
             projection = glm::perspective(glm::radians(38.0f), aspect, 0.1f, 100.0f);
@@ -270,15 +220,14 @@ void Application::Run()
         VulkanHelper::CommandBuffer* commandBuffer = m_Renderer.BeginFrame().Value();
 
         m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, *commandBuffer);
-        m_Renderer.BeginRendering(*commandBuffer, {&m_ColorImageView}, &m_DepthImageView, {0.1f, 0.1f, 0.1f, 1.0f}, 1.0f, m_Renderer.GetCurrentSwapchainImageView());
 
-        m_GraphicsPipeline.Bind(commandBuffer);
+        m_RTPipeline.Bind(commandBuffer);
+        m_RTPipeline.RayTrace(commandBuffer, m_Renderer.GetCurrentSwapchainImage()->GetWidth(), m_Renderer.GetCurrentSwapchainImage()->GetHeight(), 1);
 
-        // Bind and draw the triangle mesh
-        m_LoadedMesh.Bind(commandBuffer);
-        m_LoadedMesh.Draw(commandBuffer);
-
-        m_Renderer.EndRendering(*commandBuffer);
+        m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_SRC_OPTIMAL, *commandBuffer);
+        m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_DST_OPTIMAL, *commandBuffer);
+        VH_ASSERT(m_Renderer.GetCurrentSwapchainImage()->BlitFromImage(m_ColorImage, *commandBuffer) == VulkanHelper::VHResult::OK, "Failed to copy image");
+        m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::GENERAL, *commandBuffer);
 
         VH_ASSERT(m_Renderer.EndFrame() == VulkanHelper::VHResult::OK, "Failed to end frame");
     }

@@ -25,6 +25,13 @@ namespace VulkanHelper
         VulkanHelper::Vector<const char*> extensions;
         extensions.PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
         extensions.PushBack(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+        extensions.PushBack(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+        if (requestRTSupport)
+        {
+            extensions.PushBack(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+            extensions.PushBack(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+            extensions.PushBack(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        }
 
         VkPhysicalDeviceFeatures2 features{};
         features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
@@ -41,9 +48,23 @@ namespace VulkanHelper
         sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
         sync2Features.synchronization2 = VK_TRUE;
 
+        VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures{};
+        bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR;
+        bufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+
         features.pNext = &dynamicRenderingFeatures;
         dynamicRenderingFeatures.pNext = &device11Features;
         device11Features.pNext = &sync2Features;
+        sync2Features.pNext = &bufferDeviceAddressFeatures;
+
+
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures{};
+        if (requestRTSupport)
+        {
+            rtFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+            rtFeatures.rayTracingPipeline = VK_TRUE;
+            bufferDeviceAddressFeatures.pNext = &rtFeatures;
+        }
 
         if (!windows.Empty())
         {
@@ -330,5 +351,21 @@ namespace VulkanHelper
     void Device::WaitUntilIdle() const
     {
         m_Impl->WaitUntilIdle();
+    }
+
+    SampleCount Device::GetMaxSampleCount() const
+    {
+        VkSampleCountFlags sampleCounts = m_Impl->GetPhysicalDeviceProperties().properties.limits.framebufferColorSampleCounts & m_Impl->GetPhysicalDeviceProperties().properties.limits.framebufferDepthSampleCounts;
+        
+        // Sample counts are a bitmask, so we need to check which bits are set, otherwise we end up with an undefined mix of color and depth sample counts.
+        return static_cast<SampleCount>(
+            (sampleCounts & VK_SAMPLE_COUNT_64_BIT) ? SampleCount::COUNT_64_BIT :
+            (sampleCounts & VK_SAMPLE_COUNT_32_BIT) ? SampleCount::COUNT_32_BIT :
+            (sampleCounts & VK_SAMPLE_COUNT_16_BIT) ? SampleCount::COUNT_16_BIT :
+            (sampleCounts & VK_SAMPLE_COUNT_8_BIT) ? SampleCount::COUNT_8_BIT :
+            (sampleCounts & VK_SAMPLE_COUNT_4_BIT) ? SampleCount::COUNT_4_BIT :
+            (sampleCounts & VK_SAMPLE_COUNT_2_BIT) ? SampleCount::COUNT_2_BIT :
+            SampleCount::COUNT_1_BIT
+        );
     }
 } // namespace VulkanHelper

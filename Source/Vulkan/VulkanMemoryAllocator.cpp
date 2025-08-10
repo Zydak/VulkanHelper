@@ -5,6 +5,7 @@
 #include "Log/Log.h"
 
 #include "Utility/Utility.h"
+#include "Vulkan/Buffer.h"
 
 namespace VulkanHelper
 {
@@ -31,7 +32,7 @@ namespace VulkanHelper
         }
 
         VmaAllocatorCreateInfo allocatorCreateInfo = {};
-        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
         allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_2;
         allocatorCreateInfo.physicalDevice = physicalDevice;
         allocatorCreateInfo.device = device;
@@ -88,7 +89,7 @@ namespace VulkanHelper
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
         if (allowMapping)
-            allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+            allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
         BufferAllocation allocation = {};
         VkResult result = vmaCreateBufferWithAlignment(m_Allocator, &bufferInfo, &allocInfo, alignment, &allocation.Buffer, &allocation.Allocation, nullptr);

@@ -157,7 +157,55 @@ namespace VulkanHelper
          */
         struct RayTracingConfig
         {
-            // TODO: Add ray tracing pipeline configuration
+            /**
+             * @brief The logical device that will own this pipeline
+             * 
+             * @note Must not be nullptr and must outlive this object
+             */
+            VulkanHelper::Device* Device = nullptr;
+
+            /**
+             * @brief Ray Generation shaders
+             * 
+             * @note Must not be empty and all shaders must outlive this object
+             */
+            VulkanHelper::Vector<Shader*> RayGenShaders;
+
+            /**
+             * @brief Miss shaders
+             * 
+             * @note Must outlive this object
+             */
+            VulkanHelper::Vector<Shader*> MissShaders;
+
+            /**
+             * @brief Hit shaders
+             * 
+             * @note Must outlive this object
+             */
+            VulkanHelper::Vector<Shader*> HitShaders;
+
+            /**
+             * @brief Descriptor sets to bind with this pipeline (Optional)
+             * 
+             * @note If not empty, descriptor sets will be automatically bound when the pipeline is bound
+             * @note All descriptor sets must outlive this object
+             */
+            VulkanHelper::Vector<DescriptorSet*> DescriptorSets;
+
+            /**
+             * @brief Push constant (Optional)
+             * 
+             * @note If not nullptr, must outlive this object
+             */
+			VulkanHelper::PushConstant* PushConstant = nullptr;
+
+            /**
+             * @brief Command buffer used for SBT creation
+             * 
+             * @note Must not be nullptr and must outlive this object
+             */
+            VulkanHelper::CommandBuffer* CommandBuffer = nullptr;
         };
 
         /**
@@ -223,6 +271,18 @@ namespace VulkanHelper
          * @note Available only for compute pipelines
          */
         void Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+
+        /**
+         * @brief Dispatches a ray tracing shader with the specified dimensions.
+         * 
+         * @param commandBuffer The command buffer to dispatch the ray tracing shader on
+         * @param width Width of the ray tracing dispatch
+         * @param height Height of the ray tracing dispatch
+         * @param depth Depth of the ray tracing dispatch (default is 1)
+         * 
+         * @note Available only for ray tracing pipelines
+         */
+        void RayTrace(CommandBuffer* commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
 
         class Impl;
     private:
