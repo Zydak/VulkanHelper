@@ -23,6 +23,8 @@ public:
 
 private:
 
+    void Resize();
+
     Application(
         VulkanHelper::Instance&& instance,
         VulkanHelper::Window&& window,

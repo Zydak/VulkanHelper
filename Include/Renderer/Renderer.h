@@ -79,13 +79,13 @@ namespace VulkanHelper
          * @return Expected containing command buffer or error code
          * @note Must be paired with EndFrame()
          */
-        [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
+        [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame(bool* outWasSwapchainRecreated);
 
         /**
          * @brief Ends the current frame and submits for presentation
          * @return VHResult indicating success or failure
          */
-        [[nodiscard]] VHResult EndFrame();
+        [[nodiscard]] VHResult EndFrame(bool* outWasSwapchainRecreated);
 
         /**
          * @brief Begins a render pass for specified render targets
@@ -134,6 +134,18 @@ namespace VulkanHelper
          * @return Format enum value of the swapchain images
          */
         [[nodiscard]] Format GetSwapchainImageFormat() const;
+
+        /**
+         * @brief Gets the width of the swapchain images
+         * @return Width in pixels of the swapchain images
+         */
+        [[nodiscard]] uint32_t GetSwapchainImageWidth() const;
+
+        /**
+         * @brief Gets the height of the swapchain images
+         * @return Height in pixels of the swapchain images
+         */
+        [[nodiscard]] uint32_t GetSwapchainImageHeight() const;
 
         class Impl;
     private:

@@ -407,4 +407,14 @@ namespace VulkanHelper
     {
         return m_Impl->GetSwapchainImageFormat();
     }
+
+    uint32_t Swapchain::GetSwapchainImageWidth() const
+    {
+        return m_Impl->GetImageWidth();
+    }
+
+    uint32_t Swapchain::GetSwapchainImageHeight() const
+    {
+        return m_Impl->GetImageHeight();
+    }
 }

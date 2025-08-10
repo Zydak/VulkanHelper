@@ -28,8 +28,8 @@ namespace VulkanHelper
         [[nodiscard]] inline static Impl* GetImplementation(const Renderer* publicInterface) { return publicInterface->m_Impl.Get(); }
         [[nodiscard]] inline static Renderer CreatePublicInterface(UniquePtr<Impl>&& impl) { return Renderer(VulkanHelper::Move(impl)); }
 
-        [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame();
-        [[nodiscard]] VHResult EndFrame();
+        [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame(bool* outWasSwapchainRecreated);
+        [[nodiscard]] VHResult EndFrame(bool* outWasSwapchainRecreated);
 
         void BeginRendering(
             CommandBuffer& commandBuffer,
@@ -46,6 +46,8 @@ namespace VulkanHelper
         [[nodiscard]] inline Image* GetCurrentSwapchainImage() const { return m_Swapchain.GetCurrentSwapchainImage(); }
         [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() const { return m_Swapchain.GetCurrentSwapchainImageView(); }
         [[nodiscard]] inline Format GetSwapchainImageFormat() const { return m_Swapchain.GetSwapchainImageFormat(); }
+        [[nodiscard]] inline uint32_t GetSwapchainImageWidth() const { return m_Swapchain.GetSwapchainImageWidth(); }
+        [[nodiscard]] inline uint32_t GetSwapchainImageHeight() const { return m_Swapchain.GetSwapchainImageHeight(); }
 
     private:
         VHResult RecreateSwapchain();

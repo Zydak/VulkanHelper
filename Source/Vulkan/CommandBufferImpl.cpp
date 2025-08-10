@@ -72,6 +72,12 @@ namespace VulkanHelper
 
     VHResult CommandBuffer::Impl::Submit(PipelineStages waitStage, Semaphore** waitSemaphore, uint32_t waitSemaphoreCount, Semaphore** signalSemaphores, uint32_t signalSemaphoreCount, Fence* fence)
     {
+        if (m_CommandPool->m_Device == nullptr)
+        {
+            VH_LOG_ERROR("Command pool device is null, cannot submit command buffer");
+            return VHResult::WRONG_ARGUMENTS;
+        }
+        
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;

@@ -83,14 +83,18 @@ namespace VulkanHelper
         return *this;
     }
 
-    Expected<CommandBuffer*, VHResult> Renderer::Impl::BeginFrame()
+    Expected<CommandBuffer*, VHResult> Renderer::Impl::BeginFrame(bool* outWasSwapchainRecreated)
     {
         m_Device->GetDeleteQueue().Update();
-        
+        if (outWasSwapchainRecreated)
+            *outWasSwapchainRecreated = false;
+
         VHResult res = m_Swapchain.AcquireNextImage();
         if (res == VHResult::OUT_OF_DATE_KHR)
         {
             res = RecreateSwapchain();
+            if (outWasSwapchainRecreated)
+                *outWasSwapchainRecreated = true;
             if (res != VHResult::OK)
                 return Unexpected(res);
         }
@@ -108,8 +112,10 @@ namespace VulkanHelper
         return &m_CommandBuffers[currentFrameIndex];
     }
 
-    VHResult Renderer::Impl::EndFrame()
+    VHResult Renderer::Impl::EndFrame(bool* outWasSwapchainRecreated)
     {
+        if (outWasSwapchainRecreated)
+            *outWasSwapchainRecreated = false;
         const uint32_t currentFrameIndex = m_Swapchain.GetCurrentFrameIndex();
 
         m_Swapchain.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::PRESENT_SRC_KHR, m_CommandBuffers[currentFrameIndex], 0, 1);
@@ -121,6 +127,8 @@ namespace VulkanHelper
         if (res == VHResult::OUT_OF_DATE_KHR)
         {
             res = RecreateSwapchain();
+            if (outWasSwapchainRecreated)
+                *outWasSwapchainRecreated = true;
             if (res != VHResult::OK)
                 return res;
         }
@@ -319,14 +327,14 @@ namespace VulkanHelper
         
     }
 
-    Expected<CommandBuffer*, VHResult> Renderer::BeginFrame()
+    Expected<CommandBuffer*, VHResult> Renderer::BeginFrame(bool* outWasSwapchainRecreated)
     {
-        return m_Impl->BeginFrame();
+        return m_Impl->BeginFrame(outWasSwapchainRecreated);
     }
 
-    VHResult Renderer::EndFrame()
+    VHResult Renderer::EndFrame(bool* outWasSwapchainRecreated)
     {
-        return m_Impl->EndFrame();
+        return m_Impl->EndFrame(outWasSwapchainRecreated);
     }
 
     void Renderer::BeginRendering(
@@ -361,5 +369,15 @@ namespace VulkanHelper
     Format Renderer::GetSwapchainImageFormat() const
     {
         return m_Impl->GetSwapchainImageFormat();
+    }
+
+    uint32_t Renderer::GetSwapchainImageWidth() const
+    {
+        return m_Impl->GetSwapchainImageWidth();
+    }
+
+    uint32_t Renderer::GetSwapchainImageHeight() const
+    {
+        return m_Impl->GetSwapchainImageHeight();
     }
 }

@@ -3,15 +3,16 @@
 
 static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Image, VulkanHelper::ImageView> CreateImages(
     VulkanHelper::Device& device,
-    VulkanHelper::Window& window,
+    uint32_t width,
+    uint32_t height,
     VulkanHelper::CommandBuffer& commandBuffer,
     VulkanHelper::Format format
 )
 {
     VulkanHelper::Image::Config colorImageConfig{};
     colorImageConfig.Device = &device;
-    colorImageConfig.Width = window.GetWidth();
-    colorImageConfig.Height = window.GetHeight();
+    colorImageConfig.Width = width;
+    colorImageConfig.Height = height;
     colorImageConfig.Format = format;
     colorImageConfig.Usage = VulkanHelper::Image::Usage::STORAGE_BIT | VulkanHelper::Image::Usage::TRANSFER_SRC_BIT;
     colorImageConfig.Tiling = VulkanHelper::Image::Tiling::OPTIMAL;
@@ -30,8 +31,8 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
 
     VulkanHelper::Image::Config depthImageConfig{};
     depthImageConfig.Device = &device;
-    depthImageConfig.Width = window.GetWidth();
-    depthImageConfig.Height = window.GetHeight();
+    depthImageConfig.Width = width;
+    depthImageConfig.Height = height;
     depthImageConfig.Format = VulkanHelper::Format::D32_SFLOAT;
     depthImageConfig.Usage = VulkanHelper::Image::Usage::DEPTH_STENCIL_ATTACHMENT_BIT;
     depthImageConfig.Tiling = VulkanHelper::Image::Tiling::OPTIMAL;
@@ -88,7 +89,7 @@ Application Application::New()
     VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
 
     VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin recording initialization command buffer");
-    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window, initializationCmd, renderer.GetSwapchainImageFormat());
+    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window.GetWidth(), window.GetHeight(), initializationCmd, renderer.GetSwapchainImageFormat());
 
     std::array<VulkanHelper::Format, 3> vertexAttributes = {
         VulkanHelper::Format::R32G32B32_SFLOAT, // Position
@@ -109,7 +110,7 @@ Application Application::New()
     VulkanHelper::Mesh loadedMesh = VulkanHelper::Mesh::New(meshConfig).Value();
 
     VulkanHelper::PushConstant pushConstant = VulkanHelper::PushConstant::New({
-        VulkanHelper::ShaderStages::VERTEX_BIT,
+        VulkanHelper::ShaderStages::RAYGEN_BIT,
         nullptr, // No initial data
         sizeof(glm::mat4)
     }).Value();
@@ -179,6 +180,7 @@ void Application::Run()
     model = glm::translate(model, glm::vec3(0.0f, 0.25f, 0.0f));
     model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Blender has some really weird coordinate system
     auto timer = std::chrono::high_resolution_clock::now();
+    bool wasSwapchainRecreated = false;
     while (!m_Window.WantsToClose())
     {
         {
@@ -196,28 +198,14 @@ void Application::Run()
         }
 
         VulkanHelper::Window::PollEvents();
-        static glm::uvec2 lastWindowSize = {m_Window.GetWidth(), m_Window.GetHeight()};
-        if (lastWindowSize.x != m_Window.GetWidth() || lastWindowSize.y != m_Window.GetHeight())
+
+        VulkanHelper::CommandBuffer* commandBuffer = m_Renderer.BeginFrame(&wasSwapchainRecreated).Value();
+        if (wasSwapchainRecreated)
         {
-            VH_ASSERT(m_InitializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin command buffer recording");
-            
-            m_ColorImageView.~ImageView();
-            m_ColorImage.~Image();
-            m_DepthImageView.~ImageView();
-            m_DepthImage.~Image();
-            std::tie(m_ColorImage, m_ColorImageView, m_DepthImage, m_DepthImageView) = CreateImages(m_Device, m_Window, m_InitializationCmd, m_Renderer.GetSwapchainImageFormat());
-            VH_ASSERT(m_TextureSet.AddImage(0, 0, m_ColorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
-
-            float aspect = static_cast<float>(m_Window.GetWidth()) / static_cast<float>(m_Window.GetHeight());
+            Resize();
+            float aspect = static_cast<float>(m_Renderer.GetSwapchainImageWidth()) / static_cast<float>(m_Renderer.GetSwapchainImageHeight());
             projection = glm::perspective(glm::radians(38.0f), aspect, 0.1f, 100.0f);
-
-            lastWindowSize = {m_Window.GetWidth(), m_Window.GetHeight()};
-
-            VH_ASSERT(m_InitializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");
-            VH_ASSERT(m_InitializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit command buffer");
         }
-
-        VulkanHelper::CommandBuffer* commandBuffer = m_Renderer.BeginFrame().Value();
 
         m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, *commandBuffer);
 
@@ -229,8 +217,30 @@ void Application::Run()
         VH_ASSERT(m_Renderer.GetCurrentSwapchainImage()->BlitFromImage(m_ColorImage, *commandBuffer) == VulkanHelper::VHResult::OK, "Failed to copy image");
         m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::GENERAL, *commandBuffer);
 
-        VH_ASSERT(m_Renderer.EndFrame() == VulkanHelper::VHResult::OK, "Failed to end frame");
+        VH_ASSERT(m_Renderer.EndFrame(&wasSwapchainRecreated) == VulkanHelper::VHResult::OK, "Failed to end frame");
+        if (wasSwapchainRecreated)
+        {
+            Resize();
+            float aspect = static_cast<float>(m_Renderer.GetSwapchainImageWidth()) / static_cast<float>(m_Renderer.GetSwapchainImageHeight());
+            projection = glm::perspective(glm::radians(38.0f), aspect, 0.1f, 100.0f);
+        }
     }
 
     m_Device.WaitUntilIdle();
+}
+
+void Application::Resize()
+{
+    VH_ASSERT(m_InitializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin command buffer recording");
+            
+    m_ColorImageView.~ImageView();
+    m_ColorImage.~Image();
+    m_DepthImageView.~ImageView();
+    m_DepthImage.~Image();
+
+    std::tie(m_ColorImage, m_ColorImageView, m_DepthImage, m_DepthImageView) = CreateImages(m_Device, m_Renderer.GetSwapchainImageWidth(), m_Renderer.GetSwapchainImageHeight(), m_InitializationCmd, m_Renderer.GetSwapchainImageFormat());
+    VH_ASSERT(m_TextureSet.AddImage(0, 0, m_ColorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
+
+    VH_ASSERT(m_InitializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");
+    VH_ASSERT(m_InitializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit command buffer");
 }

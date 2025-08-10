@@ -40,6 +40,12 @@ namespace VulkanHelper
 
         [[nodiscard]] inline VkSwapchainKHR GetSwapchain() const { return m_Swapchain; }
 
+        [[nodiscard]] inline VulkanHelper::Vector<Image>& GetImages() { return m_Images; }
+        [[nodiscard]] inline VulkanHelper::Vector<ImageView>& GetImageViews() { return m_ImageViews; }
+
+        [[nodiscard]] inline uint32_t GetImageWidth() const { return m_Images[0].GetWidth(); }
+        [[nodiscard]] inline uint32_t GetImageHeight() const { return m_Images[0].GetHeight(); }
+
     private:
 
         Impl(

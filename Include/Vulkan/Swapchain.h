@@ -93,6 +93,16 @@ namespace VulkanHelper
          */
         [[nodiscard]] Format GetSwapchainImageFormat() const;
 
+        /**
+         * @brief Gets the width of the swapchain images.
+         */
+        [[nodiscard]] uint32_t GetSwapchainImageWidth() const;
+
+        /**
+         * @brief Gets the height of the swapchain images.
+         */
+        [[nodiscard]] uint32_t GetSwapchainImageHeight() const;
+
         class Impl;
     private:
         friend class Impl;

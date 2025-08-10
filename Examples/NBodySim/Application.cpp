@@ -37,7 +37,7 @@ Application Application::New()
         }
     }
 
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 600, 600, "NBodySim Example", "", true}).Value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 900, 900, "NBodySim Example", "", true}).Value();
 
     VulkanHelper::Vector<VulkanHelper::Window*> windows;
     windows.PushBack(&window);
@@ -171,7 +171,7 @@ void Application::Run()
     {
         m_Window.PollEvents();
         
-        VulkanHelper::CommandBuffer* cmd = m_Renderer.BeginFrame().Value();
+        VulkanHelper::CommandBuffer* cmd = m_Renderer.BeginFrame(nullptr).Value();
 
         m_Pipeline.Bind(cmd);
         m_Pipeline.Dispatch(cmd, POINTS_COUNT / 32 + 1, 1, 1);
@@ -190,7 +190,7 @@ void Application::Run()
         m_Points.Draw(cmd);
         m_Renderer.EndRendering(*cmd);
 
-        VH_ASSERT(m_Renderer.EndFrame() == VulkanHelper::VHResult::OK, "Failed to end frame!");
+        VH_ASSERT(m_Renderer.EndFrame(nullptr) == VulkanHelper::VHResult::OK, "Failed to end frame!");
     }
 
     m_Device.WaitUntilIdle();

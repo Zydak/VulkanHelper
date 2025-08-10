@@ -23,7 +23,7 @@ int main()
     }
 
     // Create a window for rendering
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 600, 600, "Example Project", "", true}).Value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 900, 900, "Example Project", "", true}).Value();
 
     // Create a Vulkan logical device
     VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
@@ -47,9 +47,9 @@ int main()
     };
     
     Vertex vertices[] = {
-        {{ 0.0f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // Top - Blue
-        {{-0.5f,  0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // Bottom left - Green  
-        {{ 0.5f,  0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}  // Bottom right - Red
+        {{ 0.0f, -0.75f, 0.0f}, {0.0f, 0.0f, 1.0f}}, // Top - Blue
+        {{-0.75f, 0.75f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // Bottom left - Green  
+        {{ 0.75f, 0.75f, 0.0f}, {1.0f, 0.0f, 0.0f}}  // Bottom right - Red
     };
     
     uint32_t indices[] = {0, 1, 2};
@@ -89,7 +89,7 @@ int main()
     while (!window.WantsToClose())
     {
         VulkanHelper::Window::PollEvents();
-        VulkanHelper::CommandBuffer* commandBuffer = renderer.BeginFrame().Value();
+        VulkanHelper::CommandBuffer* commandBuffer = renderer.BeginFrame(nullptr).Value();
 
         renderer.BeginRendering(*commandBuffer, {renderer.GetCurrentSwapchainImageView()}, nullptr);
 
@@ -101,7 +101,7 @@ int main()
 
         renderer.EndRendering(*commandBuffer);
 
-        VH_ASSERT(renderer.EndFrame() == VulkanHelper::VHResult::OK, "Failed to end frame");
+        VH_ASSERT(renderer.EndFrame(nullptr) == VulkanHelper::VHResult::OK, "Failed to end frame");
     }
 
     device.WaitUntilIdle();
