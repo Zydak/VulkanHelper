@@ -169,7 +169,7 @@ namespace VulkanHelper
         }
     }
 
-    VHResult Buffer::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd)
+    VHResult Buffer::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd)
     {
         if (!data)
         {
@@ -245,8 +245,7 @@ namespace VulkanHelper
             m_Device->UnmapMemory(scratchAllocation.Allocation);
 
             // Copy from scratch buffer to main buffer using GPU
-            CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(cmd);
-            VkCommandBuffer commandBuffer = cmdImpl->GetCommandBuffer();
+            VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
 
             VkBufferCopy copyRegion{};
             copyRegion.srcOffset = scratchOffset;
@@ -262,7 +261,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult Buffer::Impl::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd) const
+    VHResult Buffer::Impl::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd) const
     {
         if (!data)
         {
@@ -326,9 +325,7 @@ namespace VulkanHelper
 
             // Copy from main buffer to scratch buffer using GPU
             uint64_t scratchOffset = hasScratchBuffer ? offset : 0;
-            
-            CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(cmd);
-            VkCommandBuffer commandBuffer = cmdImpl->GetCommandBuffer();
+            VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
 
             VkBufferCopy copyRegion{};
             copyRegion.srcOffset = offset;
@@ -421,10 +418,9 @@ namespace VulkanHelper
         m_MappedData = nullptr;
     }
 
-    VHResult Buffer::Impl::CopyFrom(CommandBuffer& cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
+    VHResult Buffer::Impl::CopyFrom(CommandBuffer::Impl* cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
     {
-        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(&cmd);
-        VkCommandBuffer commandBuffer = cmdImpl->GetCommandBuffer();
+        VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
 
         VkBuffer srcBuffer = source.GetBuffer();
 
@@ -457,10 +453,9 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult Buffer::Impl::CopyToImage(CommandBuffer& cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
+    VHResult Buffer::Impl::CopyToImage(CommandBuffer::Impl* cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
     {
-        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(&cmd);
-        VkCommandBuffer commandBuffer = cmdImpl->GetCommandBuffer();
+        VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
 
         VkImage dstImage = dst.GetImage();
 
@@ -498,7 +493,7 @@ namespace VulkanHelper
         return m_Device->AllocateBuffer(stagingBufferInfo, true); // Always CPU mappable
     }
 
-    void Buffer::Impl::Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
+    void Buffer::Impl::Barrier(CommandBuffer::Impl* cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
     {
         VkBufferMemoryBarrier bufferBarrier{};
         bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -510,9 +505,8 @@ namespace VulkanHelper
         bufferBarrier.offset = 0;
         bufferBarrier.size = VK_WHOLE_SIZE;
 
-        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(&cmd);
         vkCmdPipelineBarrier(
-            cmdImpl->GetCommandBuffer(),
+            cmd->GetCommandBuffer(),
             static_cast<VkPipelineStageFlags>(srcStage),
             static_cast<VkPipelineStageFlags>(dstStage),
             0,
@@ -580,12 +574,12 @@ namespace VulkanHelper
 
     VHResult Buffer::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd)
     {
-        return m_Impl->UploadData(data, size, offset, cmd);
+        return m_Impl->UploadData(data, size, offset, cmd != nullptr ? CommandBuffer::Impl::GetImplementation(cmd) : nullptr);
     }
 
     VHResult Buffer::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd) const
     {
-        return m_Impl->DownloadData(data, size, offset, cmd);
+        return m_Impl->DownloadData(data, size, offset, cmd != nullptr ? CommandBuffer::Impl::GetImplementation(cmd) : nullptr);
     }
 
     Expected<void*, VHResult> Buffer::Map()
@@ -600,12 +594,12 @@ namespace VulkanHelper
 
     VHResult Buffer::CopyFrom(CommandBuffer& cmd, const Buffer& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
     {
-        return m_Impl->CopyFrom(cmd, *Buffer::Impl::GetImplementation(&source), srcOffset, dstOffset, size);
+        return m_Impl->CopyFrom(CommandBuffer::Impl::GetImplementation(&cmd), *Buffer::Impl::GetImplementation(&source), srcOffset, dstOffset, size);
     }
 
     VHResult Buffer::CopyToImage(CommandBuffer& cmd, const Image& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
     {
-        return m_Impl->CopyToImage(cmd, *Image::Impl::GetImplementation(&dst), bufferOffset, bufferRowLength, bufferImageHeight);
+        return m_Impl->CopyToImage(CommandBuffer::Impl::GetImplementation(&cmd), *Image::Impl::GetImplementation(&dst), bufferOffset, bufferRowLength, bufferImageHeight);
     }
 
     uint64_t Buffer::GetSize() const
@@ -625,6 +619,6 @@ namespace VulkanHelper
 
     void Buffer::Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
     {
-        m_Impl->Barrier(cmd, srcAccess, dstAccess, srcStage, dstStage);
+        m_Impl->Barrier(CommandBuffer::Impl::GetImplementation(&cmd), srcAccess, dstAccess, srcStage, dstStage);
     }
 }

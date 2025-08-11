@@ -238,7 +238,7 @@ namespace VulkanHelper
         Vector<Shader::Impl*>&& MissShaders,
         Vector<DescriptorSet::Impl*>&& descriptorSets,
         PushConstant::Impl* pushConstant,
-        CommandBuffer& cmd
+        CommandBuffer::Impl* cmd
     )
     {
         VH_LOG_INFO("Creating RayTracing Pipeline Implementation");
@@ -710,7 +710,7 @@ namespace VulkanHelper
             Move(missShaders),
             Move(descriptorSets),
             pushConstant,
-            *config.CommandBuffer
+            CommandBuffer::Impl::GetImplementation(config.CommandBuffer)
         );
         if (!implResult.HasValue())
         {

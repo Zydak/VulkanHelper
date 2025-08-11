@@ -4,6 +4,7 @@
 #include "Vulkan/Buffer.h"
 #include "DeviceImpl.h"
 #include "ImageImpl.h"
+#include "CommandBufferImpl.h"
 
 namespace VulkanHelper
 {
@@ -40,7 +41,7 @@ namespace VulkanHelper
          * @param cmd Command buffer for GPU operations (required for non-mappable buffers).
          * @return VHResult::OK on success, or an error code on failure.
          */
-        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
+        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr);
 
         /**
          * @brief Download data from the buffer.
@@ -51,7 +52,7 @@ namespace VulkanHelper
          * @param cmd Command buffer for GPU operations (required for non-mappable buffers).
          * @return VHResult::OK on success, or an error code on failure.
          */
-        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr) const;
+        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr) const;
 
         /**
          * @brief Map buffer memory for CPU access.
@@ -75,7 +76,7 @@ namespace VulkanHelper
          * @param size Size to copy.
          * @return VHResult::OK on success, or an error code on failure.
          */
-        VHResult CopyFrom(CommandBuffer& cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
+        VHResult CopyFrom(CommandBuffer::Impl* cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
 
         /**
          * @brief Copy buffer data to an image using GPU commands.
@@ -87,9 +88,9 @@ namespace VulkanHelper
          * @param bufferImageHeight Buffer image height.
          * @return VHResult::OK on success, or an error code on failure.
          */
-        VHResult CopyToImage(CommandBuffer& cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
+        VHResult CopyToImage(CommandBuffer::Impl* cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
 
-        void Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
+        void Barrier(CommandBuffer::Impl* cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
     private:
         Device::Impl* m_Device;
         VulkanMemoryAllocator::BufferAllocation m_BufferAllocation;

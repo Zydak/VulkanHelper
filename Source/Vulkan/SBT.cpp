@@ -7,7 +7,7 @@
 
 namespace VulkanHelper
 {
-    Expected<SBT, VHResult> SBT::New(Device::Impl* device, VkPipeline rtPipeline, uint32_t rgenCount, uint32_t missCount, uint32_t hitGroupCount, CommandBuffer& cmd)
+    Expected<SBT, VHResult> SBT::New(Device::Impl* device, VkPipeline rtPipeline, uint32_t rgenCount, uint32_t missCount, uint32_t hitGroupCount, CommandBuffer::Impl* cmd)
     {
         VH_LOG_INFO("Creating SBT Implementation");
 

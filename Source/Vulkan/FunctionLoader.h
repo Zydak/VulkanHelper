@@ -45,6 +45,55 @@ namespace VulkanHelper
             return func(commandBuffer, pRaygenShaderBindingTable, pMissShaderBindingTable, pHitShaderBindingTable, pCallableShaderBindingTable, width, height, depth);
         }
 
+        static inline VkResult vkCreateAccelerationStructureKHR(VkDevice device, VkAccelerationStructureCreateInfoKHR* createInfo, const VkAllocationCallbacks* pAllocator, VkAccelerationStructureKHR* structure)
+        {
+            static auto func = (PFN_vkCreateAccelerationStructureKHR)vkGetInstanceProcAddr(m_Instance, "vkCreateAccelerationStructureKHR");
+            VH_ASSERT(func != nullptr, "vkCreateAccelerationStructureKHR not Present!");
+            return func(device, createInfo, pAllocator, structure);
+        }
+
+        static inline void vkDestroyAccelerationStructureKHR(VkDevice device, VkAccelerationStructureKHR structure, const VkAllocationCallbacks* pAllocator)
+        {
+            static auto func = (PFN_vkDestroyAccelerationStructureKHR)vkGetInstanceProcAddr(m_Instance, "vkDestroyAccelerationStructureKHR");
+            VH_ASSERT(func != nullptr, "vkDestroyAccelerationStructureKHR not Present!");
+            return func(device, structure, pAllocator);
+        }
+
+        static inline void vkCmdBuildAccelerationStructuresKHR(VkCommandBuffer commandBuffer, uint32_t infoCount, const VkAccelerationStructureBuildGeometryInfoKHR* pInfos, const VkAccelerationStructureBuildRangeInfoKHR* const* ppBuildRangeInfos)
+        {
+            static auto func = (PFN_vkCmdBuildAccelerationStructuresKHR)vkGetInstanceProcAddr(m_Instance, "vkCmdBuildAccelerationStructuresKHR");
+            VH_ASSERT(func != nullptr, "vkCmdBuildAccelerationStructuresKHR not Present!");
+            return func(commandBuffer, infoCount, pInfos, ppBuildRangeInfos);
+        }
+
+        static inline void vkCmdWriteAccelerationStructuresPropertiesKHR(VkCommandBuffer commandBuffer, uint32_t accelerationStructureCount, const VkAccelerationStructureKHR* pAccelerationStructures, VkQueryType queryType, VkQueryPool queryPool, uint32_t firstQuery)
+        {
+            static auto func = (PFN_vkCmdWriteAccelerationStructuresPropertiesKHR)vkGetInstanceProcAddr(m_Instance, "vkCmdWriteAccelerationStructuresPropertiesKHR");
+            VH_ASSERT(func != nullptr, "vkCmdWriteAccelerationStructuresPropertiesKHR not Present!");
+            return func(commandBuffer, accelerationStructureCount, pAccelerationStructures, queryType, queryPool, firstQuery);
+        }
+
+        static inline void vkCmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuffer, const VkCopyAccelerationStructureInfoKHR* pInfo)
+        {
+            static auto func = (PFN_vkCmdCopyAccelerationStructureKHR)vkGetInstanceProcAddr(m_Instance, "vkCmdCopyAccelerationStructureKHR");
+            VH_ASSERT(func != nullptr, "vkCmdCopyAccelerationStructureKHR not Present!");
+            return func(commandBuffer, pInfo);
+        }
+
+        static inline void vkGetAccelerationStructureBuildSizesKHR(VkDevice device, VkAccelerationStructureBuildTypeKHR buildType, const VkAccelerationStructureBuildGeometryInfoKHR* pBuildInfo, const uint32_t* pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR* pSizeInfo)
+        {
+            static auto func = (PFN_vkGetAccelerationStructureBuildSizesKHR)vkGetInstanceProcAddr(m_Instance, "vkGetAccelerationStructureBuildSizesKHR");
+            VH_ASSERT(func != nullptr, "vkGetAccelerationStructureBuildSizesKHR not Present!");
+            return func(device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo);
+        }
+
+        static inline VkDeviceAddress vkGetAccelerationStructureDeviceAddressKHR(VkDevice device, const VkAccelerationStructureDeviceAddressInfoKHR* pInfo)
+        {
+            static auto func = (PFN_vkGetAccelerationStructureDeviceAddressKHR)vkGetInstanceProcAddr(m_Instance, "vkGetAccelerationStructureDeviceAddressKHR");
+            VH_ASSERT(func != nullptr, "vkGetAccelerationStructureDeviceAddressKHR not Present!");
+            return func(device, pInfo);
+        }
+
     private:
         inline static VkInstance m_Instance;
     };

@@ -59,11 +59,21 @@ namespace VulkanHelper
 
 
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures{};
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
+        VkPhysicalDeviceHostQueryResetFeatures hostQueryResetFeatures{};
         if (requestRTSupport)
         {
             rtFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
             rtFeatures.rayTracingPipeline = VK_TRUE;
             bufferDeviceAddressFeatures.pNext = &rtFeatures;
+
+            asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+            asFeatures.accelerationStructure = VK_TRUE;
+            rtFeatures.pNext = &asFeatures;
+
+            hostQueryResetFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES;
+            hostQueryResetFeatures.hostQueryReset = VK_TRUE;
+            asFeatures.pNext = &hostQueryResetFeatures;
         }
 
         if (!windows.Empty())
@@ -144,15 +154,19 @@ namespace VulkanHelper
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProperties = {};
         rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
         rayTracingProperties.pNext = nullptr;
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR accelerationStructureProperties = {};
+        accelerationStructureProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR;
+        accelerationStructureProperties.pNext = nullptr;
         if (requestRTSupport)
         {
             physicalDeviceProperties.pNext = &rayTracingProperties;
+            rayTracingProperties.pNext = &accelerationStructureProperties;
         }
 
         vkGetPhysicalDeviceProperties2(physicalDevice.GetDevice(), &physicalDeviceProperties);
         
         // Create the Device::Impl first, then initialize the DeleteQueue with proper allocator pointer
-        UniquePtr<Impl> deviceImpl(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator), Move(physicalDeviceProperties), Move(rayTracingProperties)));
+        UniquePtr<Impl> deviceImpl(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator), Move(physicalDeviceProperties), Move(rayTracingProperties), Move(accelerationStructureProperties)));
         deviceImpl->InitializeDeleteQueue(3); // 3 frames delay
         
         return deviceImpl;
@@ -186,6 +200,9 @@ namespace VulkanHelper
         , m_QueueFamilyIndices(Move(other.m_QueueFamilyIndices))
         , m_Allocator(Move(other.m_Allocator))
         , m_DeleteQueue(Move(other.m_DeleteQueue))
+        , m_PhysicalDeviceProperties(Move(other.m_PhysicalDeviceProperties))
+        , m_RayTracingProperties(Move(other.m_RayTracingProperties))
+        , m_AccelerationStructureProperties(Move(other.m_AccelerationStructureProperties))
     {
         other.m_Device = nullptr;
     }
@@ -205,6 +222,9 @@ namespace VulkanHelper
         m_QueueFamilyIndices = Move(other.m_QueueFamilyIndices);
         m_Allocator = Move(other.m_Allocator);
         m_DeleteQueue = Move(other.m_DeleteQueue);
+        m_PhysicalDeviceProperties = Move(other.m_PhysicalDeviceProperties);
+        m_RayTracingProperties = Move(other.m_RayTracingProperties);
+        m_AccelerationStructureProperties = Move(other.m_AccelerationStructureProperties);
 
         return *this;
     }

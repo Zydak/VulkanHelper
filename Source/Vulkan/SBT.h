@@ -9,7 +9,7 @@ namespace VulkanHelper
     class SBT
     {
     public:
-        [[nodiscard]] static Expected<SBT, VHResult> New(Device::Impl* device, VkPipeline rtPipeline, uint32_t rgenCount, uint32_t missCount, uint32_t hitGroupCount, CommandBuffer& cmd);
+        [[nodiscard]] static Expected<SBT, VHResult> New(Device::Impl* device, VkPipeline rtPipeline, uint32_t rgenCount, uint32_t missCount, uint32_t hitGroupCount, CommandBuffer::Impl* cmd);
 
         SBT(const SBT& other) = delete;
         SBT& operator=(const SBT& other) = delete;

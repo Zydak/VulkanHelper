@@ -105,6 +105,7 @@ Application Application::New()
     meshConfig.VertexDataSize = scene.Value().Meshes[0].Vertices.Size() * sizeof(VulkanHelper::Vertex);
     meshConfig.IndexData = scene.Value().Meshes[0].Indices.Data();
     meshConfig.IndexDataSize = scene.Value().Meshes[0].Indices.Size() * sizeof(uint32_t);
+    meshConfig.AdditionalUsageFlags = VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT | VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT;
     meshConfig.CommandBuffer = &initializationCmd;
 
     VulkanHelper::Mesh loadedMesh = VulkanHelper::Mesh::New(meshConfig).Value();
@@ -147,6 +148,22 @@ Application Application::New()
     pipelineConfig.CommandBuffer = &initializationCmd;
 
     VulkanHelper::Pipeline rtPipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
+
+    VulkanHelper::BLAS blas = VulkanHelper::BLAS::New({
+        &device,
+        {loadedMesh.GetVertexBuffer()},
+        {loadedMesh.GetIndexBuffer()},
+        true,
+        &initializationCmd
+    }).Value();
+
+    glm::mat4 transform = glm::mat4(1.0f);
+    VulkanHelper::TLAS tlas = VulkanHelper::TLAS::New({
+        &device,
+        {&blas},
+        &transform,
+        &initializationCmd
+    }).Value();
 
     VH_ASSERT(initializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end recording initialization command buffer");
     VH_ASSERT(initializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit initialization command buffer");

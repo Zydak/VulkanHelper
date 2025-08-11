@@ -19,6 +19,7 @@
 #include "Utility/AssetImporter.h"
 
 // Vulkan
+#include "Vulkan/BLAS.h"
 #include "Vulkan/Buffer.h"
 #include "Vulkan/CommandBuffer.h"
 #include "Vulkan/CommandPool.h"
@@ -36,6 +37,7 @@
 #include "Vulkan/Semaphore.h"
 #include "Vulkan/Shader.h"
 #include "Vulkan/Swapchain.h"
+#include "Vulkan/TLAS.h"
 
 //Window
 #include "Window/Window.h"

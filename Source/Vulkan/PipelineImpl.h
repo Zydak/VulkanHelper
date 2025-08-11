@@ -50,7 +50,7 @@ namespace VulkanHelper
             Vector<Shader::Impl*>&& MissShaders,
             Vector<DescriptorSet::Impl*>&& descriptorSets,
             PushConstant::Impl* pushConstant,
-            CommandBuffer& cmd
+            CommandBuffer::Impl* cmd
         );
 
         ~Impl();

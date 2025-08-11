@@ -96,6 +96,12 @@ namespace VulkanHelper
          */
         [[nodiscard]] inline const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRayTracingProperties() const { return m_RayTracingProperties; }
 
+        /**
+         * @brief Get the acceleration structure properties of the physical device.
+         *
+         * @return Reference to the acceleration structure properties structure.
+         */
+        [[nodiscard]] inline const VkPhysicalDeviceAccelerationStructurePropertiesKHR& GetAccelerationStructureProperties() const { return m_AccelerationStructureProperties; }
     private:
 
         /**
@@ -112,6 +118,7 @@ namespace VulkanHelper
 
         VkPhysicalDeviceProperties2 m_PhysicalDeviceProperties = {};
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_RayTracingProperties = {};
+        VkPhysicalDeviceAccelerationStructurePropertiesKHR m_AccelerationStructureProperties = {};
 
         explicit Impl(
             Instance::Impl* instance,
@@ -120,7 +127,8 @@ namespace VulkanHelper
             QueueFamilyIndices&& indices,
             VulkanHelper::VulkanMemoryAllocator&& allocator,
             VkPhysicalDeviceProperties2&& physicalDeviceProperties,
-            VkPhysicalDeviceRayTracingPipelinePropertiesKHR&& rayTracingProperties
+            VkPhysicalDeviceRayTracingPipelinePropertiesKHR&& rayTracingProperties,
+            VkPhysicalDeviceAccelerationStructurePropertiesKHR&& accelerationStructureProperties = {}
         )
             : m_Instance(instance)
             , m_Device(device)
@@ -130,6 +138,7 @@ namespace VulkanHelper
             , m_DeleteQueue(VK_NULL_HANDLE, nullptr, 0) // Will be properly initialized later
             , m_PhysicalDeviceProperties(Move(physicalDeviceProperties))
             , m_RayTracingProperties(Move(rayTracingProperties))
+            , m_AccelerationStructureProperties(Move(accelerationStructureProperties))
         {}
 
         [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice::Impl& physicalDevice, const VulkanHelper::Vector<Window::Impl*>& windows);
