@@ -9,7 +9,12 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<CommandPool::Impl>, VHResult> CommandPool::Impl::New(Device::Impl* device, Flags flags, uint32_t queueFamilyIndex)
+    Expected<CommandPool::Impl, VHResult> CommandPool::Impl::New(
+        Device::Impl* device,
+        Flags flags,
+        uint32_t
+        queueFamilyIndex
+    )
     {
         VH_LOG_INFO("Creating Vulkan CommandPool Implementation");
 
@@ -41,7 +46,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return VulkanHelper::UniquePtr<Impl>(new Impl(device, commandPool, queue, flags, queueFamilyIndex));
+        return Impl(device, commandPool, queue, flags, queueFamilyIndex);
     }
 
     CommandPool::Impl::~Impl()
@@ -132,7 +137,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return CommandPool{ VulkanHelper::Move(implResult.Value()) };
+        return Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     VulkanHelper::Expected<CommandBuffer, VHResult> CommandPool::AllocateCommandBuffer(const CommandBuffer::Config& config) const

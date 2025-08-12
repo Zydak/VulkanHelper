@@ -19,13 +19,19 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const CommandBuffer* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static CommandBuffer CreatePublicInterface(UniquePtr<Impl>&& impl) { return CommandBuffer(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static CommandBuffer CreatePublicInterface(Impl&& impl) { return CommandBuffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<CommandBuffer> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new CommandBuffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] VHResult BeginRecording(Usage usageFlags);
         [[nodiscard]] VHResult EndRecording();
 
         [[nodiscard]] VHResult SubmitAndWait();
-        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore** waitSemaphore, uint32_t waitSemaphoreCount, Semaphore** signalSemaphore, uint32_t signalSemaphoreCount, Fence* fence);
+        [[nodiscard]] VHResult Submit(
+            PipelineStages waitStage,
+            const Vector<Semaphore::Impl*>& waitSemaphores,
+            const Vector<Semaphore::Impl*>& signalSemaphores,
+            Fence::Impl* fence
+        );
 
         [[nodiscard]] inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffer; }
     private:

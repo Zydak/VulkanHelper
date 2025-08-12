@@ -12,7 +12,7 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Device::Impl>, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, Vector<Window::Impl*>&& windows, Instance::Impl* instance, bool requestRTSupport)
+    Expected<Device::Impl, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, const Vector<Window::Impl*>& windows, Instance::Impl* instance, bool requestRTSupport)
     {
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
@@ -170,9 +170,17 @@ namespace VulkanHelper
         vkGetPhysicalDeviceProperties2(physicalDevice.GetDevice(), &physicalDeviceProperties);
         
         // Create the Device::Impl first, then initialize the DeleteQueue with proper allocator pointer
-        UniquePtr<Impl> deviceImpl(new Impl(instance, device, Move(physicalDevice), Move(indices), Move(allocator), Move(physicalDeviceProperties), Move(rayTracingProperties), Move(accelerationStructureProperties)));
-        deviceImpl->InitializeDeleteQueue(3); // 3 frames delay
-        
+        Impl deviceImpl(
+            instance,
+            device,
+            Move(physicalDevice),
+            Move(indices),
+            Move(allocator),
+            Move(physicalDeviceProperties),
+            Move(rayTracingProperties),
+            Move(accelerationStructureProperties)
+        );
+
         return deviceImpl;
     }
 
@@ -337,7 +345,11 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Device{ VulkanHelper::Move(implResult.Value()) };
+        Device publicInterface = Impl::CreatePublicInterface(Move(implResult.Value()));
+
+        publicInterface.m_Impl->InitializeDeleteQueue(3); // Initialize delete queue with 3 frames delay
+
+        return publicInterface;
     }
 
     Device::Device(Device&& other) noexcept

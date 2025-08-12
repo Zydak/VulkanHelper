@@ -153,7 +153,7 @@ namespace VulkanHelper
          * @param commandBuffer Command buffer to bind buffers to
          * @note Command buffer must be in recording state
          */
-        void Bind(CommandBuffer* commandBuffer) const;
+        void Bind(CommandBuffer& commandBuffer) const;
         
         /**
          * @brief Draw the mesh using the bound buffers
@@ -162,7 +162,7 @@ namespace VulkanHelper
          * @param firstInstance First instance index to draw
          * @note Command buffer must be in recording state and mesh must be bound
          */
-        void Draw(CommandBuffer* commandBuffer, uint32_t instanceCount = 1, uint32_t firstInstance = 0) const;
+        void Draw(CommandBuffer& commandBuffer, uint32_t instanceCount = 1, uint32_t firstInstance = 0) const;
 
         /**
          * @brief Get vertex attribute descriptions for the mesh

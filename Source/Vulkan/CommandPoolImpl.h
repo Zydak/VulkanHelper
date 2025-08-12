@@ -9,7 +9,7 @@ namespace VulkanHelper
     class CommandPool::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, Flags flags, uint32_t queueFamilyIndex);
+        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, Flags flags, uint32_t queueFamilyIndex);
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -18,7 +18,8 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const CommandPool* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static CommandPool CreatePublicInterface(UniquePtr<Impl>&& impl) { return CommandPool(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static CommandPool CreatePublicInterface(Impl&& impl) { return CommandPool(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<CommandPool> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new CommandPool(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] VulkanHelper::Expected<CommandBuffer, VHResult> AllocateCommandBuffer(CommandBuffer::Level level);
 

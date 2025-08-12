@@ -13,7 +13,17 @@ namespace VulkanHelper
     class Mesh::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, CommandBuffer* commandBuffer, Format* vertexAttributes, uint32_t vertexAttributeCount, void* vertexData, uint32_t vertexDataSize, void* indexData, uint32_t indexDataSize, VulkanHelper::Buffer::Usage AdditionalUsageFlags);
+        [[nodiscard]] static Expected<Impl, VHResult> New(
+            Device::Impl* device,
+            CommandBuffer::Impl* commandBuffer,
+            Format* vertexAttributes,
+            uint32_t vertexAttributeCount,
+            void* vertexData,
+            uint32_t vertexDataSize,
+            void* indexData,
+            uint32_t indexDataSize,
+            VulkanHelper::Buffer::Usage AdditionalUsageFlags
+        );
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -24,10 +34,11 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Mesh* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Mesh CreatePublicInterface(UniquePtr<Impl>&& impl) { return Mesh(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Mesh CreatePublicInterface(Impl&& impl) { return Mesh(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<Mesh> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Mesh(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
-        void Bind(CommandBuffer* commandBuffer) const;
-        void Draw(CommandBuffer* commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const;
+        void Bind(CommandBuffer::Impl* commandBuffer) const;
+        void Draw(CommandBuffer::Impl* commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const;
 
         [[nodiscard]] inline const VulkanHelper::Vector<VertexAttributeDescription>* GetAttributesDescriptions() const { return &m_VertexAttributes; };
         [[nodiscard]] VertexBindingDescription GetBindingDescription() const;

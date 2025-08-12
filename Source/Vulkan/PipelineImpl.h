@@ -15,7 +15,7 @@ namespace VulkanHelper
     {
     public:
         // Graphics
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(
+        [[nodiscard]] static Expected<Impl, VHResult> New(
             Device::Impl* device,
             Vector<Shader::Impl*>&& shaders,
             const Vector<Mesh::VertexAttributeDescription>* attributeDesc,
@@ -35,7 +35,7 @@ namespace VulkanHelper
         );
 
         // Compute
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(
+        [[nodiscard]] static Expected<Impl, VHResult> New(
             Device::Impl* device,
             Shader::Impl* computeShader,
             Vector<DescriptorSet::Impl*>&& descriptorSets,
@@ -43,7 +43,7 @@ namespace VulkanHelper
         );
 
         // Ray Tracing
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(
+        [[nodiscard]] static Expected<Impl, VHResult> New(
             Device::Impl* device,
             Vector<Shader::Impl*>&& RayGenShaders,
             Vector<Shader::Impl*>&& HitShaders,
@@ -60,13 +60,14 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const Pipeline* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Pipeline CreatePublicInterface(UniquePtr<Impl>&& impl) { return Pipeline(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Pipeline CreatePublicInterface(Impl&& impl) { return Pipeline(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<Pipeline> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Pipeline(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
-        void Bind(CommandBuffer* commandBuffer);
+        void Bind(CommandBuffer::Impl* commandBuffer);
 
-        void Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+        void Dispatch(CommandBuffer::Impl* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
-        void RayTrace(CommandBuffer* commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
+        void RayTrace(CommandBuffer::Impl* commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
 
         [[nodiscard]] inline VkPipeline GetPipeline() const { return m_Pipeline; }
         [[nodiscard]] inline VkPipelineLayout GetLayout() const { return m_Layout; }

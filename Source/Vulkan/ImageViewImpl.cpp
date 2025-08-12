@@ -8,7 +8,7 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<ImageView::Impl>, VHResult> ImageView::Impl::New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount)
+    Expected<ImageView::Impl, VHResult> ImageView::Impl::New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount)
     {
         VH_LOG_INFO("Creating Image View Implementation");
 
@@ -43,7 +43,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return UniquePtr(new Impl(image, imageView, viewType));
+        return Impl(image, imageView, viewType);
     }
 
     ImageView::Impl::Impl(Impl&& other) noexcept
@@ -99,7 +99,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return ImageView{ VulkanHelper::Move(implResult.Value()) };
+        return ImageView::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     ImageView::ImageView(ImageView&& other) noexcept

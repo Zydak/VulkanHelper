@@ -6,7 +6,7 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Fence::Impl>, VHResult> Fence::Impl::New(Device::Impl* device, bool startSignaled)
+    Expected<Fence::Impl, VHResult> Fence::Impl::New(Device::Impl* device, bool startSignaled)
     {
         VH_LOG_INFO("Creating Vulkan Fence Implementation");
 
@@ -28,7 +28,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return UniquePtr(new Impl(device, fence));
+        return Impl(device, fence);
     }
 
     Fence::Impl::Impl(Impl&& other) noexcept
@@ -89,7 +89,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Fence{ VulkanHelper::Move(implResult.Value()) };
+        return Fence::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Fence::Fence(Fence&& other) noexcept

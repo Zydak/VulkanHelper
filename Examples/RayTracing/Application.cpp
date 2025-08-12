@@ -148,7 +148,6 @@ Application Application::New()
     pipelineConfig.RayGenShaders.PushBack(&rgenShader);
     pipelineConfig.HitShaders.PushBack(&hitShader);
     pipelineConfig.MissShaders.PushBack(&missShader);
-    pipelineConfig.PushConstant = nullptr;
     pipelineConfig.DescriptorSets.PushBack(&descriptorSet);
     pipelineConfig.CommandBuffer = &initializationCmd;
 
@@ -253,8 +252,8 @@ void Application::Run()
 
         m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, *commandBuffer);
 
-        m_RTPipeline.Bind(commandBuffer);
-        m_RTPipeline.RayTrace(commandBuffer, m_Renderer.GetCurrentSwapchainImage()->GetWidth(), m_Renderer.GetCurrentSwapchainImage()->GetHeight(), 1);
+        m_RTPipeline.Bind(*commandBuffer);
+        m_RTPipeline.RayTrace(*commandBuffer, m_Renderer.GetCurrentSwapchainImage()->GetWidth(), m_Renderer.GetCurrentSwapchainImage()->GetHeight(), 1);
 
         m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_SRC_OPTIMAL, *commandBuffer);
         m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_DST_OPTIMAL, *commandBuffer);

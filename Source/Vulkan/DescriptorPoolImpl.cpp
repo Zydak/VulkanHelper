@@ -10,7 +10,7 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<DescriptorPool::Impl>, VHResult> DescriptorPool::Impl::New(Device::Impl* device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount)
+    Expected<DescriptorPool::Impl, VHResult> DescriptorPool::Impl::New(Device::Impl* device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount)
     {
         VH_LOG_INFO("Creating Vulkan DescriptorPool Implementation");
 
@@ -66,7 +66,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return VulkanHelper::UniquePtr<Impl>(new Impl(device, descriptorPool));
+        return Impl(device, descriptorPool);
     }
 
     DescriptorPool::Impl::~Impl()
@@ -187,7 +187,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(descriptorSetImpl.Error());
         }
 
-        return DescriptorSet{ VulkanHelper::Move(descriptorSetImpl.Value()) };
+        return DescriptorSet::Impl::CreatePublicInterface(Move(descriptorSetImpl.Value()));
     }
 
     void DescriptorPool::Impl::Reset()
@@ -212,7 +212,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return DescriptorPool(VulkanHelper::Move(implResult.Value()));
+        return DescriptorPool::Impl::CreatePublicInterface(Move(implResult.Value()));
     }
 
     DescriptorPool::DescriptorPool(DescriptorPool&& other) noexcept

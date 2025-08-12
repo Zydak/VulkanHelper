@@ -10,7 +10,7 @@ namespace VulkanHelper
     class DescriptorPool::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount);
+        [[nodiscard]] static VulkanHelper::Expected<Impl, VHResult> New(Device::Impl* device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -21,7 +21,8 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const DescriptorPool* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static DescriptorPool CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return DescriptorPool(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static DescriptorPool CreatePublicInterface(Impl&& impl) { return DescriptorPool(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<DescriptorPool> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new DescriptorPool(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] VulkanHelper::Expected<DescriptorSet, VHResult> AllocateDescriptorSet(const DescriptorSet::Config& config);
 

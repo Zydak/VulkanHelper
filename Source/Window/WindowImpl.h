@@ -11,7 +11,7 @@ namespace VulkanHelper
     class Window::Impl
     {
     public:
-        static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Instance::Impl* instance, uint32_t width, uint32_t height, const char* name, const char* iconPath, bool resizable);
+        static Expected<Impl, VHResult> New(Instance::Impl* instance, uint32_t width, uint32_t height, const char* name, const char* iconPath, bool resizable);
 
         ~Impl();
 
@@ -22,7 +22,8 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(Window* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Window CreatePublicInterface(UniquePtr<Impl>&& impl) { return Window(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Window CreatePublicInterface(Impl&& impl) { return Window(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<Window> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Window(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         static void PollEvents();
         [[nodiscard]] bool WantsToClose() const;

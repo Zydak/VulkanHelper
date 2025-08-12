@@ -261,11 +261,11 @@ void Application::Run()
         m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, *commandBuffer);
         m_Renderer.BeginRendering(*commandBuffer, {&m_ColorImageView}, &m_DepthImageView, {0.1f, 0.1f, 0.1f, 1.0f}, 1.0f, m_Renderer.GetCurrentSwapchainImageView());
 
-        m_GraphicsPipeline.Bind(commandBuffer);
+        m_GraphicsPipeline.Bind(*commandBuffer);
 
         // Bind and draw the triangle mesh
-        m_LoadedMesh.Bind(commandBuffer);
-        m_LoadedMesh.Draw(commandBuffer);
+        m_LoadedMesh.Bind(*commandBuffer);
+        m_LoadedMesh.Draw(*commandBuffer);
 
         m_Renderer.EndRendering(*commandBuffer);
 

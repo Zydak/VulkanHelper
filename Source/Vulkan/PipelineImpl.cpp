@@ -8,7 +8,24 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Vector<Shader::Impl*>&& shaders, const Vector<Mesh::VertexAttributeDescription>* attributeDesc, Mesh::VertexBindingDescription bindingDesc, PolygonMode polygonMode, PrimitiveTopology topology, CullMode cullMode, bool depthTestEnable, bool depthClamp, bool blendingEnable, Vector<DescriptorSet::Impl*>&& descriptorSets, PushConstant::Impl* pushConstant, uint32_t colorAttachmentCount, Vector<Format>&& colorFormats, Format depthFormat, SampleCount sampleCount)
+    Expected<Pipeline::Impl, VHResult> Pipeline::Impl::New(
+        Device::Impl* device,
+        Vector<Shader::Impl*>&& shaders,
+        const Vector<Mesh::VertexAttributeDescription>* attributeDesc,
+        Mesh::VertexBindingDescription bindingDesc,
+        PolygonMode polygonMode,
+        PrimitiveTopology topology,
+        CullMode cullMode,
+        bool depthTestEnable,
+        bool depthClamp,
+        bool blendingEnable,
+        Vector<DescriptorSet::Impl*>&& descriptorSets,
+        PushConstant::Impl* pushConstant,
+        uint32_t colorAttachmentCount,
+        Vector<Format>&& colorFormats,
+        Format depthFormat,
+        SampleCount sampleCount
+    )
     {
         auto layoutRes = CreatePipelineLayout(device, descriptorSets, pushConstant);
         if (!layoutRes.HasValue())
@@ -191,10 +208,10 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr)));
+        return Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr));
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(Device::Impl* device, Shader::Impl* computeShader, Vector<DescriptorSet::Impl*>&& descriptorSets, PushConstant::Impl* pushConstant)
+    Expected<Pipeline::Impl, VHResult> Pipeline::Impl::New(Device::Impl* device, Shader::Impl* computeShader, Vector<DescriptorSet::Impl*>&& descriptorSets, PushConstant::Impl* pushConstant)
     {
         // Validate that the shader is indeed a compute shader
         if (computeShader->GetShaderStage() != VK_SHADER_STAGE_COMPUTE_BIT)
@@ -228,10 +245,10 @@ namespace VulkanHelper
             return Unexpected((VHResult)res);
         }
 
-        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Compute, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr)));
+        return Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Compute, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr));
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(
+    Expected<Pipeline::Impl, VHResult> Pipeline::Impl::New(
         Device::Impl* device,
         Vector<Shader::Impl*>&& RayGenShaders,
         Vector<Shader::Impl*>&& HitShaders,
@@ -334,7 +351,7 @@ namespace VulkanHelper
         }
         UniquePtr<SBT> sbt(new SBT(Move(sbtRes.Value())));
 
-        return UniquePtr(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::RayTracing, VulkanHelper::Move(descriptorSets), pushConstant, Move(sbt)));
+        return Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::RayTracing, VulkanHelper::Move(descriptorSets), pushConstant, Move(sbt));
     }
 
     Pipeline::Impl::~Impl()
@@ -355,7 +372,9 @@ namespace VulkanHelper
         , m_Pipeline(other.m_Pipeline)
         , m_Layout(other.m_Layout)
         , m_PipelineType(other.m_PipelineType)
+        , m_DescriptorSets(Move(other.m_DescriptorSets))
         , m_PushConstant(other.m_PushConstant)
+        , m_SBT(Move(other.m_SBT))
     {
         other.m_Device = nullptr;
         other.m_Pipeline = VK_NULL_HANDLE;
@@ -379,14 +398,14 @@ namespace VulkanHelper
         m_PipelineType = other.m_PipelineType;
         m_PushConstant = other.m_PushConstant;
         other.m_PushConstant = nullptr;
+        m_DescriptorSets = Move(other.m_DescriptorSets);
+        m_SBT = Move(other.m_SBT);
 
         return *this;
     }
 
-    void Pipeline::Impl::Bind(CommandBuffer* commandBuffer)
+    void Pipeline::Impl::Bind(CommandBuffer::Impl* commandBuffer)
     {
-        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(commandBuffer);
-
         VkPipelineBindPoint bindPoint;
         switch (m_PipelineType)
         {
@@ -406,7 +425,7 @@ namespace VulkanHelper
             VH_ASSERT(false, "Incorrect pipeline type! You should never see this unless the memory is corrupted.");
             return;
         }
-        vkCmdBindPipeline(cmdImpl->GetCommandBuffer(), bindPoint, m_Pipeline);
+        vkCmdBindPipeline(commandBuffer->GetCommandBuffer(), bindPoint, m_Pipeline);
 
         // Bind descriptor sets if any
         if (!m_DescriptorSets.Empty())
@@ -420,7 +439,7 @@ namespace VulkanHelper
             }
 
             vkCmdBindDescriptorSets(
-                cmdImpl->GetCommandBuffer(),
+                commandBuffer->GetCommandBuffer(),
                 bindPoint,
                 m_Layout,
                 0, // firstSet
@@ -437,7 +456,7 @@ namespace VulkanHelper
             VkPushConstantRange range = m_PushConstant->GetVkPushConstantRange();
             
             vkCmdPushConstants(
-                cmdImpl->GetCommandBuffer(),
+                commandBuffer->GetCommandBuffer(),
                 m_Layout,
                 range.stageFlags,
                 range.offset,
@@ -447,12 +466,11 @@ namespace VulkanHelper
         }
     }
 
-    void Pipeline::Impl::Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void Pipeline::Impl::Dispatch(CommandBuffer::Impl* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         VH_ASSERT(m_PipelineType == Pipeline::PipelineType::Compute, "Dispatch can only be called on compute pipelines!");
 
-        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(commandBuffer);
-        vkCmdDispatch(cmdImpl->GetCommandBuffer(), groupCountX, groupCountY, groupCountZ);
+        vkCmdDispatch(commandBuffer->GetCommandBuffer(), groupCountX, groupCountY, groupCountZ);
     }
 
     Expected<VkPipelineLayout, VHResult> Pipeline::Impl::CreatePipelineLayout(Device::Impl* device, const Vector<DescriptorSet::Impl*>& descriptorSets, PushConstant::Impl* pushConstant)
@@ -503,13 +521,12 @@ namespace VulkanHelper
         return pipelineLayout;
     }
 
-    void Pipeline::Impl::RayTrace(CommandBuffer* commandBuffer, uint32_t width, uint32_t height, uint32_t depth)
+    void Pipeline::Impl::RayTrace(CommandBuffer::Impl* commandBuffer, uint32_t width, uint32_t height, uint32_t depth)
     {
         VH_ASSERT(m_PipelineType == Pipeline::PipelineType::RayTracing, "RayTrace can only be called on ray tracing pipelines!");
 
-        CommandBuffer::Impl* cmdImpl = CommandBuffer::Impl::GetImplementation(commandBuffer);
         FunctionLoader::vkCmdTraceRaysKHR(
-            cmdImpl->GetCommandBuffer(),
+            commandBuffer->GetCommandBuffer(),
             m_SBT->GetRgenRegionPtr(),
             m_SBT->GetMissRegionPtr(),
             m_SBT->GetHitRegionPtr(),
@@ -586,7 +603,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Pipeline{ VulkanHelper::Move(implResult.Value()) };
+        return Pipeline::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     VulkanHelper::Expected<Pipeline, VHResult> Pipeline::New(const ComputeConfig& config)
@@ -632,7 +649,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Pipeline{ VulkanHelper::Move(implResult.Value()) };
+        return Pipeline::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     VulkanHelper::Expected<Pipeline, VHResult> Pipeline::New(const RayTracingConfig& config)
@@ -717,7 +734,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Pipeline{ VulkanHelper::Move(implResult.Value()) };
+        return Pipeline::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Pipeline::~Pipeline()
@@ -747,18 +764,18 @@ namespace VulkanHelper
         return *this;
     }
 
-    void Pipeline::Bind(CommandBuffer* commandBuffer)
+    void Pipeline::Bind(CommandBuffer& commandBuffer)
     {
-        m_Impl->Bind(commandBuffer);
+        m_Impl->Bind(CommandBuffer::Impl::GetImplementation(&commandBuffer));
     }
 
-    void Pipeline::Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void Pipeline::Dispatch(CommandBuffer& commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
-        m_Impl->Dispatch(commandBuffer, groupCountX, groupCountY, groupCountZ);
+        m_Impl->Dispatch(CommandBuffer::Impl::GetImplementation(&commandBuffer), groupCountX, groupCountY, groupCountZ);
     }
 
-    void Pipeline::RayTrace(CommandBuffer* commandBuffer, uint32_t width, uint32_t height, uint32_t depth)
+    void Pipeline::RayTrace(CommandBuffer& commandBuffer, uint32_t width, uint32_t height, uint32_t depth)
     {
-        m_Impl->RayTrace(commandBuffer, width, height, depth);
+        m_Impl->RayTrace(CommandBuffer::Impl::GetImplementation(&commandBuffer), width, height, depth);
     }
 }

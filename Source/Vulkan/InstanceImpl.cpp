@@ -56,7 +56,7 @@ static void GLFWErrorCallback(int errorCode, const char* message)
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Instance::Impl>, VHResult> Instance::Impl::New(bool addGLFWExtensions)
+    Expected<Instance::Impl, VHResult> Instance::Impl::New(bool addGLFWExtensions)
     {
         VH_LOG_INFO("Creating Vulkan Instance Implementation");
 
@@ -149,7 +149,7 @@ namespace VulkanHelper
         Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
 
-        return UniquePtr<Impl>(new Impl(messenger, instance));
+        return Impl(messenger, instance);
     }
 
     Instance::Impl::Impl(Impl&& other) noexcept
@@ -191,12 +191,12 @@ namespace VulkanHelper
         }
     }
 
-    VulkanHelper::Vector<PhysicalDevice> Instance::Impl::GetSuitablePhysicalDevices() const
+    Vector<PhysicalDevice> Instance::Impl::GetSuitablePhysicalDevices() const
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
 
-        VulkanHelper::Vector<const char*> deviceExtensions;
+        Vector<const char*> deviceExtensions;
         deviceExtensions.PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 
         if (deviceCount == 0)
@@ -205,18 +205,18 @@ namespace VulkanHelper
             return {};
         }
 
-        VulkanHelper::Vector<VkPhysicalDevice> devices(deviceCount);
+        Vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.Data());
 
-        VulkanHelper::Vector<PhysicalDevice> suitableDevices;
+        Vector<PhysicalDevice> suitableDevices;
         suitableDevices.Reserve(deviceCount);
         for (size_t i = 0; i < devices.Size(); i++)
         {
             auto physicalDeviceImpl = PhysicalDevice::Impl::New(m_Instance, devices[i]);
-            if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value()->IsSuitable(deviceExtensions))
+            if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value().IsSuitable(deviceExtensions))
             {
-                PhysicalDevice physicalDevice(VulkanHelper::Move(physicalDeviceImpl.Value()));
-                suitableDevices.EmplaceBack(VulkanHelper::Move(physicalDevice));
+                PhysicalDevice physicalDevice = PhysicalDevice::Impl::CreatePublicInterface(Move(physicalDeviceImpl.Value()));
+                suitableDevices.EmplaceBack(Move(physicalDevice));
             }
             else
             {
@@ -255,7 +255,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Instance{ VulkanHelper::Move(implResult.Value()) };
+        return Instance::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Instance::Instance(Instance&& other) noexcept

@@ -7,7 +7,7 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Semaphore::Impl>, VHResult> Semaphore::Impl::New(Device::Impl* device)
+    Expected<Semaphore::Impl, VHResult> Semaphore::Impl::New(Device::Impl* device)
     {
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -21,7 +21,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return UniquePtr(new Impl(device, semaphore));
+        return Impl(device, semaphore);
     }
 
     Semaphore::Impl::Impl(Semaphore::Impl&& other) noexcept
@@ -75,7 +75,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Semaphore{ VulkanHelper::Move(implResult.Value()) };
+        return Semaphore::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Semaphore::~Semaphore()

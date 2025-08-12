@@ -13,7 +13,7 @@ namespace VulkanHelper
     class DescriptorSet::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(Device::Impl* device, VkDescriptorSet descriptorSet, VkDescriptorSetLayout descriptorSetLayout, const DescriptorSet::Config& config);
+        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, VkDescriptorSet descriptorSet, VkDescriptorSetLayout descriptorSetLayout, const DescriptorSet::Config& config);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -24,15 +24,16 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const DescriptorSet* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static DescriptorSet CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return DescriptorSet(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static DescriptorSet CreatePublicInterface(Impl&& impl) { return DescriptorSet(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<DescriptorSet> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new DescriptorSet(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
         [[nodiscard]] inline VkDescriptorSet GetDescriptorSet() const { return m_DescriptorSet; }
         [[nodiscard]] inline VkDescriptorSetLayout GetDescriptorSetLayout() const { return m_DescriptorSetLayout; }
 
-        [[nodiscard]] VHResult AddBuffer(uint32_t binding, uint32_t arrayIndex, const Buffer& buffer);
-        [[nodiscard]] VHResult AddImage(uint32_t binding, uint32_t arrayIndex, const ImageView& imageView, Image::Layout layout);
-        [[nodiscard]] VHResult AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler& sampler);
+        [[nodiscard]] VHResult AddBuffer(uint32_t binding, uint32_t arrayIndex, const Buffer::Impl* buffer);
+        [[nodiscard]] VHResult AddImage(uint32_t binding, uint32_t arrayIndex, const ImageView::Impl* imageView, Image::Layout layout);
+        [[nodiscard]] VHResult AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler::Impl* sampler);
         [[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS::Impl* accelerationStructure);
 
         [[nodiscard]] inline const Vector<DescriptorSet::BindingDescription>& GetBindingDescriptions() const { return m_BindingDescriptions; }

@@ -26,7 +26,8 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const TLAS* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static TLAS CreatePublicInterface(UniquePtr<Impl>&& impl) { return TLAS(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static TLAS CreatePublicInterface(Impl&& impl) { return TLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<TLAS> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new TLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] inline VkAccelerationStructureKHR GetHandle() const { return m_Handle; }
     private:

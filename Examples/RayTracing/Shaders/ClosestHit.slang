@@ -28,11 +28,15 @@ void Main(inout Payload payload, in float2 attrib)
     const Vertex v2 = uVertices[i2];
     const Vertex v3 = uVertices[i3];
 
-    const float3 position = v1.Position * barycentrics.x + v2.Position * barycentrics.y + v3.Position * barycentrics.z;
-    const float3 normal = normalize(v1.Normal * barycentrics.x + v2.Normal * barycentrics.y + v3.Normal * barycentrics.z);
+    float3 position = v1.Position * barycentrics.x + v2.Position * barycentrics.y + v3.Position * barycentrics.z;
+    position = mul(ObjectToWorld3x4(), float4(position, 1.0f)).xyz;
+
+    float3 normal = normalize(v1.Normal * barycentrics.x + v2.Normal * barycentrics.y + v3.Normal * barycentrics.z);
+    normal = mul(normal, WorldToObject()).xyz;
+
     const float2 texCoord = v1.TexCoord * barycentrics.x + v2.TexCoord * barycentrics.y + v3.TexCoord * barycentrics.z;
 
-    const float3 color = float3(texCoord, 0.0f) * payload.RenderNormalsOrTexCoords + normal * (1.0f - payload.RenderNormalsOrTexCoords);
+    const float3 color = float3(texCoord, 0.0f) * (float)payload.RenderNormalsOrTexCoords + (normal + 1.0f) / 2.0f * (1.0f - (float)payload.RenderNormalsOrTexCoords);
 
     payload.Color = float4(color, 1.0f);
 }

@@ -15,37 +15,41 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Renderer::Impl>, VHResult> Renderer::Impl::New(Device::Impl* device, Window::Impl* window)
+    Expected<Renderer::Impl, VHResult> Renderer::Impl::New(Device::Impl* device, Window::Impl* window)
     {
-        auto swapchain = Swapchain::Impl::New(device, window, nullptr);
-        if (!swapchain.HasValue())
+        auto swapchainResult = Swapchain::Impl::New(device, window, nullptr);
+        if (!swapchainResult.HasValue())
         {
             VH_LOG_ERROR("Couldn't create swapchain!");
-            return Unexpected(swapchain.Error());
+            return Unexpected(swapchainResult.Error());
         }
 
+        Swapchain swapchain = Swapchain::Impl::CreatePublicInterface(Move(swapchainResult.Value()));
+
         Device::QueueFamilyIndices queueIndices = device->GetQueueFamilyIndices();
-        auto commandPool = CommandPool::Impl::New(device, CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, queueIndices.GraphicsFamily);
-        if (!commandPool.HasValue())
+        auto commandPoolRes = CommandPool::Impl::New(device, CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, queueIndices.GraphicsFamily);
+        if (!commandPoolRes.HasValue())
         {
             VH_LOG_ERROR("Couldn't create CommandPool!");
-            return Unexpected(commandPool.Error());
+            return Unexpected(commandPoolRes.Error());
         }
+
+        CommandPool commandPool = CommandPool::Impl::CreatePublicInterface(Move(commandPoolRes.Value()));
 
         Vector<CommandBuffer> commandBuffers;
         for (uint32_t i = 0; i < 2; i++)
         {
-            CommandBuffer cmdBuf = commandPool.Value()->AllocateCommandBuffer({}).Value();
+            CommandBuffer cmdBuf = commandPool.AllocateCommandBuffer({}).Value();
             commandBuffers.PushBack(Move(cmdBuf)); // Allocate cmdBuffer for each frame
         }
 
-        return UniquePtr(new Impl(
+        return Impl(
             device,
             window,
-            Move(Swapchain::Impl::CreatePublicInterface(Move(swapchain.Value()))),
-            Move(CommandPool::Impl::CreatePublicInterface(Move(commandPool.Value()))),
+            Move(swapchain),
+            Move(commandPool),
             Move(commandBuffers)
-        ));
+        );
     }
 
     Renderer::Impl::~Impl()
@@ -141,12 +145,12 @@ namespace VulkanHelper
     }
 
     void Renderer::Impl::BeginRendering(
-            CommandBuffer& commandBuffer,
-            const VulkanHelper::Vector<ImageView*>& targetImagesColor,
-            const ImageView* targetImageDepth,
+            CommandBuffer::Impl* commandBuffer,
+            const VulkanHelper::Vector<ImageView::Impl*>& targetImagesColor,
+            const ImageView::Impl* targetImageDepth,
             glm::vec4 clearColor,
             float clearDepth,
-            const ImageView* resolveImageView,
+            const ImageView::Impl* resolveImageView,
             glm::uvec2 scissorsStart,
             glm::uvec2 scissorsEnd
     )
@@ -194,7 +198,7 @@ namespace VulkanHelper
             {scissorsEnd.x, scissorsEnd.y}
         };
 
-        VkCommandBuffer commandBufferHandle = CommandBuffer::Impl::GetImplementation(&commandBuffer)->GetCommandBuffer();
+        VkCommandBuffer commandBufferHandle = commandBuffer->GetCommandBuffer();
 
 	    vkCmdSetViewport(commandBufferHandle, 0, 1, &viewport);
 	    vkCmdSetScissor(commandBufferHandle, 0, 1, &scissor);
@@ -212,11 +216,11 @@ namespace VulkanHelper
             if (resolveImageView != nullptr)
             {
                 info.resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
-                info.resolveImageView = ImageView::Impl::GetImplementation(resolveImageView)->GetImageView();
+                info.resolveImageView = resolveImageView->GetImageView();
                 info.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             }
 
-            ImageView::Impl* targetImageImpl = ImageView::Impl::GetImplementation(targetImagesColor[i]);
+            ImageView::Impl* targetImageImpl = targetImagesColor[i];
             info.imageView = targetImageImpl->GetImageView();
 
             colorAttachments.PushBack(Move(info));
@@ -231,7 +235,7 @@ namespace VulkanHelper
             depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             depthAttachment.clearValue = { {{clearDepth, 0}} };
 
-            ImageView::Impl* targetImageImpl = ImageView::Impl::GetImplementation(targetImageDepth);
+            const ImageView::Impl* targetImageImpl = targetImageDepth;
             depthAttachment.imageView = targetImageImpl->GetImageView();
         }
 
@@ -247,9 +251,9 @@ namespace VulkanHelper
 	    VulkanHelper::FunctionLoader::vkCmdBeginRendering(commandBufferHandle, &renderingInfo);
     }
 
-    void Renderer::Impl::EndRendering(CommandBuffer& commandBuffer)
+    void Renderer::Impl::EndRendering(CommandBuffer::Impl* commandBuffer)
     {
-        VkCommandBuffer commandBufferHandle = CommandBuffer::Impl::GetImplementation(&commandBuffer)->GetCommandBuffer();
+        VkCommandBuffer commandBufferHandle = commandBuffer->GetCommandBuffer();
 	    VulkanHelper::FunctionLoader::vkCmdEndRendering(commandBufferHandle);
     }
 
@@ -297,7 +301,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Renderer{ VulkanHelper::Move(implResult.Value()) };
+        return Renderer::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Renderer::Renderer(Renderer&& other) noexcept
@@ -348,12 +352,33 @@ namespace VulkanHelper
         glm::uvec2 scissorsEnd
     )
     {
-        m_Impl->BeginRendering(commandBuffer, targetImagesColor, targetImageDepth, clearColor, clearDepth, resolveImageView, scissorsStart, scissorsEnd);
+        const ImageView::Impl* resolveImageViewImpl = nullptr;
+        if (resolveImageView != nullptr)
+            resolveImageViewImpl = ImageView::Impl::GetImplementation(resolveImageView);
+
+        const ImageView::Impl* targetImageDepthImpl = nullptr;
+        if (targetImageDepth != nullptr)
+            targetImageDepthImpl = ImageView::Impl::GetImplementation(targetImageDepth);
+
+        Vector<ImageView::Impl*> targetImagesColorImpl;
+        for (const auto& imageView : targetImagesColor)
+            targetImagesColorImpl.PushBack(ImageView::Impl::GetImplementation(imageView));
+        
+        m_Impl->BeginRendering(
+            CommandBuffer::Impl::GetImplementation(&commandBuffer),
+            targetImagesColorImpl,
+            targetImageDepthImpl,
+            clearColor,
+            clearDepth,
+            resolveImageViewImpl,
+            scissorsStart,
+            scissorsEnd
+        );
     }
 
     void Renderer::EndRendering(CommandBuffer& commandBuffer)
     {
-        m_Impl->EndRendering(commandBuffer);
+        m_Impl->EndRendering(CommandBuffer::Impl::GetImplementation(&commandBuffer));
     }
 
     Image* Renderer::GetCurrentSwapchainImage() const

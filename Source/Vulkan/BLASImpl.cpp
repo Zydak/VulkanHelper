@@ -174,7 +174,7 @@ namespace VulkanHelper
         //    VH_ASSERT(impl->Compact(commandBuffer) == VHResult::OK, "Failed to compact acceleration structure");
         //}
         
-        return Impl::CreatePublicInterface(UniquePtr<Impl>(impl));
+        return Impl::CreatePublicInterface(Move(*impl));
     }
 
     BLAS::Impl::Impl(Impl&& other) noexcept

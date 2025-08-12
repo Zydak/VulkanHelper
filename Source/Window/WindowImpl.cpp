@@ -19,7 +19,7 @@ namespace VulkanHelper
         impl->m_Height = static_cast<uint32_t>(height);
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Window::Impl>, VHResult> Window::Impl::New(Instance::Impl* instance, uint32_t width, uint32_t height, const char* name, const char* iconPath, bool resizable)
+    Expected<Window::Impl, VHResult> Window::Impl::New(Instance::Impl* instance, uint32_t width, uint32_t height, const char* name, const char* iconPath, bool resizable)
     {
         // TODO: Icon, for now there's no image loading
         (void)iconPath; // Suppress unused parameter warning
@@ -39,7 +39,7 @@ namespace VulkanHelper
 
         glfwSetWindowSizeCallback(window, WindowSizeCallback);
 
-        return VulkanHelper::UniquePtr(new Impl(instance, window, surface, VulkanHelper::Move(nameStr), width, height));
+        return Impl(instance, window, surface, VulkanHelper::Move(nameStr), width, height);
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
@@ -182,7 +182,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Window{ VulkanHelper::Move(implResult.Value()) };
+        return Window::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Window::Window(Window&& other) noexcept

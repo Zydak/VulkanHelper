@@ -43,7 +43,7 @@ namespace VulkanHelper
         s_GlobalSession->createSession(sessionDesc, s_Session.writeRef());
     }
 
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<Shader::Impl>, VHResult> Shader::Impl::New(Device::Impl* device, const char* filepath, ShaderStages stage)
+    Expected<Shader::Impl, VHResult> Shader::Impl::New(Device::Impl* device, const char* filepath, ShaderStages stage)
     {
         if (stage == ShaderStages::UNDEFINED)
         {
@@ -153,7 +153,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected(VHResult(res));
 
-        return UniquePtr(new Impl(device, module, (VkShaderStageFlagBits)stage));
+        return Impl(device, module, (VkShaderStageFlagBits)stage);
     }
 
     Shader::Impl::~Impl()
@@ -229,7 +229,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Shader{ VulkanHelper::Move(implResult.Value()) };
+        return Shader::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Shader::~Shader()

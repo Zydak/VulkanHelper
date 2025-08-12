@@ -31,7 +31,8 @@ namespace VulkanHelper
         Impl& operator=(const Impl& other) = delete;
 
         [[nodiscard]] inline static Impl* GetImplementation(const BLAS* const publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static BLAS CreatePublicInterface(UniquePtr<Impl>&& impl) { return BLAS(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static BLAS CreatePublicInterface(Impl&& impl) { return BLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<BLAS> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new BLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] inline VkAccelerationStructureKHR GetHandle() const { return m_Handle; }
         [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;

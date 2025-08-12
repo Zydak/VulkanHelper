@@ -4,6 +4,7 @@
 #include "Core/Error.h"
 #include "Core/Macros.h"
 #include "Core/Enums.h"
+#include "Core/Vector.h"
 
 namespace VulkanHelper
 {
@@ -106,12 +107,12 @@ namespace VulkanHelper
         * @brief Submits the command buffer to the queue with given synchronization primitives.
         *
         * @param waitStage Pipeline stage to wait on before execution.
-        * @param waitSemaphore Semaphore to wait on before execution (can be nullptr).
-        * @param signalSemaphore Semaphore to signal after execution (can be nullptr).
+        * @param waitSemaphores Semaphores to wait on before execution.
+        * @param signalSemaphores Semaphores to signal after execution.
         * @param fence Fence to signal after execution (can be nullptr).
         * @return VHResult indicating success or failure.
         */
-        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Semaphore** waitSemaphores, uint32_t waitSemaphoreCount, Semaphore** signalSemaphores, uint32_t signalSemaphoreCount, Fence* fence);
+        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Vector<Semaphore*> waitSemaphores, Vector<Semaphore*> signalSemaphores, Fence* fence);
 
         class Impl;
     private:

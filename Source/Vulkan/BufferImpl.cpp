@@ -546,7 +546,7 @@ namespace VulkanHelper
             return Unexpected(implResult.Error());
         }
 
-        return Buffer{ Move(UniquePtr<Impl>(new Impl(Move(implResult.Value())))) };
+        return Impl::CreatePublicInterface(Move(implResult.Value()));
     }
 
     Buffer::Buffer(Buffer&& other) noexcept

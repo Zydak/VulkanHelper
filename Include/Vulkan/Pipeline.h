@@ -258,7 +258,7 @@ namespace VulkanHelper
          * 
          * @param commandBuffer The command buffer to bind this pipeline to
          */
-        void Bind(CommandBuffer* commandBuffer);
+        void Bind(CommandBuffer& commandBuffer);
 
         /**
          * @brief Dispatches a compute shader with the specified group counts.
@@ -270,7 +270,7 @@ namespace VulkanHelper
          * 
          * @note Available only for compute pipelines
          */
-        void Dispatch(CommandBuffer* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+        void Dispatch(CommandBuffer& commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
         /**
          * @brief Dispatches a ray tracing shader with the specified dimensions.
@@ -282,7 +282,7 @@ namespace VulkanHelper
          * 
          * @note Available only for ray tracing pipelines
          */
-        void RayTrace(CommandBuffer* commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
+        void RayTrace(CommandBuffer& commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
 
         class Impl;
     private:

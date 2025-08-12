@@ -12,7 +12,7 @@ namespace VulkanHelper
     {
     public:
 
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(VkInstance Instance, VkPhysicalDevice Device);
+        [[nodiscard]] static Expected<Impl, VHResult> New(VkInstance Instance, VkPhysicalDevice Device);
 
         Impl(const Impl& other);
         Impl& operator=(const Impl& other);
@@ -21,9 +21,10 @@ namespace VulkanHelper
         Impl& operator=(Impl&& other) noexcept;
 
         [[nodiscard]] inline static Impl* GetImplementation(const PhysicalDevice* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static PhysicalDevice CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return PhysicalDevice(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static PhysicalDevice CreatePublicInterface(Impl&& impl) { return PhysicalDevice(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<PhysicalDevice> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new PhysicalDevice(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
-        [[nodiscard]] bool IsSuitable(const VulkanHelper::Vector<const char*>& deviceExtensions) const;
+        [[nodiscard]] bool IsSuitable(const Vector<const char*>& deviceExtensions) const;
         [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }
         [[nodiscard]] inline Vendor GetVendor() const { return m_Vendor; }
         [[nodiscard]] inline const std::string& GetName() const { return m_Name; }
@@ -32,7 +33,7 @@ namespace VulkanHelper
     private:
 
         Impl(VkPhysicalDevice device, Vendor vendor, std::string&& name, bool discrete)
-            : m_Device(device), m_Vendor(vendor), m_Name(VulkanHelper::Move(name)), m_Discrete(discrete) {}
+            : m_Device(device), m_Vendor(vendor), m_Name(Move(name)), m_Discrete(discrete) {}
 
         VkPhysicalDevice m_Device;
         Vendor m_Vendor;

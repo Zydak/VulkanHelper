@@ -93,11 +93,11 @@ int main()
 
         renderer.BeginRendering(*commandBuffer, {renderer.GetCurrentSwapchainImageView()}, nullptr);
 
-        pipeline.Bind(commandBuffer);
+        pipeline.Bind(*commandBuffer);
 
         // Bind and draw the triangle mesh
-        triangleMesh.Bind(commandBuffer);
-        triangleMesh.Draw(commandBuffer);
+        triangleMesh.Bind(*commandBuffer);
+        triangleMesh.Draw(*commandBuffer);
 
         renderer.EndRendering(*commandBuffer);
 

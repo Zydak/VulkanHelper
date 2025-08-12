@@ -23,25 +23,26 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, Window::Impl* window);
+        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, Window::Impl* window);
 
         [[nodiscard]] inline static Impl* GetImplementation(const Renderer* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Renderer CreatePublicInterface(UniquePtr<Impl>&& impl) { return Renderer(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Renderer CreatePublicInterface(Impl&& impl) { return Renderer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<Renderer> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Renderer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame(bool* outWasSwapchainRecreated);
         [[nodiscard]] VHResult EndFrame(bool* outWasSwapchainRecreated);
 
         void BeginRendering(
-            CommandBuffer& commandBuffer,
-            const VulkanHelper::Vector<ImageView*>& targetImagesColor,
-            const ImageView* targetImageDepth,
+            CommandBuffer::Impl* commandBuffer,
+            const VulkanHelper::Vector<ImageView::Impl*>& targetImagesColor,
+            const ImageView::Impl* targetImageDepth,
             glm::vec4 clearColor = {0.1f, 0.1f, 0.1f, 1.0f},
             float clearDepth = 1.0f,
-            const ImageView* resolveImageView = nullptr,
+            const ImageView::Impl* resolveImageView = nullptr,
             glm::uvec2 scissorsStart = {0u, 0u},
             glm::uvec2 scissorsEnd = {0u, 0u}
         );
-        void EndRendering(CommandBuffer& commandBuffer);
+        void EndRendering(CommandBuffer::Impl* commandBuffer);
 
         [[nodiscard]] inline Image* GetCurrentSwapchainImage() const { return m_Swapchain.GetCurrentSwapchainImage(); }
         [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() const { return m_Swapchain.GetCurrentSwapchainImageView(); }

@@ -9,12 +9,12 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<PhysicalDevice::Impl>, VHResult> PhysicalDevice::Impl::New(VkInstance instance, VkPhysicalDevice physicalDevice)
+    Expected<PhysicalDevice::Impl, VHResult> PhysicalDevice::Impl::New(VkInstance instance, VkPhysicalDevice physicalDevice)
     {
         if (physicalDevice == nullptr || instance == nullptr)
         {
             VH_LOG_ERROR("Invalid PhysicalDevice configuration: Device or Instance is null.");
-            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
         VkPhysicalDeviceProperties properties;
@@ -48,7 +48,7 @@ namespace VulkanHelper
 
         bool discrete = (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
-        return VulkanHelper::UniquePtr(new Impl(physicalDevice, vendor, properties.deviceName, discrete));
+        return Impl(physicalDevice, vendor, properties.deviceName, discrete);
     }
 
     PhysicalDevice::Impl::Impl(const Impl& other)

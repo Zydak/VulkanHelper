@@ -11,7 +11,15 @@ namespace VulkanHelper
     class Buffer::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, uint64_t size, Buffer::Usage usage, bool cpuMapable, bool usePersistentStagingBuffer, uint32_t minAlignment, const char* debugName);
+        [[nodiscard]] static Expected<Impl, VHResult> New(
+            Device::Impl* device,
+            uint64_t size,
+            Buffer::Usage usage,
+            bool cpuMapable,
+            bool usePersistentStagingBuffer,
+            uint32_t minAlignment,
+            const char* debugName
+        );
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -22,7 +30,8 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Buffer* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Buffer CreatePublicInterface(UniquePtr<Impl>&& impl) { return Buffer(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Buffer CreatePublicInterface(Impl&& impl) { return Buffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<Buffer> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Buffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
         [[nodiscard]] inline VkBuffer GetBuffer() const { return m_BufferAllocation.Buffer; }
@@ -32,62 +41,15 @@ namespace VulkanHelper
 
         [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
 
-        /**
-         * @brief Upload data to the buffer.
-         *
-         * @param data Pointer to the data to upload.
-         * @param size Size of the data in bytes.
-         * @param offset Offset in the buffer to start writing.
-         * @param cmd Command buffer for GPU operations (required for non-mappable buffers).
-         * @return VHResult::OK on success, or an error code on failure.
-         */
         VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr);
-
-        /**
-         * @brief Download data from the buffer.
-         *
-         * @param data Pointer to the destination buffer.
-         * @param size Size of the data to read in bytes.
-         * @param offset Offset in the buffer to start reading.
-         * @param cmd Command buffer for GPU operations (required for non-mappable buffers).
-         * @return VHResult::OK on success, or an error code on failure.
-         */
         VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr) const;
 
-        /**
-         * @brief Map buffer memory for CPU access.
-         *
-         * @return Expected<void*, VHResult> Pointer to mapped memory on success, or error code on failure.
-         */
         [[nodiscard]] Expected<void*, VHResult> Map();
 
-        /**
-         * @brief Unmap previously mapped buffer memory.
-         */
         void Unmap();
 
-        /**
-         * @brief Copy data from another buffer using GPU commands.
-         *
-         * @param cmd Command buffer to record the copy operation.
-         * @param source Source buffer to copy from.
-         * @param srcOffset Offset in source buffer.
-         * @param dstOffset Offset in destination buffer.
-         * @param size Size to copy.
-         * @return VHResult::OK on success, or an error code on failure.
-         */
         VHResult CopyFrom(CommandBuffer::Impl* cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
 
-        /**
-         * @brief Copy buffer data to an image using GPU commands.
-         *
-         * @param cmd Command buffer to record the copy operation.
-         * @param dst Destination image.
-         * @param bufferOffset Buffer offset.
-         * @param bufferRowLength Buffer row length.
-         * @param bufferImageHeight Buffer image height.
-         * @return VHResult::OK on success, or an error code on failure.
-         */
         VHResult CopyToImage(CommandBuffer::Impl* cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
 
         void Barrier(CommandBuffer::Impl* cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);

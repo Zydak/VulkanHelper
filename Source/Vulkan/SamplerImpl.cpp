@@ -8,7 +8,7 @@
 
 namespace VulkanHelper
 {
-    Expected<UniquePtr<Sampler::Impl>, VHResult> Sampler::Impl::New(Device::Impl* device, 
+    Expected<Sampler::Impl, VHResult> Sampler::Impl::New(Device::Impl* device, 
         Sampler::AddressMode addressMode, 
         Sampler::Filter minFilter,
         Sampler::Filter magFilter,
@@ -40,7 +40,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return UniquePtr(new Impl(device, sampler));
+        return Impl(device, sampler);
     }
 
     Sampler::Impl::Impl(Impl&& other) noexcept
@@ -102,7 +102,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Sampler{ VulkanHelper::Move(implResult.Value()) };
+        return Sampler::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
     Sampler::Sampler(Sampler&& other) noexcept

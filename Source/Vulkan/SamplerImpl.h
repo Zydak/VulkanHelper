@@ -9,7 +9,7 @@ namespace VulkanHelper
     class Sampler::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, 
+        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, 
             Sampler::AddressMode addressMode, 
             Sampler::Filter minFilter,
             Sampler::Filter magFilter,
@@ -24,7 +24,8 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Sampler* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Sampler CreatePublicInterface(UniquePtr<Impl>&& impl) { return Sampler(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Sampler CreatePublicInterface(Impl&& impl) { return Sampler(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<Sampler> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Sampler(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] inline VkSampler GetSampler() const { return m_Sampler; }
     private:

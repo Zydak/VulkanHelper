@@ -4,6 +4,7 @@
 #include "Vulkan/Swapchain.h"
 
 #include "DeviceImpl.h"
+#include "CommandBufferImpl.h"
 #include "VulkanMemoryAllocator.h"
 
 #include <vulkan/vulkan.h>
@@ -13,7 +14,21 @@ namespace VulkanHelper
     class Image::Impl
     {
     public:
-        [[nodiscard]] static Expected<UniquePtr<Impl>, VHResult> New(Device::Impl* device, uint32_t height, uint32_t width, uint32_t mipCount, uint32_t layerCount, Format format, Usage usage, Tiling tiling, Aspect aspect, Layout initialLayout, SampleCount sampleCount, bool usePersistentStagingBuffer, bool allowMapping);
+        [[nodiscard]] static Expected<Impl, VHResult> New(
+            Device::Impl* device,
+            uint32_t height,
+            uint32_t width,
+            uint32_t mipCount,
+            uint32_t layerCount,
+            Format format,
+            Usage usage,
+            Tiling tiling,
+            Aspect aspect,
+            Layout initialLayout,
+            SampleCount sampleCount,
+            bool usePersistentStagingBuffer,
+            bool allowMapping
+        );
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -24,7 +39,8 @@ namespace VulkanHelper
         ~Impl();
 
         [[nodiscard]] inline static Impl* GetImplementation(const Image* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Image CreatePublicInterface(UniquePtr<Impl>&& impl) { return Image(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Image CreatePublicInterface(Impl&& impl) { return Image(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
+        [[nodiscard]] inline static UniquePtr<Image> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Image(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
 
         [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
 
@@ -39,16 +55,16 @@ namespace VulkanHelper
 
         [[nodiscard]] inline VkImage GetImage() const { return m_Allocation.image; }
 
-        void TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount);
+        void TransitionImageLayout(Layout newLayout, CommandBuffer::Impl* commandBuffer, uint32_t baseLayer, uint32_t layerCount);
 
-        VHResult CopyFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
-        VHResult BlitFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+        VHResult CopyFromImage(const Image& srcImage, CommandBuffer::Impl* commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+        VHResult BlitFromImage(const Image& srcImage, CommandBuffer::Impl* commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
 
         [[nodiscard]] Expected<void*, VHResult> Map();
         void Unmap();
-        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
+        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr);
 
-        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr) const;
+        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr) const;
 
     private:
         Device::Impl* m_Device;
