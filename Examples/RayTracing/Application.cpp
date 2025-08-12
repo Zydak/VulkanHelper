@@ -89,7 +89,7 @@ Application Application::New()
     VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
 
     VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin recording initialization command buffer");
-    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window.GetWidth(), window.GetHeight(), initializationCmd, renderer.GetSwapchainImageFormat());
+    auto [colorImage, colorImageView, depthImage, depthImageView] = CreateImages(device, window.GetWidth(), window.GetHeight(), initializationCmd, VulkanHelper::Format::R8G8B8A8_UNORM);
 
     std::array<VulkanHelper::Format, 3> vertexAttributes = {
         VulkanHelper::Format::R32G32B32_SFLOAT, // Position
@@ -105,15 +105,17 @@ Application Application::New()
     meshConfig.VertexDataSize = scene.Value().Meshes[0].Vertices.Size() * sizeof(VulkanHelper::Vertex);
     meshConfig.IndexData = scene.Value().Meshes[0].Indices.Data();
     meshConfig.IndexDataSize = scene.Value().Meshes[0].Indices.Size() * sizeof(uint32_t);
-    meshConfig.AdditionalUsageFlags = VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT | VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT;
+    meshConfig.AdditionalUsageFlags = VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT | VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT | VulkanHelper::Buffer::Usage::STORAGE_BUFFER_BIT;
     meshConfig.CommandBuffer = &initializationCmd;
 
     VulkanHelper::Mesh loadedMesh = VulkanHelper::Mesh::New(meshConfig).Value();
 
-    VulkanHelper::PushConstant pushConstant = VulkanHelper::PushConstant::New({
-        VulkanHelper::ShaderStages::RAYGEN_BIT,
-        nullptr, // No initial data
-        sizeof(glm::mat4)
+    VulkanHelper::Buffer uniformBufferCamera = VulkanHelper::Buffer::New({
+        &device,
+        sizeof(glm::mat4) * 2 + sizeof(bool), // View, Projection, RenderNormalsOrTexCoords
+        VulkanHelper::Buffer::Usage::UNIFORM_BUFFER_BIT,
+        true, // CpuMapable
+        false // UsePersistentStagingBuffer
     }).Value();
 
     // Descriptor set
@@ -128,22 +130,25 @@ Application Application::New()
     descriptorPoolConfig.PoolSizeCount = poolSizes.size();
     VulkanHelper::DescriptorPool descriptorPool = VulkanHelper::DescriptorPool::New(descriptorPoolConfig).Value();
 
-    std::array<VulkanHelper::DescriptorSet::BindingDescription, 1> bindingDescriptions = {
+    std::array<VulkanHelper::DescriptorSet::BindingDescription, 5> bindingDescriptions = {
         VulkanHelper::DescriptorSet::BindingDescription{0, 1, VulkanHelper::ShaderStages::RAYGEN_BIT, VulkanHelper::DescriptorType::STORAGE_IMAGE},
+        VulkanHelper::DescriptorSet::BindingDescription{1, 1, VulkanHelper::ShaderStages::RAYGEN_BIT, VulkanHelper::DescriptorType::ACCELERATION_STRUCTURE_KHR},
+        VulkanHelper::DescriptorSet::BindingDescription{2, 1, VulkanHelper::ShaderStages::RAYGEN_BIT, VulkanHelper::DescriptorType::UNIFORM_BUFFER},
+        VulkanHelper::DescriptorSet::BindingDescription{3, 1, VulkanHelper::ShaderStages::CLOSEST_HIT_BIT, VulkanHelper::DescriptorType::STORAGE_BUFFER},
+        VulkanHelper::DescriptorSet::BindingDescription{4, 1, VulkanHelper::ShaderStages::CLOSEST_HIT_BIT, VulkanHelper::DescriptorType::STORAGE_BUFFER}
     };
     VulkanHelper::DescriptorSet::Config descriptorSetConfig{};
     descriptorSetConfig.Bindings = bindingDescriptions.data();
     descriptorSetConfig.BindingCount = bindingDescriptions.size();
 
     VulkanHelper::DescriptorSet descriptorSet = descriptorPool.AllocateDescriptorSet(descriptorSetConfig).Value();
-    VH_ASSERT(descriptorSet.AddImage(0, 0, colorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
-
+    
     VulkanHelper::Pipeline::RayTracingConfig pipelineConfig{};
     pipelineConfig.Device = &device;
     pipelineConfig.RayGenShaders.PushBack(&rgenShader);
     pipelineConfig.HitShaders.PushBack(&hitShader);
     pipelineConfig.MissShaders.PushBack(&missShader);
-    pipelineConfig.PushConstant = &pushConstant;
+    pipelineConfig.PushConstant = nullptr;
     pipelineConfig.DescriptorSets.PushBack(&descriptorSet);
     pipelineConfig.CommandBuffer = &initializationCmd;
 
@@ -152,21 +157,30 @@ Application Application::New()
     VulkanHelper::BLAS blas = VulkanHelper::BLAS::New({
         &device,
         {loadedMesh.GetVertexBuffer()},
+        loadedMesh.GetVertexSize(),
         {loadedMesh.GetIndexBuffer()},
         true,
         &initializationCmd
     }).Value();
 
-    glm::mat4 transform = glm::mat4(1.0f);
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, 0.25f, 0.0f));
+    model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Blender has some really weird coordinate system
     VulkanHelper::TLAS tlas = VulkanHelper::TLAS::New({
         &device,
         {&blas},
-        &transform,
+        &model,
         &initializationCmd
     }).Value();
 
     VH_ASSERT(initializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end recording initialization command buffer");
     VH_ASSERT(initializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit initialization command buffer");
+
+    VH_ASSERT(descriptorSet.AddImage(0, 0, colorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
+    VH_ASSERT(descriptorSet.AddAccelerationStructure(1, 0, &tlas) == VulkanHelper::VHResult::OK, "Failed to add acceleration structure to descriptor set");
+    VH_ASSERT(descriptorSet.AddBuffer(2, 0, uniformBufferCamera) == VulkanHelper::VHResult::OK, "Failed to add uniform buffer to descriptor set");
+    VH_ASSERT(descriptorSet.AddBuffer(3, 0, *loadedMesh.GetVertexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add vertex buffer to descriptor set");
+    VH_ASSERT(descriptorSet.AddBuffer(4, 0, *loadedMesh.GetIndexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add index buffer to descriptor set");
 
     return Application(
         std::move(instance),
@@ -184,22 +198,26 @@ Application Application::New()
         std::move(depthImageView),
         std::move(colorImage),
         std::move(colorImageView),
-        std::move(pushConstant),
+        std::move(uniformBufferCamera),
         std::move(commandPool),
-        std::move(initializationCmd)
+        std::move(initializationCmd),
+        std::move(blas),
+        std::move(tlas)
     );
 }
 
 void Application::Run()
 {
     glm::mat4 projection = glm::perspective(glm::radians(38.0f), 1.0f, 0.1f, 100.0f);
-    glm::mat4 model = glm::mat4(1.0f); // Identity matrix for model transformation
-    model = glm::translate(model, glm::vec3(0.0f, 0.25f, 0.0f));
-    model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Blender has some really weird coordinate system
+    projection = glm::inverse(projection);
     auto timer = std::chrono::high_resolution_clock::now();
     bool wasSwapchainRecreated = false;
     while (!m_Window.WantsToClose())
     {
+        VulkanHelper::Window::PollEvents();
+
+        VulkanHelper::CommandBuffer* commandBuffer = m_Renderer.BeginFrame(&wasSwapchainRecreated).Value();
+
         {
             float time = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - timer).count();
 
@@ -209,19 +227,28 @@ void Application::Run()
                 glm::vec3(0.0f, 0.0f, 0.0f), // Look at point
                 glm::vec3(0.0f, 1.0f, 0.0f)  // Up vector
             );
-            glm::mat4 mvp = projection * view * model;
 
-            VH_ASSERT(m_PushConstant.SetData(&mvp, sizeof(mvp)) == VulkanHelper::VHResult::OK, "Failed to set push constant data");
+            view = glm::inverse(view);
+
+            // Switch every 2 seconds
+            bool renderNormalsOrTexCoords = false;
+            if (static_cast<int>(time) % 4 < 2)
+            {
+                renderNormalsOrTexCoords = !renderNormalsOrTexCoords;
+            }
+
+            // You probably want to make only one upload per frame, but this is just an example so perfmance doesn't really matter
+            VH_ASSERT(m_UniformBufferCamera.UploadData(&view, sizeof(glm::mat4), 0, commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
+            VH_ASSERT(m_UniformBufferCamera.UploadData(&projection, sizeof(glm::mat4), sizeof(glm::mat4), commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
+            VH_ASSERT(m_UniformBufferCamera.UploadData(&renderNormalsOrTexCoords, sizeof(bool), sizeof(glm::mat4) * 2, commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
         }
 
-        VulkanHelper::Window::PollEvents();
-
-        VulkanHelper::CommandBuffer* commandBuffer = m_Renderer.BeginFrame(&wasSwapchainRecreated).Value();
         if (wasSwapchainRecreated)
         {
             Resize();
             float aspect = static_cast<float>(m_Renderer.GetSwapchainImageWidth()) / static_cast<float>(m_Renderer.GetSwapchainImageHeight());
             projection = glm::perspective(glm::radians(38.0f), aspect, 0.1f, 100.0f);
+            projection = glm::inverse(projection);
         }
 
         m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, *commandBuffer);
@@ -240,6 +267,7 @@ void Application::Run()
             Resize();
             float aspect = static_cast<float>(m_Renderer.GetSwapchainImageWidth()) / static_cast<float>(m_Renderer.GetSwapchainImageHeight());
             projection = glm::perspective(glm::radians(38.0f), aspect, 0.1f, 100.0f);
+            projection = glm::inverse(projection);
         }
     }
 
@@ -255,7 +283,7 @@ void Application::Resize()
     m_DepthImageView.~ImageView();
     m_DepthImage.~Image();
 
-    std::tie(m_ColorImage, m_ColorImageView, m_DepthImage, m_DepthImageView) = CreateImages(m_Device, m_Renderer.GetSwapchainImageWidth(), m_Renderer.GetSwapchainImageHeight(), m_InitializationCmd, m_Renderer.GetSwapchainImageFormat());
+    std::tie(m_ColorImage, m_ColorImageView, m_DepthImage, m_DepthImageView) = CreateImages(m_Device, m_Renderer.GetSwapchainImageWidth(), m_Renderer.GetSwapchainImageHeight(), m_InitializationCmd, VulkanHelper::Format::R8G8B8A8_UNORM);
     VH_ASSERT(m_TextureSet.AddImage(0, 0, m_ColorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
 
     VH_ASSERT(m_InitializationCmd.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");

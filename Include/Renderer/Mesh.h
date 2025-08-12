@@ -188,6 +188,12 @@ namespace VulkanHelper
          */
         [[nodiscard]] Buffer* GetIndexBuffer();
 
+        /**
+         * @brief Get the size of each vertex in bytes
+         * @return Size of a single vertex
+         */
+        [[nodiscard]] uint32_t GetVertexSize() const;
+
         [[nodiscard]] static VulkanHelper::Vector<VertexAttributeDescription> CreateAttributeDescriptions(const VulkanHelper::Format* formats, uint32_t count);
         [[nodiscard]] static VertexBindingDescription CreateBindingDescription(uint32_t vertexSize);
 

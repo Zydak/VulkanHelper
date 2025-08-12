@@ -28,13 +28,13 @@ namespace VulkanHelper
         rgenRegion.size = VulkanHelper::GetAlignment(handleSizeAligned * rgenCount, bufferBaseAlignment);
         rgenRegion.stride = VulkanHelper::GetAlignment(handleSizeAligned, bufferBaseAlignment);
 
-        VkStridedDeviceAddressRegionKHR missRegion;
-        missRegion.size = VulkanHelper::GetAlignment(handleSizeAligned * missCount, bufferBaseAlignment);
-        missRegion.stride = VulkanHelper::GetAlignment(handleSizeAligned, bufferBaseAlignment);
-
         VkStridedDeviceAddressRegionKHR hitRegion;
         hitRegion.size = VulkanHelper::GetAlignment(handleSizeAligned * hitGroupCount, bufferBaseAlignment);
         hitRegion.stride = VulkanHelper::GetAlignment(handleSizeAligned, bufferBaseAlignment);
+
+        VkStridedDeviceAddressRegionKHR missRegion;
+        missRegion.size = VulkanHelper::GetAlignment(handleSizeAligned * missCount, bufferBaseAlignment);
+        missRegion.stride = VulkanHelper::GetAlignment(handleSizeAligned, bufferBaseAlignment);
 
         std::vector<uint8_t> handleData(handleCount * handleSize, 0);
         VkResult result = FunctionLoader::vkGetRayTracingShaderGroupHandlesKHR(
@@ -80,19 +80,19 @@ namespace VulkanHelper
         }
         mappedData += rgenRegion.size;
 
-        for (uint32_t i = 0; i < missCount; ++i)
-        {
-            std::memcpy(mappedData + i * missRegion.stride, handleData.data() + handleIndex * handleSize, handleSize);
-            handleIndex++;
-        }
-        mappedData += missRegion.size;
-
         for (uint32_t i = 0; i < hitGroupCount; ++i)
         {
             std::memcpy(mappedData + i * hitRegion.stride, handleData.data() + handleIndex * handleSize, handleSize);
             handleIndex++;
         }
         mappedData += hitRegion.size;
+
+        for (uint32_t i = 0; i < missCount; ++i)
+        {
+            std::memcpy(mappedData + i * missRegion.stride, handleData.data() + handleIndex * handleSize, handleSize);
+            handleIndex++;
+        }
+        mappedData += missRegion.size;
 
         stagingBuffer.Unmap();
 
@@ -109,8 +109,8 @@ namespace VulkanHelper
         sbtBuffer.CopyFrom(cmd, stagingBuffer, 0, 0, sbtSize);
 
         rgenRegion.deviceAddress = sbtBuffer.GetDeviceAddress();
-        missRegion.deviceAddress = rgenRegion.deviceAddress + rgenRegion.size;
-        hitRegion.deviceAddress = missRegion.deviceAddress + missRegion.size;
+        hitRegion.deviceAddress = rgenRegion.deviceAddress + rgenRegion.size;
+        missRegion.deviceAddress = hitRegion.deviceAddress + hitRegion.size;
 
         return SBT(
             VulkanHelper::Move(sbtBuffer),

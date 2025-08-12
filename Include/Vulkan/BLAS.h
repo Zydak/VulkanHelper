@@ -39,6 +39,12 @@ namespace VulkanHelper
             VulkanHelper::Vector<VulkanHelper::Buffer*> VertexBuffers;
 
             /**
+             * @brief Size of each vertex in bytes
+             * @note Must match the actual size of vertices in VertexBuffers
+             */
+            uint32_t VertexSize = 0;
+
+            /**
              * @brief Index buffers for indexed geometry (optional)
              * @note If used, the count must match VertexBuffers count, fill with nullptrs if not used
              */

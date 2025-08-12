@@ -9,6 +9,8 @@
 #include "Vulkan/Buffer.h"
 #include "Vulkan/Sampler.h"
 
+#include "Vulkan/TLAS.h"
+
 namespace VulkanHelper
 {
     /**
@@ -131,8 +133,16 @@ namespace VulkanHelper
          */
         [[nodiscard]] VHResult AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler& sampler);
         
-        // TODO For Later
-        //[[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const AccelerationStructure* accelerationStructure);
+        /**
+         * @brief Adds an acceleration structure to the descriptor set at the specified binding
+         * 
+         * @param binding The binding index in the descriptor set layout
+         * @param arrayIndex The array index within the binding (0 for non-array bindings)
+         * @param accelerationStructure The TLAS to bind
+         * @return VHResult::OK on success, or an error code on failure
+         * @note The binding must be configured for acceleration structure descriptors
+         */
+        [[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS* accelerationStructure);
 
         /**
          * @brief Creates a new descriptor set with the specified configuration

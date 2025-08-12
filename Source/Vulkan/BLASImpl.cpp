@@ -18,13 +18,12 @@ namespace VulkanHelper
     Expected<BLAS, VHResult> BLAS::Impl::New(
         Device::Impl* device,
         const Vector<Buffer::Impl*>& vertexBuffers,
+        uint32_t vertexSize,
         const Vector<Buffer::Impl*>& indexBuffers,
         bool enableCompaction,
         CommandBuffer::Impl* commandBuffer
     )
     {
-        VH_LOG_INFO("Creating Vulkan Acceleration Structure Implementation");
-
         for (uint32_t i = 0; i < vertexBuffers.Size(); ++i)
         {
             vertexBuffers[i]->Barrier(
@@ -68,9 +67,9 @@ namespace VulkanHelper
             
             geometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
             geometry.geometry.triangles.vertexData.deviceAddress = vertexBuffers[i]->GetDeviceAddress();
-            geometry.geometry.triangles.vertexStride = 3 * sizeof(float); // Assume vec3 positions for now
+            geometry.geometry.triangles.vertexStride = vertexSize;
             geometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-            geometry.geometry.triangles.maxVertex = static_cast<uint32_t>(vertexBuffers[i]->GetSize() / (3 * sizeof(float))) - 1;
+            geometry.geometry.triangles.maxVertex = static_cast<uint32_t>(vertexBuffers[i]->GetSize()) / vertexSize - 1;
 
             if (indexBuffers[i] != nullptr)
             {
@@ -170,10 +169,10 @@ namespace VulkanHelper
 
         VH_ASSERT(impl->Build(commandBuffer, buildRangeInfos.Data(), buildGeometryInfo) == VHResult::OK, "Failed to build acceleration structure");
 
-        if (enableCompaction)
-        {
-            VH_ASSERT(impl->Compact(commandBuffer) == VHResult::OK, "Failed to compact acceleration structure");
-        }
+        //if (enableCompaction)
+        //{
+        //    VH_ASSERT(impl->Compact(commandBuffer) == VHResult::OK, "Failed to compact acceleration structure");
+        //}
         
         return Impl::CreatePublicInterface(UniquePtr<Impl>(impl));
     }
@@ -427,6 +426,12 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
+        if (config.VertexSize == 0)
+        {
+            VH_LOG_ERROR("VertexSize must be greater than 0!");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
         VulkanHelper::Vector<Buffer::Impl*> vertexBuffers;
         vertexBuffers.Reserve(config.VertexBuffers.Size());
         for (auto* buffer : config.VertexBuffers)
@@ -440,6 +445,7 @@ namespace VulkanHelper
         return Impl::New(
             Device::Impl::GetImplementation(config.Device),
             vertexBuffers,
+            config.VertexSize,
             indexBuffers,
             config.EnableCompaction,
             CommandBuffer::Impl::GetImplementation(config.CommandBuffer)

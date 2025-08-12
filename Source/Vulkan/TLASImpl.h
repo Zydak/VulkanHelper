@@ -28,6 +28,7 @@ namespace VulkanHelper
         [[nodiscard]] inline static Impl* GetImplementation(const TLAS* publicInterface) { return publicInterface->m_Impl.Get(); }
         [[nodiscard]] inline static TLAS CreatePublicInterface(UniquePtr<Impl>&& impl) { return TLAS(VulkanHelper::Move(impl)); }
 
+        [[nodiscard]] inline VkAccelerationStructureKHR GetHandle() const { return m_Handle; }
     private:
         static VkTransformMatrixKHR ConvertToVulkanMatrix(const glm::mat4& mat);
 

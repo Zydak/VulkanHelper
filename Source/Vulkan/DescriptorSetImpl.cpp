@@ -8,6 +8,8 @@
 #include "Vulkan/Sampler.h"
 #include "Core/Error.h"
 
+#include "Vulkan/TLASImpl.h"
+
 #include <vulkan/vulkan.h>
 
 namespace VulkanHelper
@@ -284,6 +286,68 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
+    VHResult DescriptorSet::Impl::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS::Impl* accelerationStructure)
+    {
+        VH_LOG_INFO("Adding acceleration structure to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
+
+        // Validate binding exists in the descriptor set
+        bool bindingFound = false;
+        DescriptorType expectedType = DescriptorType::UNDEFINED;
+        uint32_t descriptorCount = 0;
+
+        for (uint32_t i = 0; i < m_BindingDescriptions.Size(); ++i)
+        {
+            if (m_BindingDescriptions[i].Binding == binding)
+            {
+                bindingFound = true;
+                expectedType = m_BindingDescriptions[i].Type;
+                descriptorCount = m_BindingDescriptions[i].DescriptorsCount;
+                break;
+            }
+        }
+
+        if (!bindingFound)
+        {
+            VH_LOG_ERROR("Binding {} not found in descriptor set layout", binding);
+            return VHResult::WRONG_ARGUMENTS;
+        }
+
+        // Validate descriptor type
+        if (expectedType != DescriptorType::ACCELERATION_STRUCTURE_KHR)
+        {
+            VH_LOG_ERROR("Binding {} is not an acceleration structure descriptor type", binding);
+            return VHResult::WRONG_ARGUMENTS;
+        }
+
+        // Validate array index
+        if (arrayIndex >= descriptorCount)
+        {
+            VH_LOG_ERROR("Array index {} is out of bounds for binding {} (max: {})", arrayIndex, binding, descriptorCount - 1);
+            return VHResult::WRONG_ARGUMENTS;
+        }
+
+        // Create acceleration structure info
+        VkWriteDescriptorSetAccelerationStructureKHR accelStructInfo{};
+        accelStructInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+        accelStructInfo.accelerationStructureCount = 1;
+        VkAccelerationStructureKHR handle = accelerationStructure->GetHandle();
+        accelStructInfo.pAccelerationStructures = &handle;
+
+        // Update descriptor set
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = m_DescriptorSet;
+        descriptorWrite.dstBinding = binding;
+        descriptorWrite.dstArrayElement = arrayIndex;
+        descriptorWrite.descriptorType = static_cast<VkDescriptorType>(expectedType);
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pNext = &accelStructInfo;
+
+        vkUpdateDescriptorSets(m_Device->GetDevice(), 1, &descriptorWrite, 0, nullptr);
+
+        return VHResult::OK;
+    }
+
     //
     //  Forward Functions
     //
@@ -328,5 +392,10 @@ namespace VulkanHelper
     VHResult DescriptorSet::AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler& sampler)
     {
         return m_Impl->AddSampler(binding, arrayIndex, sampler);
+    }
+
+    VHResult DescriptorSet::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS* accelerationStructure)
+    {
+        return m_Impl->AddAccelerationStructure(binding, arrayIndex, TLAS::Impl::GetImplementation(accelerationStructure));
     }
 } // namespace VulkanHelper

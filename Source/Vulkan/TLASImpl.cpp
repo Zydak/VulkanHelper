@@ -149,6 +149,10 @@ namespace VulkanHelper
             buildRangeInfos
         );
 
+        VH_ASSERT(commandBuffer->EndRecording() == VHResult::OK, "Failed to end command buffer recording for TLAS build");
+        VH_ASSERT(commandBuffer->SubmitAndWait() == VHResult::OK, "Failed to submit command buffer for TLAS build");
+        VH_ASSERT(commandBuffer->BeginRecording(CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VHResult::OK, "Failed to begin command buffer recording for TLAS build");
+
         return Impl(
             device,
             accelerationStructure,
@@ -159,11 +163,12 @@ namespace VulkanHelper
     VkTransformMatrixKHR TLAS::Impl::ConvertToVulkanMatrix(const glm::mat4& mat)
     {
         VkTransformMatrixKHR vkMat = {};
+        glm::mat4 transposeMat = glm::transpose(mat); // VkTransformMatrixKHR is row-major, but glm is column-major
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 4; ++j)
             {
-                vkMat.matrix[i][j] = mat[i][j];
+                vkMat.matrix[i][j] = transposeMat[i][j];
             }
         }
         return vkMat;

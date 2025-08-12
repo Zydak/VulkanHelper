@@ -33,7 +33,9 @@ namespace VulkanHelper
         [[nodiscard]] VHResult AddBuffer(uint32_t binding, uint32_t arrayIndex, const Buffer& buffer);
         [[nodiscard]] VHResult AddImage(uint32_t binding, uint32_t arrayIndex, const ImageView& imageView, Image::Layout layout);
         [[nodiscard]] VHResult AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler& sampler);
+        [[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS::Impl* accelerationStructure);
 
+        [[nodiscard]] inline const Vector<DescriptorSet::BindingDescription>& GetBindingDescriptions() const { return m_BindingDescriptions; }
     private:
         Device::Impl* m_Device;
         VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;

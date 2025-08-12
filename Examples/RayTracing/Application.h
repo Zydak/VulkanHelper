@@ -41,9 +41,11 @@ private:
         VulkanHelper::ImageView&& depthImageView,
         VulkanHelper::Image&& colorImage,
         VulkanHelper::ImageView&& colorImageView,
-        VulkanHelper::PushConstant&& pushConstant,
+        VulkanHelper::Buffer&& uniformBufferCamera,
         VulkanHelper::CommandPool&& commandPool,
-        VulkanHelper::CommandBuffer&& initializationCmd
+        VulkanHelper::CommandBuffer&& initializationCmd,
+        VulkanHelper::BLAS&& blas,
+        VulkanHelper::TLAS&& tlas
     )
     : m_Instance(std::move(instance)),
       m_Window(std::move(window)),
@@ -60,9 +62,11 @@ private:
       m_DepthImageView(std::move(depthImageView)),
       m_ColorImage(std::move(colorImage)),
       m_ColorImageView(std::move(colorImageView)),
-      m_PushConstant(std::move(pushConstant)),
+      m_UniformBufferCamera(std::move(uniformBufferCamera)),
       m_CommandPool(std::move(commandPool)),
-      m_InitializationCmd(std::move(initializationCmd))
+      m_InitializationCmd(std::move(initializationCmd)),
+      m_BLAS(std::move(blas)),
+      m_TLAS(std::move(tlas))
     {}
 
     VulkanHelper::Instance m_Instance;
@@ -86,8 +90,11 @@ private:
     VulkanHelper::Image m_ColorImage;
     VulkanHelper::ImageView m_ColorImageView;
 
-    VulkanHelper::PushConstant m_PushConstant;
+    VulkanHelper::Buffer m_UniformBufferCamera;
 
     VulkanHelper::CommandPool m_CommandPool;
     VulkanHelper::CommandBuffer m_InitializationCmd;
+
+    VulkanHelper::BLAS m_BLAS;
+    VulkanHelper::TLAS m_TLAS;
 };

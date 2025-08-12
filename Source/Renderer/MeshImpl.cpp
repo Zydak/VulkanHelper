@@ -353,4 +353,9 @@ namespace VulkanHelper
     {
         return m_Impl->GetIndexBuffer();
     }
+
+    uint32_t Mesh::GetVertexSize() const
+    {
+        return m_Impl->GetVertexSize();
+    }
 }

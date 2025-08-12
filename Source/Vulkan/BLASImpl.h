@@ -16,6 +16,7 @@ namespace VulkanHelper
         [[nodiscard]] static Expected<BLAS, VHResult> New(
             Device::Impl* device,
             const Vector<Buffer::Impl*>& vertexBuffers,
+            uint32_t vertexSize,
             const Vector<Buffer::Impl*>& indexBuffers,
             bool enableCompaction,
             CommandBuffer::Impl* commandBuffer
