@@ -26,28 +26,25 @@ Application Application::New()
     }
 
     // Pick discrete GPU if available
-    VulkanHelper::PhysicalDevice* selectedDevice = &physicalDevices[0];
+    VulkanHelper::PhysicalDevice selectedDevice = physicalDevices[0];
     for (size_t i = 0; i < physicalDevices.Size(); i++)
     {   
         if (physicalDevices[i].IsDiscrete())
         {
             VH_LOG_INFO("Selected Discrete GPU: {}", physicalDevices[i].GetName());
-            selectedDevice = &physicalDevices[i];
+            selectedDevice = physicalDevices[i];
             break;
         }
     }
 
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 900, 900, "NBodySim Example", "", true}).Value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({instance, 900, 900, "NBodySim Example", "", true}).Value();
 
-    VulkanHelper::Vector<VulkanHelper::Window*> windows;
-    windows.PushBack(&window);
+    VulkanHelper::Device device = VulkanHelper::Device::New({selectedDevice, {window}, instance}).Value();
 
-    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, std::move(windows), &instance}).Value();
-
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({device, window}).Value();
 
     VulkanHelper::CommandPool::Config cmdPoolConfig;
-    cmdPoolConfig.Device = &device;
+    cmdPoolConfig.Device = device;
     cmdPoolConfig.Flags = VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT;
     cmdPoolConfig.QueueFamilyIndex = device.GetQueueFamilyIndices().GraphicsFamily;
     VulkanHelper::CommandPool cmdPool = VulkanHelper::CommandPool::New(cmdPoolConfig).Value();
@@ -74,7 +71,7 @@ Application Application::New()
     };
     
     VulkanHelper::Mesh::Config pointsMeshConfig;
-    pointsMeshConfig.Device = &device;
+    pointsMeshConfig.Device = device;
     pointsMeshConfig.VertexDataSize = POINTS_COUNT * sizeof(Particle);
     pointsMeshConfig.VertexData = particles.data();
     pointsMeshConfig.VertexAttributeCount = 2;
@@ -92,7 +89,7 @@ Application Application::New()
         {VulkanHelper::DescriptorType::STORAGE_BUFFER, 1}
     };
     VulkanHelper::DescriptorPool::Config descriptorPoolConfig;
-    descriptorPoolConfig.Device = &device;
+    descriptorPoolConfig.Device = device;
     descriptorPoolConfig.MaxSets = 1;
     descriptorPoolConfig.PoolSizes = poolSizes;
     descriptorPoolConfig.PoolSizeCount = 1;
@@ -107,7 +104,7 @@ Application Application::New()
     computeSetConfig.Bindings = bindings;
     computeSetConfig.BindingCount = 1;
     VulkanHelper::DescriptorSet computeSet = descriptorPool.AllocateDescriptorSet(computeSetConfig).Value();
-    VH_ASSERT(computeSet.AddBuffer(0, 0, *pointsMesh.GetVertexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add buffer to compute descriptor set!");
+    VH_ASSERT(computeSet.AddBuffer(0, 0, pointsMesh.GetVertexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add buffer to compute descriptor set!");
 
     //
     //  Compute Pipeline
@@ -115,13 +112,13 @@ Application Application::New()
 
     // Shader
     VulkanHelper::Shader::InitializeSession("../../../NBodySim/Shaders/");
-    VulkanHelper::Shader computeShader = VulkanHelper::Shader::New({&device, "Compute.slang", VulkanHelper::ShaderStages::COMPUTE_BIT}).Value();
+    VulkanHelper::Shader computeShader = VulkanHelper::Shader::New({device, "Compute.slang", VulkanHelper::ShaderStages::COMPUTE_BIT}).Value();
 
     // Pipeline
     VulkanHelper::Pipeline::ComputeConfig pipelineConfig;
-    pipelineConfig.Device = &device;
-    pipelineConfig.ComputeShader = &computeShader;
-    pipelineConfig.DescriptorSets.PushBack(&computeSet);
+    pipelineConfig.Device = device;
+    pipelineConfig.ComputeShader = computeShader;
+    pipelineConfig.DescriptorSets.PushBack(computeSet);
 
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
 
@@ -130,12 +127,12 @@ Application Application::New()
     //
 
     // Shaders
-    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "Vertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
-    VulkanHelper::Shader fragmentShader = VulkanHelper::Shader::New({&device, "Fragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
+    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({device, "Vertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
+    VulkanHelper::Shader fragmentShader = VulkanHelper::Shader::New({device, "Fragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
     VulkanHelper::Pipeline::GraphicsConfig graphicsPipelineConfig;
-    graphicsPipelineConfig.Device = &device;
-    graphicsPipelineConfig.Shaders.PushBack(&vertexShader);
-    graphicsPipelineConfig.Shaders.PushBack(&fragmentShader);
+    graphicsPipelineConfig.Device = device;
+    graphicsPipelineConfig.Shaders.PushBack(vertexShader);
+    graphicsPipelineConfig.Shaders.PushBack(fragmentShader);
 
     graphicsPipelineConfig.AttributeDesc = pointsMesh.GetAttributesDescriptions();
     graphicsPipelineConfig.BindingDesc = pointsMesh.GetBindingDescription();
@@ -176,7 +173,7 @@ void Application::Run()
         m_Pipeline.Bind(*cmd);
         m_Pipeline.Dispatch(*cmd, POINTS_COUNT / 32 + 1, 1, 1);
 
-        m_Points.GetVertexBuffer()->Barrier(
+        m_Points.GetVertexBuffer().Barrier(
             *cmd,
             VulkanHelper::AccessFlags::SHADER_WRITE_BIT,
             VulkanHelper::AccessFlags::VERTEX_ATTRIBUTE_READ_BIT,

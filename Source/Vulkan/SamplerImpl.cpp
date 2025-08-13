@@ -8,8 +8,9 @@
 
 namespace VulkanHelper
 {
-    Expected<Sampler::Impl, VHResult> Sampler::Impl::New(Device::Impl* device, 
-        Sampler::AddressMode addressMode, 
+    Expected<SharedPtr<Sampler::Impl>, VHResult> Sampler::Impl::New(
+        const SharedPtr<Device::Impl>& device,
+        Sampler::AddressMode addressMode,
         Sampler::Filter minFilter,
         Sampler::Filter magFilter,
         Sampler::MipmapMode mipmapMode)
@@ -40,7 +41,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return Impl(device, sampler);
+        return SharedPtr<Impl>(new Impl(device, sampler));
     }
 
     Sampler::Impl::Impl(Impl&& other) noexcept
@@ -84,12 +85,6 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Vulkan Sampler Implementation");
 
-        if (config.Device == nullptr)
-        {
-            VH_LOG_ERROR("Invalid Sampler configuration: Device is null.");
-            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
             config.AddressMode,
@@ -103,6 +98,28 @@ namespace VulkanHelper
         }
 
         return Sampler::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
+    }
+
+    Sampler::Sampler()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Sampler::Sampler(const Sampler& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    Sampler& Sampler::operator=(const Sampler& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Sampler(); // Cleanup current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
     }
 
     Sampler::Sampler(Sampler&& other) noexcept
@@ -126,8 +143,8 @@ namespace VulkanHelper
     {
     }
 
-    Sampler::Sampler(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Sampler::Sampler(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
     }
 }

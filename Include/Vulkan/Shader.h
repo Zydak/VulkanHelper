@@ -2,7 +2,7 @@
 
 #include "Core/Error.h"
 #include "Core/Expected.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Enums.h"
 #include "Vulkan/Device.h"
 
@@ -22,10 +22,9 @@ namespace VulkanHelper
         {
             /**
              * @brief The logical device that will own this shader module
-             * 
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            Device* device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Path to the shader source file
@@ -55,8 +54,11 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Shader, VHResult> New(const Config& config); 
 
-        Shader(const Shader& other) = delete;
-        Shader& operator=(const Shader& other) = delete;
+        Shader();
+
+        Shader(const Shader& other);
+        Shader& operator=(const Shader& other);
+
         Shader(Shader&& other) noexcept;
         Shader& operator=(Shader&& other) noexcept;
         
@@ -65,8 +67,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Shader(VulkanHelper::UniquePtr<Impl>&& impl);
+        Shader(const SharedPtr<Impl>& impl);
     };
 }

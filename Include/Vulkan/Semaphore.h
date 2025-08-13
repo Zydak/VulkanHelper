@@ -2,12 +2,12 @@
 
 #include "Core/Error.h"
 #include "Core/Expected.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
+
+#include "Vulkan/Device.h"
 
 namespace VulkanHelper
 {
-    class Device;
-
     /**
      * @class Semaphore
      * @brief RAII wrapper for a Vulkan synchronization semaphore. Used for GPU queue synchronization.
@@ -22,10 +22,9 @@ namespace VulkanHelper
         {
             /**
              * @brief The logical device that will own this semaphore
-             * 
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
         };
 
         /**
@@ -37,8 +36,10 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Semaphore, VHResult> New(const Config& config);
 
-        Semaphore(const Semaphore& other) = delete;
-        Semaphore& operator=(const Semaphore& other) = delete;
+        Semaphore();
+
+        Semaphore(const Semaphore& other);
+        Semaphore& operator=(const Semaphore& other);
 
         Semaphore(Semaphore&& other) noexcept;
         Semaphore& operator=(Semaphore&& other) noexcept;
@@ -48,8 +49,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Semaphore(UniquePtr<Impl>&& impl);
+        Semaphore(const SharedPtr<Impl>& impl);
     };
 }

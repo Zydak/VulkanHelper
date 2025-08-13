@@ -1,17 +1,16 @@
 #pragma once
 
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Expected.h"
 #include "Core/Vector.h"
 #include "Core/Enums.h"
 
 #include "Vulkan/DescriptorSet.h"
+#include "Vulkan/Device.h"
 
 namespace VulkanHelper
 {
-    class Device;
-
     /**
      * @class DescriptorPool
      * @brief RAII wrapper for Vulkan descriptor pool object
@@ -46,9 +45,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the descriptor pool on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Maximum number of descriptor sets that can be allocated from this pool
@@ -78,29 +77,14 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<DescriptorPool, VHResult> New(const Config& config);
 
-        /**
-         * @brief Delete copy constructor
-         */
-        DescriptorPool(const DescriptorPool& other) = delete;
+        DescriptorPool();
 
-        /**
-         * @brief Delete copy assignment operator
-         */
-        DescriptorPool& operator=(const DescriptorPool& other) = delete;
+        DescriptorPool(const DescriptorPool& other);
+        DescriptorPool& operator=(const DescriptorPool& other);
 
-        /**
-         * @brief Move constructor
-         */
         DescriptorPool(DescriptorPool&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         DescriptorPool& operator=(DescriptorPool&& other) noexcept;
 
-        /**
-         * @brief Destructor
-         */
         ~DescriptorPool();
 
         /**
@@ -124,8 +108,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        DescriptorPool(UniquePtr<Impl> impl);
+        DescriptorPool(const SharedPtr<Impl>& impl);
     };
 }

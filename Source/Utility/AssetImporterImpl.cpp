@@ -17,7 +17,7 @@
 
 namespace VulkanHelper
 {
-    VulkanHelper::Expected<VulkanHelper::UniquePtr<AssetImporter::Impl>, VHResult> AssetImporter::Impl::New(const Config& config)
+    Expected<SharedPtr<AssetImporter::Impl>, VHResult> AssetImporter::Impl::New(const Config& config)
     {
         VH_LOG_INFO("Creating AssetImporter Implementation");
 
@@ -27,7 +27,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        return UniquePtr<Impl>(new Impl(config.ThreadPool));
+        return SharedPtr<Impl>(new Impl(config.ThreadPool));
     }
 
     AssetImporter::Impl::Impl(VulkanHelper::ThreadPool* threadPool)
@@ -508,8 +508,8 @@ namespace VulkanHelper
         return AssetImporter(Move(implResult.Value()));
     }
 
-    AssetImporter::AssetImporter(UniquePtr<Impl>&& impl)
-        : m_Impl(Move(impl))
+    AssetImporter::AssetImporter(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
     }
 
@@ -518,9 +518,26 @@ namespace VulkanHelper
 
     }
 
+    AssetImporter::AssetImporter(const AssetImporter& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
     AssetImporter::AssetImporter(AssetImporter&& other) noexcept
         : m_Impl(Move(other.m_Impl))
     {
+    }
+
+    AssetImporter& AssetImporter::operator=(const AssetImporter& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~AssetImporter(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
     }
 
     AssetImporter& AssetImporter::operator=(AssetImporter&& other) noexcept

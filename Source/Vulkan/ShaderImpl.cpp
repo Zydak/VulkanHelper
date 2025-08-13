@@ -43,7 +43,7 @@ namespace VulkanHelper
         s_GlobalSession->createSession(sessionDesc, s_Session.writeRef());
     }
 
-    Expected<Shader::Impl, VHResult> Shader::Impl::New(Device::Impl* device, const char* filepath, ShaderStages stage)
+    Expected<SharedPtr<Shader::Impl>, VHResult> Shader::Impl::New(const SharedPtr<Device::Impl>& device, const char* filepath, ShaderStages stage)
     {
         if (stage == ShaderStages::UNDEFINED)
         {
@@ -153,7 +153,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected(VHResult(res));
 
-        return Impl(device, module, (VkShaderStageFlagBits)stage);
+        return SharedPtr<Impl>(new Impl(device, module, (VkShaderStageFlagBits)stage));
     }
 
     Shader::Impl::~Impl()
@@ -217,13 +217,7 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Shader Module Implementation");
 
-        if (config.device == nullptr)
-        {
-            VH_LOG_ERROR("Device Can't Be NULL!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
-        auto implResult = Impl::New(Device::Impl::GetImplementation(config.device), config.Filepath, config.Stage);
+        auto implResult = Impl::New(Device::Impl::GetImplementation(config.Device), config.Filepath, config.Stage);
         if (!implResult.HasValue())
         {
             return VulkanHelper::Unexpected(implResult.Error());
@@ -232,13 +226,23 @@ namespace VulkanHelper
         return Shader::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
+    Shader::Shader()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Shader::Shader(const Shader& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
     Shader::~Shader()
     {
 
     }
 
-    Shader::Shader(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Shader::Shader(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }
@@ -255,6 +259,18 @@ namespace VulkanHelper
         this->~Shader(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
+
+        return *this;
+    }
+
+    Shader& Shader::operator=(const Shader& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Shader(); // Clean up current state
+
+        m_Impl = other.m_Impl;
 
         return *this;
     }

@@ -2,7 +2,7 @@
 
 #include "Core/Error.h"
 #include "Core/Expected.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Vector.h"
 
 #include "Vulkan/Device.h"
@@ -29,16 +29,14 @@ namespace VulkanHelper
         {
             /**
              * @brief The logical device that will own this pipeline
-             * 
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Shader stages used in this pipeline
-             * @note Shaders must not be nullptrs and outlive this object
              */
-            VulkanHelper::Vector<Shader*> Shaders;
+            VulkanHelper::Vector<Shader> Shaders;
 
             /**
              * @brief Vertex input state configuration
@@ -87,7 +85,7 @@ namespace VulkanHelper
              * @note If not empty, descriptor sets will be automatically bound when the pipeline is bound
              * @note All descriptor sets must outlive this object
              */
-            VulkanHelper::Vector<DescriptorSet*> DescriptorSets;
+            VulkanHelper::Vector<DescriptorSet> DescriptorSets;
 
             /**
              * @brief Push constant (Optional)
@@ -124,17 +122,16 @@ namespace VulkanHelper
         {
             /**
              * @brief The logical device that will own this pipeline
-             * 
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Shader used in the pipeline
              * 
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid shader
              */
-            VulkanHelper::Shader* ComputeShader = nullptr;
+            VulkanHelper::Shader ComputeShader{};
 
             /**
              * @brief Descriptor sets to bind with this pipeline (Optional)
@@ -142,7 +139,7 @@ namespace VulkanHelper
              * @note If not empty, descriptor sets will be automatically bound when the pipeline is bound
              * @note All descriptor sets must outlive this object
              */
-            VulkanHelper::Vector<DescriptorSet*> DescriptorSets;
+            VulkanHelper::Vector<DescriptorSet> DescriptorSets;
 
             /**
              * @brief Push constant (Optional)
@@ -159,31 +156,30 @@ namespace VulkanHelper
         {
             /**
              * @brief The logical device that will own this pipeline
-             * 
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Ray Generation shaders
              * 
-             * @note Must not be empty and all shaders must outlive this object
+             * @note Must not be empty
              */
-            VulkanHelper::Vector<Shader*> RayGenShaders;
+            VulkanHelper::Vector<Shader> RayGenShaders;
 
             /**
              * @brief Miss shaders
              * 
              * @note Must outlive this object
              */
-            VulkanHelper::Vector<Shader*> MissShaders;
+            VulkanHelper::Vector<Shader> MissShaders;
 
             /**
              * @brief Hit shaders
              * 
              * @note Must outlive this object
              */
-            VulkanHelper::Vector<Shader*> HitShaders;
+            VulkanHelper::Vector<Shader> HitShaders;
 
             /**
              * @brief Descriptor sets to bind with this pipeline (Optional)
@@ -191,7 +187,7 @@ namespace VulkanHelper
              * @note If not empty, descriptor sets will be automatically bound when the pipeline is bound
              * @note All descriptor sets must outlive this object
              */
-            VulkanHelper::Vector<DescriptorSet*> DescriptorSets;
+            VulkanHelper::Vector<DescriptorSet> DescriptorSets;
 
             /**
              * @brief Push constant (Optional)
@@ -245,8 +241,10 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Pipeline, VHResult> New(const RayTracingConfig& config);
 
-        Pipeline(const Pipeline& other) = delete;
-        Pipeline& operator=(const Pipeline& other) = delete;
+        Pipeline();
+
+        Pipeline(const Pipeline& other);
+        Pipeline& operator=(const Pipeline& other);
 
         Pipeline(Pipeline&& other) noexcept;
         Pipeline& operator=(Pipeline&& other) noexcept;
@@ -287,8 +285,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Pipeline(UniquePtr<Impl>&& impl);
+        Pipeline(const SharedPtr<Impl>& impl);
     };
 }

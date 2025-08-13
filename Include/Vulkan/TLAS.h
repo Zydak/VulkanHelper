@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 
 #include "Vulkan/BLAS.h"
 
@@ -28,15 +28,15 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the TLAS on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief List of BLAS objects to instance in this TLAS
              * @note Must not be empty and all BLAS objects must be valid
              */
-            const Vector<const VulkanHelper::BLAS*> BlasList;
+            const Vector<VulkanHelper::BLAS> BlasList;
 
             /**
              * @brief Transform matrices for each BLAS instance
@@ -58,8 +58,10 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<TLAS, VHResult> New(const Config& config);
 
-        TLAS(const TLAS& other) = delete;
-        TLAS& operator=(const TLAS& other) = delete;
+        TLAS();
+
+        TLAS(const TLAS& other);
+        TLAS& operator=(const TLAS& other);
 
         TLAS(TLAS&& other) noexcept;
         TLAS& operator=(TLAS&& other) noexcept;
@@ -69,8 +71,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        TLAS(VulkanHelper::UniquePtr<Impl>&& impl);
+        TLAS(const SharedPtr<Impl>& impl);
     };
 }

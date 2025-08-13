@@ -11,8 +11,8 @@ namespace VulkanHelper
     class Buffer::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(
-            Device::Impl* device,
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            SharedPtr<Device::Impl> device,
             uint64_t size,
             Buffer::Usage usage,
             bool cpuMapable,
@@ -29,11 +29,10 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Buffer* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Buffer CreatePublicInterface(Impl&& impl) { return Buffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Buffer> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Buffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Buffer& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Buffer CreatePublicInterface(const SharedPtr<Impl>& impl) { return Buffer(impl); }
 
-        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+        [[nodiscard]] inline SharedPtr<Device::Impl> GetDevice() const { return m_Device; }
         [[nodiscard]] inline VkBuffer GetBuffer() const { return m_BufferAllocation.Buffer; }
         [[nodiscard]] inline uint64_t GetSize() const { return m_Size; }
         [[nodiscard]] inline Usage GetUsage() const { return m_Usage; }
@@ -41,20 +40,20 @@ namespace VulkanHelper
 
         [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
 
-        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr);
-        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr) const;
+        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr);
+        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
 
         [[nodiscard]] Expected<void*, VHResult> Map();
 
         void Unmap();
 
-        VHResult CopyFrom(CommandBuffer::Impl* cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
+        VHResult CopyFrom(SharedPtr<CommandBuffer::Impl> cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
 
-        VHResult CopyToImage(CommandBuffer::Impl* cmd, const Image::Impl& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
+        VHResult CopyToImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
 
-        void Barrier(CommandBuffer::Impl* cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
+        void Barrier(SharedPtr<CommandBuffer::Impl> cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
     private:
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VulkanMemoryAllocator::BufferAllocation m_BufferAllocation;
         uint64_t m_Size;
         Usage m_Usage;
@@ -64,7 +63,8 @@ namespace VulkanHelper
         // Optional persistent scratch buffer for non-mappable buffers
         VulkanMemoryAllocator::BufferAllocation m_ScratchBuffer;
 
-        Impl(Device::Impl* device,
+        Impl(
+            SharedPtr<Device::Impl> device,
             VulkanMemoryAllocator::BufferAllocation bufferAllocation,
             uint64_t size,
             Usage usage,

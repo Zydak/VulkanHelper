@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Enums.h"
 #include "Vulkan/PhysicalDevice.h"
 #include "Instance.h"
@@ -36,13 +36,13 @@ namespace VulkanHelper
              * @brief Windows that the device will present to
              * @note If not empty, device will create presentation-capable queues
              */
-            VulkanHelper::Vector<VulkanHelper::Window*> Windows;
+            VulkanHelper::Vector<VulkanHelper::Window> Windows;
 
             /**
              * @brief Vulkan instance to create the device from
-             * @note Must not be nullptr and must outlive this object
+             * @note Must not be a valid instance
              */
-            VulkanHelper::Instance* Instance = nullptr;
+            VulkanHelper::Instance Instance{};
         };
 
         /**
@@ -62,29 +62,15 @@ namespace VulkanHelper
          * @return Expected containing the created device or an error code
          */
         [[nodiscard]] static VulkanHelper::Expected<Device, VHResult> New(const Config& config);
-        /**
-         * @brief Destructor
-         */
+
+        Device();
+
         ~Device();
 
-        /**
-         * @brief Delete copy constructor
-         */
-        Device(const Device& other) = delete;
+        Device(const Device& other);
+        Device& operator=(const Device& other);
 
-        /**
-         * @brief Delete copy assignment operator
-         */
-        Device& operator=(const Device& other) = delete;
-
-        /**
-         * @brief Move constructor
-         */
         Device(Device&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         Device& operator=(Device&& other) noexcept;
 
         /**
@@ -106,8 +92,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        VulkanHelper::SharedPtr<Impl> m_Impl;
 
-        Device(VulkanHelper::UniquePtr<Impl>&& impl);
+        Device(const VulkanHelper::SharedPtr<Impl>& impl);
     };
 }

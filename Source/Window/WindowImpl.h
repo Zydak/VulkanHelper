@@ -11,7 +11,14 @@ namespace VulkanHelper
     class Window::Impl
     {
     public:
-        static Expected<Impl, VHResult> New(Instance::Impl* instance, uint32_t width, uint32_t height, const char* name, const char* iconPath, bool resizable);
+        static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Instance::Impl>& instance,
+            uint32_t width,
+            uint32_t height,
+            const char* name,
+            const char* iconPath,
+            bool resizable
+        );
 
         ~Impl();
 
@@ -21,9 +28,8 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(Window* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Window CreatePublicInterface(Impl&& impl) { return Window(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Window> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Window(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Window& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Window CreatePublicInterface(const SharedPtr<Impl>& impl) { return Window(impl); }
 
         static void PollEvents();
         [[nodiscard]] bool WantsToClose() const;
@@ -37,8 +43,9 @@ namespace VulkanHelper
 
     private:
         // Constructable only by calling New(...)
-        Impl(Instance::Impl* instance, GLFWwindow* window, VkSurfaceKHR surface, std::string&& name, uint32_t width, uint32_t height)
-            : m_Instance(instance),
+        Impl(const SharedPtr<Instance::Impl>& instance, GLFWwindow* window, VkSurfaceKHR surface, std::string&& name, uint32_t width, uint32_t height)
+            :
+            m_Instance(instance),
             m_Window(window),
             m_Surface(surface),
             m_Name(VulkanHelper::Move(name)),
@@ -50,7 +57,7 @@ namespace VulkanHelper
 
         static void WindowSizeCallback(GLFWwindow* window, int width, int height);
 
-        Instance::Impl* m_Instance;
+        SharedPtr<Instance::Impl> m_Instance;
         GLFWwindow*     m_Window;
         VkSurfaceKHR    m_Surface;
         std::string     m_Name;

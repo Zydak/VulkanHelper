@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 
 #include "Vulkan/Image.h"
 
@@ -79,29 +79,14 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<ImageView, VHResult> New(const Config& config);
 
-        /**
-         * @brief Delete copy constructor
-         */
-        ImageView(const ImageView& other) = delete;
+        ImageView();
 
-        /**
-         * @brief Delete copy assignment operator
-         */
-        ImageView& operator=(const ImageView& other) = delete;
+        ImageView(const ImageView& other);
+        ImageView& operator=(const ImageView& other);
 
-        /**
-         * @brief Move constructor
-         */
         ImageView(ImageView&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         ImageView& operator=(ImageView&& other) noexcept;
 
-        /**
-         * @brief Destructor
-         */
         ~ImageView();
 
         /**
@@ -148,8 +133,8 @@ namespace VulkanHelper
 
         class Impl;
     private:
-        UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        ImageView(UniquePtr<Impl>&& impl);
+        ImageView(const SharedPtr<Impl>& impl);
     };
 }

@@ -10,7 +10,7 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
 )
 {
     VulkanHelper::Image::Config colorImageConfig{};
-    colorImageConfig.Device = &device;
+    colorImageConfig.Device = device;
     colorImageConfig.Width = width;
     colorImageConfig.Height = height;
     colorImageConfig.Format = format;
@@ -30,7 +30,7 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
     }).Value();
 
     VulkanHelper::Image::Config depthImageConfig{};
-    depthImageConfig.Device = &device;
+    depthImageConfig.Device = device;
     depthImageConfig.Width = width;
     depthImageConfig.Height = height;
     depthImageConfig.Format = VulkanHelper::Format::D32_SFLOAT;
@@ -64,28 +64,28 @@ Application Application::New()
     VH_ASSERT(!physicalDevices.Empty(), "No suitable physical devices found!");
 
     // Prefer a discrete GPU if available
-    VulkanHelper::PhysicalDevice* selectedDevice = &physicalDevices[0];
+    VulkanHelper::PhysicalDevice selectedDevice = physicalDevices[0];
     for (size_t i = 0; i < physicalDevices.Size(); i++)
     {   
         if (physicalDevices[i].IsDiscrete())
         {
             VH_LOG_INFO("Selected Discrete GPU: {}", physicalDevices[i].GetName());
-            selectedDevice = &physicalDevices[i];
+            selectedDevice = physicalDevices[i];
             break;
         }
     }
 
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 900, 900, "Example Project", "", true}).Value();
-    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({instance, 900, 900, "Example Project", "", true}).Value();
+    VulkanHelper::Device device = VulkanHelper::Device::New({selectedDevice, {window}, instance}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({device, window}).Value();
 
     VulkanHelper::Shader::InitializeSession("../../../RayTracing/Shaders/");
 
-    VulkanHelper::Shader rgenShader = VulkanHelper::Shader::New({&device, "RayGen.slang", VulkanHelper::ShaderStages::RAYGEN_BIT}).Value();
-    VulkanHelper::Shader hitShader = VulkanHelper::Shader::New({&device, "ClosestHit.slang", VulkanHelper::ShaderStages::CLOSEST_HIT_BIT}).Value();
-    VulkanHelper::Shader missShader = VulkanHelper::Shader::New({&device, "Miss.slang", VulkanHelper::ShaderStages::MISS_BIT}).Value();
+    VulkanHelper::Shader rgenShader = VulkanHelper::Shader::New({device, "RayGen.slang", VulkanHelper::ShaderStages::RAYGEN_BIT}).Value();
+    VulkanHelper::Shader hitShader = VulkanHelper::Shader::New({device, "ClosestHit.slang", VulkanHelper::ShaderStages::CLOSEST_HIT_BIT}).Value();
+    VulkanHelper::Shader missShader = VulkanHelper::Shader::New({device, "Miss.slang", VulkanHelper::ShaderStages::MISS_BIT}).Value();
 
-    VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({&device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
+    VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
     VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
 
     VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin recording initialization command buffer");
@@ -98,7 +98,7 @@ Application Application::New()
     };
     
     VulkanHelper::Mesh::Config meshConfig{};
-    meshConfig.Device = &device;
+    meshConfig.Device = device;
     meshConfig.VertexAttributes = vertexAttributes.data();
     meshConfig.VertexAttributeCount = vertexAttributes.size();
     meshConfig.VertexData = scene.Value().Meshes[0].Vertices.Data();
@@ -111,7 +111,7 @@ Application Application::New()
     VulkanHelper::Mesh loadedMesh = VulkanHelper::Mesh::New(meshConfig).Value();
 
     VulkanHelper::Buffer uniformBufferCamera = VulkanHelper::Buffer::New({
-        &device,
+        device,
         sizeof(glm::mat4) * 2 + sizeof(bool), // View, Projection, RenderNormalsOrTexCoords
         VulkanHelper::Buffer::Usage::UNIFORM_BUFFER_BIT,
         true, // CpuMapable
@@ -124,7 +124,7 @@ Application Application::New()
     };
     
     VulkanHelper::DescriptorPool::Config descriptorPoolConfig{};
-    descriptorPoolConfig.Device = &device;
+    descriptorPoolConfig.Device = device;
     descriptorPoolConfig.MaxSets = 1;
     descriptorPoolConfig.PoolSizes = poolSizes.data();
     descriptorPoolConfig.PoolSizeCount = poolSizes.size();
@@ -144,17 +144,17 @@ Application Application::New()
     VulkanHelper::DescriptorSet descriptorSet = descriptorPool.AllocateDescriptorSet(descriptorSetConfig).Value();
     
     VulkanHelper::Pipeline::RayTracingConfig pipelineConfig{};
-    pipelineConfig.Device = &device;
-    pipelineConfig.RayGenShaders.PushBack(&rgenShader);
-    pipelineConfig.HitShaders.PushBack(&hitShader);
-    pipelineConfig.MissShaders.PushBack(&missShader);
-    pipelineConfig.DescriptorSets.PushBack(&descriptorSet);
+    pipelineConfig.Device = device;
+    pipelineConfig.RayGenShaders.PushBack(rgenShader);
+    pipelineConfig.HitShaders.PushBack(hitShader);
+    pipelineConfig.MissShaders.PushBack(missShader);
+    pipelineConfig.DescriptorSets.PushBack(descriptorSet);
     pipelineConfig.CommandBuffer = &initializationCmd;
 
     VulkanHelper::Pipeline rtPipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();
 
     VulkanHelper::BLAS blas = VulkanHelper::BLAS::New({
-        &device,
+        device,
         {loadedMesh.GetVertexBuffer()},
         loadedMesh.GetVertexSize(),
         {loadedMesh.GetIndexBuffer()},
@@ -166,8 +166,8 @@ Application Application::New()
     model = glm::translate(model, glm::vec3(0.0f, 0.25f, 0.0f));
     model = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Blender has some really weird coordinate system
     VulkanHelper::TLAS tlas = VulkanHelper::TLAS::New({
-        &device,
-        {&blas},
+        device,
+        {blas},
         &model,
         &initializationCmd
     }).Value();
@@ -176,10 +176,10 @@ Application Application::New()
     VH_ASSERT(initializationCmd.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit initialization command buffer");
 
     VH_ASSERT(descriptorSet.AddImage(0, 0, colorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");
-    VH_ASSERT(descriptorSet.AddAccelerationStructure(1, 0, &tlas) == VulkanHelper::VHResult::OK, "Failed to add acceleration structure to descriptor set");
+    VH_ASSERT(descriptorSet.AddAccelerationStructure(1, 0, tlas) == VulkanHelper::VHResult::OK, "Failed to add acceleration structure to descriptor set");
     VH_ASSERT(descriptorSet.AddBuffer(2, 0, uniformBufferCamera) == VulkanHelper::VHResult::OK, "Failed to add uniform buffer to descriptor set");
-    VH_ASSERT(descriptorSet.AddBuffer(3, 0, *loadedMesh.GetVertexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add vertex buffer to descriptor set");
-    VH_ASSERT(descriptorSet.AddBuffer(4, 0, *loadedMesh.GetIndexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add index buffer to descriptor set");
+    VH_ASSERT(descriptorSet.AddBuffer(3, 0, loadedMesh.GetVertexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add vertex buffer to descriptor set");
+    VH_ASSERT(descriptorSet.AddBuffer(4, 0, loadedMesh.GetIndexBuffer()) == VulkanHelper::VHResult::OK, "Failed to add index buffer to descriptor set");
 
     return Application(
         std::move(instance),

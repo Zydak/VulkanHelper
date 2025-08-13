@@ -1,15 +1,15 @@
 #pragma once
 #include "Core/Expected.h"
 #include "Core/Macros.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Enums.h"
 
+#include "Vulkan/Device.h"
+#include "CommandBuffer.h"
+
 namespace VulkanHelper
 {
-    class Device;
-    class CommandBuffer;
-
     /**
      * @class Image
      * @brief RAII wrapper for Vulkan image objects
@@ -110,9 +110,9 @@ namespace VulkanHelper
         {
             /**
              * @brief The Vulkan device to create the image on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Height of the image in pixels
@@ -200,29 +200,14 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Image, VHResult> New(const Config& config);
 
-        /**
-         * @brief Delete copy constructor
-         */
-        Image(const Image& other) = delete;
+        Image();
 
-        /**
-         * @brief Delete copy assignment operator
-         */
-        Image& operator=(const Image& other) = delete;
+        Image(const Image& other);
+        Image& operator=(const Image& other);
         
-        /**
-         * @brief Move constructor
-         */
         Image(Image&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         Image& operator=(Image&& other) noexcept;
 
-        /**
-         * @brief Destructor
-         */
         ~Image();
 
         /**
@@ -341,9 +326,9 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        VulkanHelper::SharedPtr<Impl> m_Impl;
 
-        Image(UniquePtr<Impl> && impl);
+        Image(const SharedPtr<Impl>& impl);
 
         friend class Swapchain; // Allow Swapchain to construct Image instances
     };

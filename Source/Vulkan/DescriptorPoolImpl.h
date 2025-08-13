@@ -10,7 +10,7 @@ namespace VulkanHelper
     class DescriptorPool::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<Impl, VHResult> New(Device::Impl* device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -20,22 +20,21 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const DescriptorPool* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static DescriptorPool CreatePublicInterface(Impl&& impl) { return DescriptorPool(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<DescriptorPool> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new DescriptorPool(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const DescriptorPool& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static DescriptorPool CreatePublicInterface(const SharedPtr<Impl>& impl) { return DescriptorPool(impl); }
 
-        [[nodiscard]] VulkanHelper::Expected<DescriptorSet, VHResult> AllocateDescriptorSet(const DescriptorSet::Config& config);
+        [[nodiscard]] Expected<DescriptorSet, VHResult> AllocateDescriptorSet(const DescriptorSet::Config& config);
 
         void Reset();
 
-        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+        [[nodiscard]] inline SharedPtr<Device::Impl> GetDevice() const { return m_Device; }
         [[nodiscard]] inline VkDescriptorPool GetDescriptorPool() const { return m_DescriptorPool; }
         
     private:
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
 
-        explicit Impl(Device::Impl* device, VkDescriptorPool descriptorPool)
+        explicit Impl(const SharedPtr<Device::Impl>& device, VkDescriptorPool descriptorPool)
             : m_Device(device)
             , m_DescriptorPool(descriptorPool)
         {}

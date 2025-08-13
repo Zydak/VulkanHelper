@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Expected.h"
 
 #include "Vulkan/Device.h"
@@ -60,9 +60,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the sampler on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Addressing mode for texture coordinates
@@ -98,36 +98,21 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Sampler, VHResult> New(const Config& config);
 
-        /**
-         * @brief Delete copy constructor
-         */
-        Sampler(const Sampler& other) = delete;
+        Sampler();
 
-        /**
-         * @brief Delete copy assignment operator
-         */
-        Sampler& operator=(const Sampler& other) = delete;
+        Sampler(const Sampler& other);
+        Sampler& operator=(const Sampler& other);
 
-        /**
-         * @brief Move constructor
-         */
         Sampler(Sampler&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         Sampler& operator=(Sampler&& other) noexcept;
 
-        /**
-         * @brief Destructor
-         */
         ~Sampler();
 
         class Impl;
     private:
         friend class Impl;
-        UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Sampler(UniquePtr<Impl>&& impl);
+        Sampler(const SharedPtr<Impl>& impl);
     };
 }

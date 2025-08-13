@@ -7,7 +7,7 @@
 
 namespace VulkanHelper
 {
-    Expected<Semaphore::Impl, VHResult> Semaphore::Impl::New(Device::Impl* device)
+    Expected<SharedPtr<Semaphore::Impl>, VHResult> Semaphore::Impl::New(const SharedPtr<Device::Impl>& device)
     {
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -21,7 +21,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return Impl(device, semaphore);
+        return SharedPtr<Impl>(new Impl(device, semaphore));
     }
 
     Semaphore::Impl::Impl(Semaphore::Impl&& other) noexcept
@@ -63,12 +63,6 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Vulkan Semaphore Implementation");
 
-        if (config.Device == nullptr)
-        {
-            VH_LOG_ERROR("Semaphore initialization failed. Device can't be nullptr!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
         auto implResult = Impl::New(Device::Impl::GetImplementation(config.Device));
         if (!implResult.HasValue())
         {
@@ -78,13 +72,23 @@ namespace VulkanHelper
         return Semaphore::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
+    Semaphore::Semaphore()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Semaphore::Semaphore(const Semaphore& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
     Semaphore::~Semaphore()
     {
 
     }
 
-    Semaphore::Semaphore(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Semaphore::Semaphore(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }
@@ -101,6 +105,18 @@ namespace VulkanHelper
         this->~Semaphore(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
+
+        return *this;
+    }
+
+    Semaphore& Semaphore::operator=(const Semaphore& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Semaphore(); // Clean up current state
+
+        m_Impl = other.m_Impl;
 
         return *this;
     }

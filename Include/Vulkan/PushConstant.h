@@ -2,7 +2,7 @@
 
 #include "Core/Error.h"
 #include "Core/Expected.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Enums.h"
 
 #include "CommandBuffer.h"
@@ -55,25 +55,14 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<PushConstant, VHResult> New(const Config& config);
 
-        PushConstant(const PushConstant& other) = delete;
-        PushConstant& operator=(const PushConstant& other) = delete;
+        PushConstant();
 
-        /**
-         * @brief Move constructor. Takes ownership of another PushConstant's resources.
-         * @param other The PushConstant to move from
-         */
+        PushConstant(const PushConstant& other);
+        PushConstant& operator=(const PushConstant& other);
+
         PushConstant(PushConstant&& other) noexcept;
-        
-        /**
-         * @brief Move assignment operator. Takes ownership of another PushConstant's resources.
-         * @param other The PushConstant to move from
-         * @return Reference to this PushConstant
-         */
         PushConstant& operator=(PushConstant&& other) noexcept;
 
-        /**
-         * @brief Destructor. Destroys the PushConstant and releases resources.
-         */
         ~PushConstant();
 
         /**
@@ -107,8 +96,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        PushConstant(UniquePtr<Impl>&& impl);
+        PushConstant(const SharedPtr<Impl>& impl);
     };
 }

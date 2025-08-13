@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/Enums.h"
@@ -22,8 +22,10 @@ namespace VulkanHelper
 
         [[nodiscard]] static VulkanHelper::Expected<AssetImporter, VHResult> New(const Config& config);
 
-        AssetImporter(const AssetImporter& other) = delete;
-        AssetImporter& operator=(const AssetImporter& other) = delete;
+        AssetImporter();
+        
+        AssetImporter(const AssetImporter& other);
+        AssetImporter& operator=(const AssetImporter& other);
 
         AssetImporter(AssetImporter&& other) noexcept;
         AssetImporter& operator=(AssetImporter&& other) noexcept;
@@ -36,8 +38,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        AssetImporter(UniquePtr<Impl>&& impl);
+        AssetImporter(const SharedPtr<Impl>& impl);
     };
 }

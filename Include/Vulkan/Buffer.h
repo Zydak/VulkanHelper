@@ -2,16 +2,16 @@
 
 #include "Core/Expected.h"
 #include "Core/Macros.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Enums.h"
 
+#include "Vulkan/Device.h"
+#include "Vulkan/CommandBuffer.h"
+#include "Vulkan/Image.h"
+
 namespace VulkanHelper
 {
-    class Device;
-    class CommandBuffer;
-    class Image;
-
     /**
      * @class Buffer
      * @brief RAII wrapper for Vulkan buffer objects
@@ -54,9 +54,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the buffer on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Size of the buffer in bytes
@@ -97,8 +97,10 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Buffer, VHResult> New(const Config& config);
 
-        Buffer(const Buffer& other) = delete;
-        Buffer& operator=(const Buffer& other) = delete;
+        Buffer();
+
+        Buffer(const Buffer& other);
+        Buffer& operator=(const Buffer& other);
         
         Buffer(Buffer&& other) noexcept;
         Buffer& operator=(Buffer&& other) noexcept;
@@ -189,9 +191,9 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Buffer(UniquePtr<Impl>&& impl);
+        Buffer(const SharedPtr<Impl>& impl);
     };
 
     DEFINE_BITWISE_OPERATORS(Buffer::Usage)

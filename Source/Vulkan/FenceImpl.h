@@ -9,7 +9,7 @@ namespace VulkanHelper
     class Fence::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, bool startSignaled);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device, bool startSignaled);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -19,20 +19,19 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Fence* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Fence CreatePublicInterface(Impl&& impl) { return Fence(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Fence> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Fence(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Fence& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Fence CreatePublicInterface(const SharedPtr<Impl>& impl) { return Fence(impl); }
 
         void Wait();
         void Reset();
 
         [[nodiscard]] inline VkFence GetFenceHandle() const { return m_Fence; }
     private:
-        Impl(Device::Impl* device, VkFence fence)
+        Impl(const SharedPtr<Device::Impl>& device, VkFence fence)
             : m_Device(device), m_Fence(fence)
         {}
 
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VkFence m_Fence;
     };
 }

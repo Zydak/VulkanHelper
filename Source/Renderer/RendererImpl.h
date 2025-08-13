@@ -23,26 +23,25 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, Window::Impl* window);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device, const SharedPtr<Window::Impl>& window);
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Renderer* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Renderer CreatePublicInterface(Impl&& impl) { return Renderer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Renderer> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Renderer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Renderer& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Renderer CreatePublicInterface(const SharedPtr<Impl>& impl) { return Renderer(impl); }
 
         [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame(bool* outWasSwapchainRecreated);
         [[nodiscard]] VHResult EndFrame(bool* outWasSwapchainRecreated);
 
         void BeginRendering(
-            CommandBuffer::Impl* commandBuffer,
-            const VulkanHelper::Vector<ImageView::Impl*>& targetImagesColor,
-            const ImageView::Impl* targetImageDepth,
+            const SharedPtr<CommandBuffer::Impl>& commandBuffer,
+            const VulkanHelper::Vector<SharedPtr<ImageView::Impl>>& targetImagesColor,
+            const SharedPtr<ImageView::Impl>& targetImageDepth,
             glm::vec4 clearColor = {0.1f, 0.1f, 0.1f, 1.0f},
             float clearDepth = 1.0f,
-            const ImageView::Impl* resolveImageView = nullptr,
+            const SharedPtr<ImageView::Impl>& resolveImageView = nullptr,
             glm::uvec2 scissorsStart = {0u, 0u},
             glm::uvec2 scissorsEnd = {0u, 0u}
         );
-        void EndRendering(CommandBuffer::Impl* commandBuffer);
+        void EndRendering(const SharedPtr<CommandBuffer::Impl>& commandBuffer);
 
         [[nodiscard]] inline Image* GetCurrentSwapchainImage() const { return m_Swapchain.GetCurrentSwapchainImage(); }
         [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() const { return m_Swapchain.GetCurrentSwapchainImageView(); }
@@ -53,15 +52,15 @@ namespace VulkanHelper
     private:
         VHResult RecreateSwapchain();
         
-        Device::Impl* m_Device;
-        Window::Impl* m_Window;
+        SharedPtr<Device::Impl> m_Device;
+        SharedPtr<Window::Impl> m_Window;
         Swapchain m_Swapchain;
         CommandPool m_CommandPool;
         Vector<CommandBuffer> m_CommandBuffers;
 
         Impl(
-            Device::Impl* device,
-            Window::Impl* window,
+            const SharedPtr<Device::Impl>& device,
+            const SharedPtr<Window::Impl>& window,
             Swapchain&& swapchain,
             CommandPool&& pool,
             Vector<CommandBuffer>&& commandBuffers

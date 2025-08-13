@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Vector.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 
 namespace VulkanHelper
 {
@@ -25,6 +25,8 @@ namespace VulkanHelper
             Qualcomm,  ///< Qualcomm GPU
             Unknown    ///< Unknown vendor
         };
+
+        PhysicalDevice();
 
         ~PhysicalDevice();
 
@@ -67,12 +69,12 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        VulkanHelper::SharedPtr<Impl> m_Impl;
 
         /**
          * @brief Internal constructor used by Instance class
          */
-        PhysicalDevice(VulkanHelper::UniquePtr<Impl>&& impl);
+        PhysicalDevice(const VulkanHelper::SharedPtr<Impl>& impl);
 
         friend class Instance; // Allow Instance to construct PhysicalDevice
     };

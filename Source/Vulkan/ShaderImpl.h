@@ -11,7 +11,7 @@ namespace VulkanHelper
     {
     public:
         static void InitializeSession(const char* shaderSearchPath);
-        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, const char* filepath, ShaderStages stage);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device, const char* filepath, ShaderStages stage);
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -19,19 +19,18 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Shader* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Shader CreatePublicInterface(Impl&& impl) { return Shader(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Shader> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Shader(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Shader& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Shader CreatePublicInterface(const SharedPtr<Impl>& impl) { return Shader(impl); }
 
         [[nodiscard]] inline VkShaderModule GetShaderModule() const { return m_Shader; }
         [[nodiscard]] inline VkShaderStageFlagBits GetShaderStage() const { return m_Stage; }
         [[nodiscard]] VkPipelineShaderStageCreateInfo GetShaderStageCreateInfo() const;
     private:
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VkShaderModule m_Shader;
         VkShaderStageFlagBits m_Stage;
 
-        Impl(Device::Impl* device, VkShaderModule shader, VkShaderStageFlagBits stage)
+        Impl(const SharedPtr<Device::Impl>& device, VkShaderModule shader, VkShaderStageFlagBits stage)
             : m_Device(device)
             , m_Shader(shader)
             , m_Stage(stage)

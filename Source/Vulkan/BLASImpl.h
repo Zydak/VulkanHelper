@@ -13,13 +13,13 @@ namespace VulkanHelper
     class BLAS::Impl
     {
     public:
-        [[nodiscard]] static Expected<BLAS, VHResult> New(
-            Device::Impl* device,
-            const Vector<Buffer::Impl*>& vertexBuffers,
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            const Vector<SharedPtr<Buffer::Impl>>& vertexBuffers,
             uint32_t vertexSize,
-            const Vector<Buffer::Impl*>& indexBuffers,
+            const Vector<SharedPtr<Buffer::Impl>>& indexBuffers,
             bool enableCompaction,
-            CommandBuffer::Impl* commandBuffer
+            const SharedPtr<CommandBuffer::Impl>& commandBuffer
         );
 
         ~Impl();
@@ -30,35 +30,36 @@ namespace VulkanHelper
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const BLAS* const publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static BLAS CreatePublicInterface(Impl&& impl) { return BLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<BLAS> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new BLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const BLAS& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static BLAS CreatePublicInterface(const SharedPtr<Impl> impl) { return BLAS(impl); }
 
         [[nodiscard]] inline VkAccelerationStructureKHR GetHandle() const { return m_Handle; }
         [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
 
     private:
         VHResult Build(
-            CommandBuffer::Impl* commandBuffer,
+            const SharedPtr<CommandBuffer::Impl>& commandBuffer,
             VkAccelerationStructureBuildRangeInfoKHR* buildRangeInfos,
             VkAccelerationStructureBuildGeometryInfoKHR& buildInfo
         );
-        VHResult Compact(CommandBuffer::Impl* commandBuffer);
+        VHResult Compact(const SharedPtr<CommandBuffer::Impl>& commandBuffer);
 
         static constexpr size_t BLAS_MAX_SIZE = 256 * 1024 * 1024; // 256 MB max size for BLAS
 
-        Device::Impl* m_Device = nullptr;
+        SharedPtr<Device::Impl> m_Device = nullptr;
         VkAccelerationStructureKHR m_Handle = VK_NULL_HANDLE;
-        Buffer::Impl m_Buffer;
+        SharedPtr<Buffer::Impl> m_Buffer;
         uint64_t m_ScratchBufferSize = 0;
 
-        Impl(Device::Impl* device, VkAccelerationStructureKHR handle, 
-             Buffer::Impl&& buffer,
-             uint64_t scratchBufferSize
+        Impl(
+            const SharedPtr<Device::Impl>& device,
+            VkAccelerationStructureKHR handle, 
+            const SharedPtr<Buffer::Impl>& buffer,
+            uint64_t scratchBufferSize
         )
             : m_Device(device)
             , m_Handle(handle)
-            , m_Buffer(Move(buffer))
+            , m_Buffer(buffer)
             , m_ScratchBufferSize(scratchBufferSize)
         {}
         

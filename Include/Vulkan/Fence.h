@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Expected.h"
+
+#include "Vulkan/Device.h"
 
 namespace VulkanHelper
 {
-    class Device;
-
     /**
      * @class Fence
      * @brief RAII wrapper for Vulkan fence objects
@@ -25,9 +25,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the fence on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Initial state of the fence
@@ -43,28 +43,14 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Fence, VHResult> New(const Config& config);
 
-        /**
-         * @brief Delete copy constructor
-         */
-        Fence(const Fence& other) = delete;
-        Fence& operator=(const Fence& other) = delete;
+        Fence();
 
-        /**
-        * @brief Move constructor. Takes ownership of another Fence's resources.
-        * @param other The Fence to move from.
-        */
+        Fence(const Fence& other);
+        Fence& operator=(const Fence& other);
+
         Fence(Fence&& other) noexcept;
-
-        /**
-        * @brief Move assignment operator. Takes ownership of another Fence's resources.
-        * @param other The Fence to move from.
-        * @return Reference to this Fence.
-        */
         Fence& operator=(Fence&& other) noexcept;
 
-        /**
-        * @brief Destructor. Destroys the Fence and releases resources.
-        */
         ~Fence();
 
         /**
@@ -82,8 +68,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        VulkanHelper::SharedPtr<Impl> m_Impl;
 
-        Fence(UniquePtr<Impl>&& impl);
+        Fence(const SharedPtr<Impl>& impl);
     };
 }

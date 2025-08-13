@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Expected.h"
 #include "Core/Enums.h"
 
@@ -74,29 +74,14 @@ namespace VulkanHelper
             uint32_t BindingCount = 0;
         };
 
-        /**
-         * @brief Delete copy constructor
-         */
-        DescriptorSet(const DescriptorSet& other) = delete;
+        DescriptorSet();
 
-        /**
-         * @brief Delete copy assignment operator
-         */
-        DescriptorSet& operator=(const DescriptorSet& other) = delete;
+        DescriptorSet(const DescriptorSet& other);
+        DescriptorSet& operator=(const DescriptorSet& other);
 
-        /**
-         * @brief Move constructor
-         */
         DescriptorSet(DescriptorSet&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         DescriptorSet& operator=(DescriptorSet&& other) noexcept;
 
-        /**
-         * @brief Destructor
-         */
         ~DescriptorSet();
 
         /**
@@ -142,28 +127,18 @@ namespace VulkanHelper
          * @return VHResult::OK on success, or an error code on failure
          * @note The binding must be configured for acceleration structure descriptors
          */
-        [[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS* accelerationStructure);
-
-        /**
-         * @brief Creates a new descriptor set with the specified configuration
-         * 
-         * @param config Configuration parameters for the descriptor set
-         * @return Expected containing the created descriptor set or an error code
-         * @note This is primarily used internally. Use DescriptorPool::AllocateDescriptorSet() instead
-         * @note Descriptor sets should typically be allocated from a DescriptorPool
-         */
-        [[nodiscard]] static Expected<UniquePtr<DescriptorSet>, VHResult> New(const Config& config);
+        [[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS& accelerationStructure);
 
         class Impl;
     private:
         friend class Impl;
-        UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
         /**
          * @brief Private constructor for internal use
          * @param impl Implementation pointer
          */
-        DescriptorSet(UniquePtr<Impl>&& impl);
+        DescriptorSet(const SharedPtr<Impl>& impl);
 
         friend class DescriptorPool; // Allow DescriptorPool to create DescriptorSets, Don't use static New
     };

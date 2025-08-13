@@ -1,16 +1,16 @@
 #pragma once
 
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Expected.h"
+
+#include "Vulkan/Instance.h"
+#include "Vulkan/PhysicalDevice.h"
 
 struct GLFWwindow;
 
 namespace VulkanHelper
 {
-    class PhysicalDevice;
-    class Instance;
-
     /**
      * @class Window
      * @brief RAII wrapper for a GLFWwindow
@@ -26,9 +26,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Vulkan Instance for creating the window surface
-             * @note Must not be nullptr
+             * @note Must not be a valid instance
              */
-            VulkanHelper::Instance *Instance = nullptr;
+            VulkanHelper::Instance Instance{};
 
             /**
              * @brief Initial width of the window in pixels
@@ -65,13 +65,15 @@ namespace VulkanHelper
          */
         static VulkanHelper::Expected<Window, VHResult> New(const Config& config);
 
-        ~Window();
+        Window();
 
-        Window(const Window& other) = delete;
-        Window& operator=(const Window& other) = delete;
+        Window(const Window& other);
+        Window& operator=(const Window& other);
 
         Window(Window&& other) noexcept;
         Window& operator=(Window&& other) noexcept;
+
+        ~Window();
 
         /**
          * @brief Polls for and processes pending window events
@@ -118,8 +120,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Window(VulkanHelper::UniquePtr<Impl>&& impl);
+        Window(const SharedPtr<Impl>& impl);
     };
 } // namespace VulkanHelper

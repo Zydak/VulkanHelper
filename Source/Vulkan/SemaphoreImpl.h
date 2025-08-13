@@ -9,7 +9,7 @@ namespace VulkanHelper
     class Semaphore::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -19,17 +19,16 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Semaphore* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Semaphore CreatePublicInterface(Impl&& impl) { return Semaphore(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Semaphore> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Semaphore(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Semaphore& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Semaphore CreatePublicInterface(const SharedPtr<Impl>& impl) { return Semaphore(impl); }
 
         [[nodiscard]] inline VkSemaphore GetSemaphore() const { return m_Semaphore; } 
     private:
-        Impl(Device::Impl* device, VkSemaphore semaphore)
+        Impl(const SharedPtr<Device::Impl>& device, VkSemaphore semaphore)
             : m_Device(device), m_Semaphore(semaphore)
         {}
 
-        VulkanHelper::Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VkSemaphore m_Semaphore;
     };
 }

@@ -15,13 +15,13 @@
 
 namespace VulkanHelper
 {
-    Expected<BLAS, VHResult> BLAS::Impl::New(
-        Device::Impl* device,
-        const Vector<Buffer::Impl*>& vertexBuffers,
+    Expected<SharedPtr<BLAS::Impl>, VHResult> BLAS::Impl::New(
+        const SharedPtr<Device::Impl>& device,
+        const Vector<SharedPtr<Buffer::Impl>>& vertexBuffers,
         uint32_t vertexSize,
-        const Vector<Buffer::Impl*>& indexBuffers,
+        const Vector<SharedPtr<Buffer::Impl>>& indexBuffers,
         bool enableCompaction,
-        CommandBuffer::Impl* commandBuffer
+        const SharedPtr<CommandBuffer::Impl>& commandBuffer
     )
     {
         for (uint32_t i = 0; i < vertexBuffers.Size(); ++i)
@@ -126,8 +126,8 @@ namespace VulkanHelper
             maxPrimitiveCounts.Data(),
             &buildSizesInfo
         );
-        
-        Buffer::Impl asBuffer = Buffer::Impl::New(
+
+        SharedPtr<Buffer::Impl> asBuffer = Buffer::Impl::New(
             device,
             buildSizesInfo.accelerationStructureSize,
             Buffer::Usage::ACCELERATION_STRUCTURE_STORAGE_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
@@ -140,7 +140,7 @@ namespace VulkanHelper
         // Create the acceleration structure
         VkAccelerationStructureCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-        createInfo.buffer = asBuffer.GetBuffer();
+        createInfo.buffer = asBuffer->GetBuffer();
         createInfo.size = buildSizesInfo.accelerationStructureSize;
         createInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
@@ -160,21 +160,21 @@ namespace VulkanHelper
 
         VkAccelerationStructureKHR finalAccelerationStructure = accelerationStructure;
 
-        auto impl = new Impl(
+        auto impl = SharedPtr<Impl>(new Impl(
             device,
             finalAccelerationStructure,
             Move(asBuffer),
             buildSizesInfo.buildScratchSize
-        );
+        ));
 
         VH_ASSERT(impl->Build(commandBuffer, buildRangeInfos.Data(), buildGeometryInfo) == VHResult::OK, "Failed to build acceleration structure");
 
-        //if (enableCompaction)
-        //{
-        //    VH_ASSERT(impl->Compact(commandBuffer) == VHResult::OK, "Failed to compact acceleration structure");
-        //}
+        if (enableCompaction)
+        {
+            VH_ASSERT(impl->Compact(commandBuffer) == VHResult::OK, "Failed to compact acceleration structure");
+        }
         
-        return Impl::CreatePublicInterface(Move(*impl));
+        return impl;
     }
 
     BLAS::Impl::Impl(Impl&& other) noexcept
@@ -233,7 +233,7 @@ namespace VulkanHelper
     }
 
     VHResult BLAS::Impl::Build(
-        CommandBuffer::Impl* commandBuffer,
+        const SharedPtr<CommandBuffer::Impl>& commandBuffer,
         VkAccelerationStructureBuildRangeInfoKHR* buildRangeInfos,
         VkAccelerationStructureBuildGeometryInfoKHR& buildInfo
     )
@@ -250,7 +250,7 @@ namespace VulkanHelper
             return VHResult::WRONG_ARGUMENTS;
         }
 
-        Buffer::Impl scratchBuffer = (Buffer::Impl::New(
+        SharedPtr<Buffer::Impl> scratchBuffer = (Buffer::Impl::New(
             m_Device,
             m_ScratchBufferSize,
             Buffer::Usage::STORAGE_BUFFER_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
@@ -262,7 +262,7 @@ namespace VulkanHelper
 
         // Update build geometry info to point to current geometry data
         buildInfo.dstAccelerationStructure = m_Handle;
-        buildInfo.scratchData.deviceAddress = scratchBuffer.GetDeviceAddress();
+        buildInfo.scratchData.deviceAddress = scratchBuffer->GetDeviceAddress();
 
         // Prepare build range info pointers
         const VkAccelerationStructureBuildRangeInfoKHR* pBuildRangeInfos = buildRangeInfos;
@@ -284,7 +284,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult BLAS::Impl::Compact(CommandBuffer::Impl* commandBuffer)
+    VHResult BLAS::Impl::Compact(const SharedPtr<CommandBuffer::Impl>& commandBuffer)
     {
         if (!commandBuffer)
         {
@@ -348,7 +348,7 @@ namespace VulkanHelper
         }
 
         // Create a new buffer for the compacted acceleration structure
-        Buffer::Impl compactedBufferImpl = Buffer::Impl::New(
+        SharedPtr<Buffer::Impl> compactedBufferImpl = Buffer::Impl::New(
             m_Device,
             compactedSize,
             Buffer::Usage::ACCELERATION_STRUCTURE_STORAGE_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
@@ -360,7 +360,7 @@ namespace VulkanHelper
 
         VkAccelerationStructureCreateInfoKHR compactedCreateInfo{};
         compactedCreateInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-        compactedCreateInfo.buffer = compactedBufferImpl.GetBuffer();
+        compactedCreateInfo.buffer = compactedBufferImpl->GetBuffer();
         compactedCreateInfo.size = compactedSize;
         compactedCreateInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 
@@ -402,12 +402,6 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating BLAS Implementation");
 
-        if (!config.Device)
-        {
-            VH_LOG_ERROR("Device cannot be null!");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
         if (config.VertexBuffers.Empty())
         {
             VH_LOG_ERROR("VertexBuffers cannot be empty!");
@@ -432,24 +426,52 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        VulkanHelper::Vector<Buffer::Impl*> vertexBuffers;
+        VulkanHelper::Vector<SharedPtr<Buffer::Impl>> vertexBuffers;
         vertexBuffers.Reserve(config.VertexBuffers.Size());
-        for (auto* buffer : config.VertexBuffers)
+        for (auto& buffer : config.VertexBuffers)
             vertexBuffers.PushBack(Buffer::Impl::GetImplementation(buffer));
 
-        VulkanHelper::Vector<Buffer::Impl*> indexBuffers;
+        VulkanHelper::Vector<SharedPtr<Buffer::Impl>> indexBuffers;
         indexBuffers.Reserve(config.IndexBuffers.Size());
-        for (auto* buffer : config.IndexBuffers)
+        for (auto& buffer : config.IndexBuffers)
             indexBuffers.PushBack(Buffer::Impl::GetImplementation(buffer));
 
-        return Impl::New(
+        auto implRes = Impl::New(
             Device::Impl::GetImplementation(config.Device),
             vertexBuffers,
             config.VertexSize,
             indexBuffers,
             config.EnableCompaction,
-            CommandBuffer::Impl::GetImplementation(config.CommandBuffer)
+            CommandBuffer::Impl::GetImplementation(*config.CommandBuffer)
         );
+
+        if (!implRes)
+        {
+            VH_LOG_ERROR("Failed to create BLAS implementation");
+            return Unexpected(implRes.Error());
+        }
+
+        return BLAS(implRes.Value());
+    }
+
+    BLAS::BLAS()
+        : m_Impl(nullptr)
+    {
+    }
+
+    BLAS::BLAS(const BLAS& other)
+        : m_Impl(other.m_Impl)
+    {}
+
+    BLAS& BLAS::operator=(const BLAS& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~BLAS(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+        return *this;
     }
 
     BLAS::BLAS(BLAS&& other) noexcept
@@ -462,6 +484,7 @@ namespace VulkanHelper
             return *this;
 
         this->~BLAS(); // Clean up current state
+
         m_Impl = Move(other.m_Impl);
         return *this;
     }
@@ -471,7 +494,7 @@ namespace VulkanHelper
 
     }
 
-    BLAS::BLAS(UniquePtr<Impl>&& impl)
-        : m_Impl(Move(impl))
+    BLAS::BLAS(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {}
 }

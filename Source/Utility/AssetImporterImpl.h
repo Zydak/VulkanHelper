@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Utility/AssetImporter.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Expected.h"
 #include "Core/Vector.h"
 #include "Utility/ThreadPool.h"
@@ -15,7 +15,7 @@ namespace VulkanHelper
     class AssetImporter::Impl
     {
     public:
-        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::UniquePtr<Impl>, VHResult> New(const Config& config);
+        [[nodiscard]] static VulkanHelper::Expected<VulkanHelper::SharedPtr<Impl>, VHResult> New(const Config& config);
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -23,8 +23,8 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const AssetImporter* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static AssetImporter CreatePublicInterface(VulkanHelper::UniquePtr<Impl>&& impl) { return AssetImporter(VulkanHelper::Move(impl)); }
+        [[nodiscard]] inline static Impl* GetImplementation(const AssetImporter& publicInterface) { return publicInterface.m_Impl.Get(); }
+        [[nodiscard]] inline static AssetImporter CreatePublicInterface(const VulkanHelper::SharedPtr<Impl>& impl) { return AssetImporter(impl); }
 
         [[nodiscard]] std::future<Expected<SceneAsset, VHResult>> ImportScene(const std::string& filePath);
         [[nodiscard]] std::future<Expected<TextureAsset, VHResult>> ImportTexture(const std::string& texturePath);

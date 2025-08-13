@@ -56,7 +56,7 @@ static void GLFWErrorCallback(int errorCode, const char* message)
 
 namespace VulkanHelper
 {
-    Expected<Instance::Impl, VHResult> Instance::Impl::New(bool addGLFWExtensions)
+    Expected<SharedPtr<Instance::Impl>, VHResult> Instance::Impl::New(bool addGLFWExtensions)
     {
         VH_LOG_INFO("Creating Vulkan Instance Implementation");
 
@@ -149,7 +149,7 @@ namespace VulkanHelper
         Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
 
-        return Impl(messenger, instance);
+        return SharedPtr<Impl>(new Impl(messenger, instance));
     }
 
     Instance::Impl::Impl(Impl&& other) noexcept
@@ -213,9 +213,9 @@ namespace VulkanHelper
         for (size_t i = 0; i < devices.Size(); i++)
         {
             auto physicalDeviceImpl = PhysicalDevice::Impl::New(m_Instance, devices[i]);
-            if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value().IsSuitable(deviceExtensions))
+            if (physicalDeviceImpl.HasValue() && physicalDeviceImpl.Value()->IsSuitable(deviceExtensions))
             {
-                PhysicalDevice physicalDevice = PhysicalDevice::Impl::CreatePublicInterface(Move(physicalDeviceImpl.Value()));
+                PhysicalDevice physicalDevice = PhysicalDevice::Impl::CreatePublicInterface(physicalDeviceImpl.Value());
                 suitableDevices.EmplaceBack(Move(physicalDevice));
             }
             else
@@ -255,7 +255,26 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Instance::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
+        return Instance::Impl::CreatePublicInterface(implResult.Value());
+    }
+
+    Instance::Instance()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Instance::Instance(const Instance& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    Instance& Instance::operator=(const Instance& other)
+    {
+        if (this != &other)
+        {
+            m_Impl = other.m_Impl;
+        }
+        return *this;
     }
 
     Instance::Instance(Instance&& other) noexcept
@@ -266,13 +285,10 @@ namespace VulkanHelper
 
     Instance& Instance::operator=(Instance&& other) noexcept
     {
-        if (this == &other)
-            return *this;
-
-        this->~Instance(); // Clean up current state
-
-        m_Impl = VulkanHelper::Move(other.m_Impl);
-
+        if (this != &other)
+        {
+            m_Impl = VulkanHelper::Move(other.m_Impl);
+        }
         return *this;
     }
 
@@ -281,8 +297,8 @@ namespace VulkanHelper
 
     }
 
-    Instance::Instance(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Instance::Instance(const VulkanHelper::SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }

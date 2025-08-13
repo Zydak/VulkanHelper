@@ -8,7 +8,7 @@
 
 namespace VulkanHelper
 {
-    Expected<ImageView::Impl, VHResult> ImageView::Impl::New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount)
+    Expected<SharedPtr<ImageView::Impl>, VHResult> ImageView::Impl::New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount)
     {
         VH_LOG_INFO("Creating Image View Implementation");
 
@@ -23,7 +23,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        Device::Impl* deviceImpl = image->GetDevice();
+        SharedPtr<Device::Impl> deviceImpl = image->GetDevice();
 
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -43,7 +43,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return Impl(image, imageView, viewType);
+        return SharedPtr<Impl>(new Impl(image, imageView, viewType));
     }
 
     ImageView::Impl::Impl(Impl&& other) noexcept
@@ -88,7 +88,7 @@ namespace VulkanHelper
     VulkanHelper::Expected<ImageView, VHResult> ImageView::New(const Config& config)
     {
         auto implResult = Impl::New(
-            Image::Impl::GetImplementation(config.image),
+            Image::Impl::GetImplementation(*config.image).Get(),
             config.ViewType,
             config.BaseLayer,
             config.LayerCount
@@ -99,7 +99,26 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return ImageView::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
+        return ImageView::Impl::CreatePublicInterface(implResult.Value());
+    }
+
+    ImageView::ImageView()
+        : m_Impl(nullptr)
+    {
+    }
+
+    ImageView::ImageView(const ImageView& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    ImageView& ImageView::operator=(const ImageView& other)
+    {
+        if (this != &other)
+        {
+            m_Impl = other.m_Impl;
+        }
+        return *this;
     }
 
     ImageView::ImageView(ImageView&& other) noexcept
@@ -125,8 +144,8 @@ namespace VulkanHelper
 
     }
 
-    ImageView::ImageView(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    ImageView::ImageView(const VulkanHelper::SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }

@@ -12,7 +12,12 @@
 
 namespace VulkanHelper
 {
-    Expected<Device::Impl, VHResult> Device::Impl::New(PhysicalDevice::Impl physicalDevice, const Vector<Window::Impl*>& windows, Instance::Impl* instance, bool requestRTSupport)
+    Expected<SharedPtr<Device::Impl>, VHResult> Device::Impl::New(
+        const SharedPtr<PhysicalDevice::Impl>& physicalDevice,
+        const Vector<SharedPtr<Window::Impl>>& windows,
+        const SharedPtr<Instance::Impl>& instance,
+        bool requestRTSupport
+    )
     {
         VH_LOG_INFO("Creating Vulkan Device Implementation");
 
@@ -85,7 +90,7 @@ namespace VulkanHelper
             extensions.EmplaceBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         }
 
-        if (!physicalDevice.IsSuitable(extensions))
+        if (!physicalDevice->IsSuitable(extensions))
         {
             VH_LOG_ERROR("Physical device is not suitable for the required device extensions! Pick a different device.");
             return VulkanHelper::Unexpected(VHResult::EXTENSION_NOT_PRESENT);
@@ -143,14 +148,14 @@ namespace VulkanHelper
         #endif
 
         VkDevice device;
-        VkResult res = vkCreateDevice(physicalDevice.GetDevice(), &createInfo, nullptr, &device);
+        VkResult res = vkCreateDevice(physicalDevice->GetDevice(), &createInfo, nullptr, &device);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to create Vulkan device");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        VulkanMemoryAllocator allocator = VulkanMemoryAllocator::New(device, instance->GetInstance(), physicalDevice.GetDevice()).Value();
+        VulkanMemoryAllocator allocator = VulkanMemoryAllocator::New(device, instance->GetInstance(), physicalDevice->GetDevice()).Value();
 
         VkPhysicalDeviceProperties2 physicalDeviceProperties = {};
         physicalDeviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -167,21 +172,19 @@ namespace VulkanHelper
             rayTracingProperties.pNext = &accelerationStructureProperties;
         }
 
-        vkGetPhysicalDeviceProperties2(physicalDevice.GetDevice(), &physicalDeviceProperties);
-        
+        vkGetPhysicalDeviceProperties2(physicalDevice->GetDevice(), &physicalDeviceProperties);
+
         // Create the Device::Impl first, then initialize the DeleteQueue with proper allocator pointer
-        Impl deviceImpl(
+        return SharedPtr<Impl>(new Impl(
             instance,
             device,
-            Move(physicalDevice),
+            physicalDevice,
             Move(indices),
             Move(allocator),
             Move(physicalDeviceProperties),
             Move(rayTracingProperties),
             Move(accelerationStructureProperties)
-        );
-
-        return deviceImpl;
+        ));
     }
 
     Device::Impl::~Impl()
@@ -241,12 +244,12 @@ namespace VulkanHelper
         return *this;
     }
 
-    Device::QueueFamilyIndices Device::Impl::FindQueueFamilies(const PhysicalDevice::Impl& physicalDevice, const VulkanHelper::Vector<Window::Impl*>& windows)
+    Device::QueueFamilyIndices Device::Impl::FindQueueFamilies(const SharedPtr<PhysicalDevice::Impl>& physicalDevice, const VulkanHelper::Vector<SharedPtr<Window::Impl>>& windows)
     {
         QueueFamilyIndices indices;
 
         uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.GetDevice(), &queueFamilyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice->GetDevice(), &queueFamilyCount, nullptr);
         if (queueFamilyCount == 0)
         {
             VH_LOG_ERROR("Physical device does not support any queue families!");
@@ -254,7 +257,7 @@ namespace VulkanHelper
         }
 
         VulkanHelper::Vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice.GetDevice(), &queueFamilyCount, queueFamilies.Data());
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice->GetDevice(), &queueFamilyCount, queueFamilies.Data());
 
         for (uint32_t i = 0; i < queueFamilyCount; ++i)
         {
@@ -270,7 +273,7 @@ namespace VulkanHelper
                 VkBool32 presentSupport = false;
                 for (size_t j = 0; j < windows.Size(); j++)
                 {
-                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.GetDevice(), i, windows[j]->GetSurface(), &presentSupport);
+                    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice->GetDevice(), i, windows[j]->GetSurface(), &presentSupport);
 
                     // If even one listed window's surface isn't supported, break the loop and mark presentation support as false
                     if (presentSupport == false)
@@ -328,14 +331,14 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<Device, VHResult> Device::New(const Config& config)
     {
-        VulkanHelper::Vector<Window::Impl*> windows;
-        for (auto* window : config.Windows)
+        VulkanHelper::Vector<SharedPtr<Window::Impl>> windows;
+        for (auto& window : config.Windows)
         {
             windows.PushBack(Window::Impl::GetImplementation(window));
         }
 
         auto implResult = Impl::New(
-            *PhysicalDevice::Impl::GetImplementation(&config.PhysicalDevice),
+            PhysicalDevice::Impl::GetImplementation(config.PhysicalDevice),
             Move(windows),
             Instance::Impl::GetImplementation(config.Instance),
             true
@@ -345,11 +348,29 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        Device publicInterface = Impl::CreatePublicInterface(Move(implResult.Value()));
+        Device publicInterface = Impl::CreatePublicInterface(implResult.Value());
 
         publicInterface.m_Impl->InitializeDeleteQueue(3); // Initialize delete queue with 3 frames delay
 
         return publicInterface;
+    }
+
+    Device::Device()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Device::Device(const Device& other)
+        : m_Impl(other.m_Impl)
+    {}
+
+    Device& Device::operator=(const Device& other)
+    {
+        if (this != &other)
+        {
+            m_Impl = other.m_Impl;
+        }
+        return *this;
     }
 
     Device::Device(Device&& other) noexcept
@@ -373,8 +394,8 @@ namespace VulkanHelper
 
     }
 
-    Device::Device(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Device::Device(const VulkanHelper::SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }

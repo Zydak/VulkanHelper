@@ -11,33 +11,33 @@ int main()
     VH_ASSERT(!physicalDevices.Empty(), "No suitable physical devices found!");
 
     // Prefer a discrete GPU if available
-    VulkanHelper::PhysicalDevice* selectedDevice = &physicalDevices[0];
+    VulkanHelper::PhysicalDevice selectedDevice = physicalDevices[0];
     for (size_t i = 0; i < physicalDevices.Size(); i++)
     {   
         if (physicalDevices[i].IsDiscrete())
         {
             VH_LOG_INFO("Selected Discrete GPU: {}", physicalDevices[i].GetName());
-            selectedDevice = &physicalDevices[i];
+            selectedDevice = physicalDevices[i];
             break;
         }
     }
 
     // Create a window for rendering
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 900, 900, "Example Project", "", true}).Value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({instance, 900, 900, "Example Project", "", true}).Value();
 
     // Create a Vulkan logical device
-    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
+    VulkanHelper::Device device = VulkanHelper::Device::New({selectedDevice, {window}, instance}).Value();
 
     // Create a renderer for the window
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({device, window}).Value();
 
     // Compile shaders
     VulkanHelper::Shader::InitializeSession("../../../HelloTriangle/Shaders/");
-    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "TriangleVertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
-    VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({&device, "TriangleFragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
+    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({device, "TriangleVertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
+    VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({device, "TriangleFragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
 
     // Command buffer is needed for some initialization tasks, it has to be submitted before rendering
-    VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({&device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
+    VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
     VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
     VH_ASSERT(initializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin recording initialization command buffer");
     
@@ -60,7 +60,7 @@ int main()
     };
     
     VulkanHelper::Mesh::Config meshConfig{};
-    meshConfig.Device = &device;
+    meshConfig.Device = device;
     meshConfig.VertexAttributes = vertexAttributes.data();
     meshConfig.VertexAttributeCount = vertexAttributes.size();
     meshConfig.VertexData = vertices;
@@ -77,9 +77,9 @@ int main()
 
     // Create a graphics pipeline for rendering the triangle
     VulkanHelper::Pipeline::GraphicsConfig pipelineConfig{};
-    pipelineConfig.Device = &device;
-    pipelineConfig.Shaders.PushBack(&vertexShader);
-    pipelineConfig.Shaders.PushBack(&fragShader);
+    pipelineConfig.Device = device;
+    pipelineConfig.Shaders.PushBack(vertexShader);
+    pipelineConfig.Shaders.PushBack(fragShader);
     pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
     pipelineConfig.AttributeDesc = triangleMesh.GetAttributesDescriptions();
     pipelineConfig.BindingDesc = triangleMesh.GetBindingDescription();

@@ -15,7 +15,7 @@
 
 namespace VulkanHelper
 {
-    Expected<Renderer::Impl, VHResult> Renderer::Impl::New(Device::Impl* device, Window::Impl* window)
+    Expected<SharedPtr<Renderer::Impl>, VHResult> Renderer::Impl::New(const SharedPtr<Device::Impl>& device, const SharedPtr<Window::Impl>& window)
     {
         auto swapchainResult = Swapchain::Impl::New(device, window, nullptr);
         if (!swapchainResult.HasValue())
@@ -43,13 +43,13 @@ namespace VulkanHelper
             commandBuffers.PushBack(Move(cmdBuf)); // Allocate cmdBuffer for each frame
         }
 
-        return Impl(
+        return SharedPtr<Impl>( new Impl(
             device,
             window,
             Move(swapchain),
             Move(commandPool),
             Move(commandBuffers)
-        );
+        ));
     }
 
     Renderer::Impl::~Impl()
@@ -145,14 +145,14 @@ namespace VulkanHelper
     }
 
     void Renderer::Impl::BeginRendering(
-            CommandBuffer::Impl* commandBuffer,
-            const VulkanHelper::Vector<ImageView::Impl*>& targetImagesColor,
-            const ImageView::Impl* targetImageDepth,
-            glm::vec4 clearColor,
-            float clearDepth,
-            const ImageView::Impl* resolveImageView,
-            glm::uvec2 scissorsStart,
-            glm::uvec2 scissorsEnd
+        const SharedPtr<CommandBuffer::Impl>& commandBuffer,
+        const VulkanHelper::Vector<SharedPtr<ImageView::Impl>>& targetImagesColor,
+        const SharedPtr<ImageView::Impl>& targetImageDepth,
+        glm::vec4 clearColor,
+        float clearDepth,
+        const SharedPtr<ImageView::Impl>& resolveImageView,
+        glm::uvec2 scissorsStart,
+        glm::uvec2 scissorsEnd
     )
     {
         // Make sure that all images are the same size
@@ -220,7 +220,7 @@ namespace VulkanHelper
                 info.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             }
 
-            ImageView::Impl* targetImageImpl = targetImagesColor[i];
+            SharedPtr<ImageView::Impl> targetImageImpl = targetImagesColor[i];
             info.imageView = targetImageImpl->GetImageView();
 
             colorAttachments.PushBack(Move(info));
@@ -235,7 +235,7 @@ namespace VulkanHelper
             depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             depthAttachment.clearValue = { {{clearDepth, 0}} };
 
-            const ImageView::Impl* targetImageImpl = targetImageDepth;
+            SharedPtr<ImageView::Impl> targetImageImpl = targetImageDepth;
             depthAttachment.imageView = targetImageImpl->GetImageView();
         }
 
@@ -251,7 +251,7 @@ namespace VulkanHelper
 	    VulkanHelper::FunctionLoader::vkCmdBeginRendering(commandBufferHandle, &renderingInfo);
     }
 
-    void Renderer::Impl::EndRendering(CommandBuffer::Impl* commandBuffer)
+    void Renderer::Impl::EndRendering(const SharedPtr<CommandBuffer::Impl>& commandBuffer)
     {
         VkCommandBuffer commandBufferHandle = commandBuffer->GetCommandBuffer();
 	    VulkanHelper::FunctionLoader::vkCmdEndRendering(commandBufferHandle);
@@ -262,7 +262,7 @@ namespace VulkanHelper
         m_Device->WaitUntilIdle();
         Swapchain oldSwapchain = VulkanHelper::Move(m_Swapchain);
 
-        auto swapchainResult = Swapchain::Impl::New(m_Device, m_Window, Swapchain::Impl::GetImplementation(&oldSwapchain));
+        auto swapchainResult = Swapchain::Impl::New(m_Device, m_Window, Swapchain::Impl::GetImplementation(oldSwapchain));
         if (!swapchainResult.HasValue())
         {
             VH_LOG_ERROR("Failed to recreate swapchain");
@@ -280,16 +280,6 @@ namespace VulkanHelper
     VulkanHelper::Expected<Renderer, VHResult> Renderer::New(const Config& config)
     {
         VH_LOG_INFO("Creating Renderer Implementation");
-        if (config.Device == nullptr)
-        {
-            VH_LOG_ERROR("Device is null!");
-            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-        if (config.Window == nullptr)
-        {
-            VH_LOG_ERROR("Window is null!");
-            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
 
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
@@ -303,6 +293,15 @@ namespace VulkanHelper
 
         return Renderer::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
+
+    Renderer::Renderer()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Renderer::Renderer(const Renderer& other)
+        : m_Impl(other.m_Impl)
+    {}
 
     Renderer::Renderer(Renderer&& other) noexcept
         : m_Impl(VulkanHelper::Move(other.m_Impl))
@@ -320,13 +319,25 @@ namespace VulkanHelper
         return *this;
     }
 
+    Renderer& Renderer::operator=(const Renderer& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Renderer(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
+    }
+
     Renderer::~Renderer()
     {
 
     }
 
-    Renderer::Renderer(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Renderer::Renderer(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }
@@ -352,20 +363,20 @@ namespace VulkanHelper
         glm::uvec2 scissorsEnd
     )
     {
-        const ImageView::Impl* resolveImageViewImpl = nullptr;
+        SharedPtr<ImageView::Impl> resolveImageViewImpl = nullptr;
         if (resolveImageView != nullptr)
-            resolveImageViewImpl = ImageView::Impl::GetImplementation(resolveImageView);
+            resolveImageViewImpl = ImageView::Impl::GetImplementation(*resolveImageView);
 
-        const ImageView::Impl* targetImageDepthImpl = nullptr;
+        SharedPtr<ImageView::Impl> targetImageDepthImpl = nullptr;
         if (targetImageDepth != nullptr)
-            targetImageDepthImpl = ImageView::Impl::GetImplementation(targetImageDepth);
+            targetImageDepthImpl = ImageView::Impl::GetImplementation(*targetImageDepth);
 
-        Vector<ImageView::Impl*> targetImagesColorImpl;
+        Vector<SharedPtr<ImageView::Impl>> targetImagesColorImpl;
         for (const auto& imageView : targetImagesColor)
-            targetImagesColorImpl.PushBack(ImageView::Impl::GetImplementation(imageView));
-        
+            targetImagesColorImpl.PushBack(ImageView::Impl::GetImplementation(*imageView));
+
         m_Impl->BeginRendering(
-            CommandBuffer::Impl::GetImplementation(&commandBuffer),
+            CommandBuffer::Impl::GetImplementation(commandBuffer),
             targetImagesColorImpl,
             targetImageDepthImpl,
             clearColor,
@@ -378,7 +389,7 @@ namespace VulkanHelper
 
     void Renderer::EndRendering(CommandBuffer& commandBuffer)
     {
-        m_Impl->EndRendering(CommandBuffer::Impl::GetImplementation(&commandBuffer));
+        m_Impl->EndRendering(CommandBuffer::Impl::GetImplementation(commandBuffer));
     }
 
     Image* Renderer::GetCurrentSwapchainImage() const

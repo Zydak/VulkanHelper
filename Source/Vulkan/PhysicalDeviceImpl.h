@@ -12,17 +12,16 @@ namespace VulkanHelper
     {
     public:
 
-        [[nodiscard]] static Expected<Impl, VHResult> New(VkInstance Instance, VkPhysicalDevice Device);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(VkInstance Instance, VkPhysicalDevice Device);
 
-        Impl(const Impl& other);
-        Impl& operator=(const Impl& other);
+        Impl(const Impl& other) = delete;
+        Impl& operator=(const Impl& other) = delete;
 
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const PhysicalDevice* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static PhysicalDevice CreatePublicInterface(Impl&& impl) { return PhysicalDevice(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<PhysicalDevice> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new PhysicalDevice(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const PhysicalDevice& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static PhysicalDevice CreatePublicInterface(const SharedPtr<Impl>& impl) { return PhysicalDevice(impl); }
 
         [[nodiscard]] bool IsSuitable(const Vector<const char*>& deviceExtensions) const;
         [[nodiscard]] inline VkPhysicalDevice GetDevice() const { return m_Device; }

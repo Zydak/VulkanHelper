@@ -1,16 +1,15 @@
 #pragma once
 
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/Macros.h"
 
 #include "Vulkan/CommandBuffer.h"
+#include "Vulkan/Device.h"
 
 namespace VulkanHelper
-{
-    class Device;
-    
+{    
     /**
      * @class CommandPool
      * @brief RAII wrapper for Vulkan command pool objects
@@ -39,9 +38,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the command pool on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Flags controlling command pool behavior
@@ -56,29 +55,14 @@ namespace VulkanHelper
             uint32_t QueueFamilyIndex = UINT32_MAX;
         };
 
-        /**
-         * @brief Delete copy constructor
-         */
-        CommandPool(const CommandPool& other) = delete;
+        CommandPool();
 
-        /**
-         * @brief Delete copy assignment operator
-         */
-        CommandPool& operator=(const CommandPool& other) = delete;
+        CommandPool(const CommandPool& other);
+        CommandPool& operator=(const CommandPool& other);
 
-        /**
-         * @brief Move constructor
-         */
         CommandPool(CommandPool&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         CommandPool& operator=(CommandPool&& other) noexcept;
 
-        /**
-         * @brief Destructor
-         */
         ~CommandPool();
 
         /**
@@ -98,9 +82,9 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl; 
+        SharedPtr<Impl> m_Impl;
 
-        CommandPool(VulkanHelper::UniquePtr<Impl>&& impl);
+        CommandPool(const SharedPtr<Impl>& impl);
     };
 
     DEFINE_BITWISE_OPERATORS(CommandPool::Flags)

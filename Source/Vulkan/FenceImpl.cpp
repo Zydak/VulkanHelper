@@ -6,7 +6,7 @@
 
 namespace VulkanHelper
 {
-    Expected<Fence::Impl, VHResult> Fence::Impl::New(Device::Impl* device, bool startSignaled)
+    Expected<SharedPtr<Fence::Impl>, VHResult> Fence::Impl::New(const SharedPtr<Device::Impl>& device, bool startSignaled)
     {
         VH_LOG_INFO("Creating Vulkan Fence Implementation");
 
@@ -28,7 +28,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return Impl(device, fence);
+        return SharedPtr<Impl>(new Impl(device, fence));
     }
 
     Fence::Impl::Impl(Impl&& other) noexcept
@@ -89,7 +89,26 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Fence::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
+        return Fence::Impl::CreatePublicInterface(implResult.Value());
+    }
+
+    Fence::Fence()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Fence::Fence(const Fence& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    Fence& Fence::operator=(const Fence& other)
+    {
+        if (this != &other)
+        {
+            m_Impl = other.m_Impl;
+        }
+        return *this;
     }
 
     Fence::Fence(Fence&& other) noexcept
@@ -115,8 +134,8 @@ namespace VulkanHelper
 
     }
 
-    Fence::Fence(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Fence::Fence(const VulkanHelper::SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }

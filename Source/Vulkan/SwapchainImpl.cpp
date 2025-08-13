@@ -22,13 +22,17 @@
 namespace VulkanHelper
 {
     // TODO: REALLY beffy function, needs to be split up
-    Expected<Swapchain::Impl, VHResult> Swapchain::Impl::New(Device::Impl* device, Window::Impl* window, Swapchain::Impl* previousSwapchain)
+    Expected<SharedPtr<Swapchain::Impl>, VHResult> Swapchain::Impl::New(
+        const SharedPtr<Device::Impl>& device,
+        const SharedPtr<Window::Impl>& window,
+        SharedPtr<Swapchain::Impl> previousSwapchain
+    )
     {
-        const PhysicalDevice::Impl& physicalDeviceImpl = device->GetPhysicalDevice();
+        SharedPtr<PhysicalDevice::Impl> physicalDeviceImpl = device->GetPhysicalDevice();
 
         // Get surface capabilities
         VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDeviceImpl.GetDevice(), window->GetSurface(), &surfaceCapabilities);
+        VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDeviceImpl->GetDevice(), window->GetSurface(), &surfaceCapabilities);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface capabilities");
@@ -37,14 +41,14 @@ namespace VulkanHelper
 
         // Get format info
         uint32_t formatCount;
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDeviceImpl.GetDevice(), window->GetSurface(), &formatCount, nullptr);
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDeviceImpl->GetDevice(), window->GetSurface(), &formatCount, nullptr);
         if (formatCount == 0 || res != VK_SUCCESS)
         {
             VH_LOG_ERROR("No surface formats available!");
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
         VulkanHelper::Vector<VkSurfaceFormatKHR> formats(formatCount);
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDeviceImpl.GetDevice(), window->GetSurface(), &formatCount, formats.Data());
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDeviceImpl->GetDevice(), window->GetSurface(), &formatCount, formats.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface formats");
@@ -53,7 +57,7 @@ namespace VulkanHelper
 
         // Get present modes
         uint32_t presentModeCount;
-        res = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDeviceImpl.GetDevice(), window->GetSurface(), &presentModeCount, nullptr);
+        res = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDeviceImpl->GetDevice(), window->GetSurface(), &presentModeCount, nullptr);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface present modes");
@@ -65,7 +69,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
         VulkanHelper::Vector<VkPresentModeKHR> presentModes(presentModeCount);
-        res = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDeviceImpl.GetDevice(), window->GetSurface(), &presentModeCount, presentModes.Data());
+        res = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDeviceImpl->GetDevice(), window->GetSurface(), &presentModeCount, presentModes.Data());
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to get surface present modes");
@@ -172,15 +176,15 @@ namespace VulkanHelper
         }
 
         // Buffer for layout transition
-        CommandPool::Impl commandPool = CommandPool::Impl::New(device, CommandPool::Flags::TRANSIENT_BIT, device->GetQueueFamilyIndices().GraphicsFamily).Value();
-        CommandBuffer commandBuffer = commandPool.AllocateCommandBuffer(CommandBuffer::Level::PRIMARY).Value();
+        SharedPtr<CommandPool::Impl> commandPool = CommandPool::Impl::New(device, CommandPool::Flags::TRANSIENT_BIT, device->GetQueueFamilyIndices().GraphicsFamily).Value();
+        CommandBuffer commandBuffer = commandPool->AllocateCommandBuffer(commandPool, CommandBuffer::Level::PRIMARY).Value();
         VH_ASSERT(commandBuffer.BeginRecording(CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin command buffer recording");
 
         VulkanHelper::Vector<Image> images;
         VulkanHelper::Vector<ImageView> imageViews;
         for (size_t i = 0; i < swapchainImages.Size(); i++)
         {
-            UniquePtr<Image::Impl> imageImpl( new Image::Impl(
+            SharedPtr<Image::Impl> imageImpl( new Image::Impl(
                 device,
                 (Format)chosenFormat.format,
                 Image::Layout::UNDEFINED,
@@ -209,7 +213,7 @@ namespace VulkanHelper
         VH_ASSERT(commandBuffer.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");
         VH_ASSERT(commandBuffer.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit command buffer");
 
-        return Swapchain::Impl(
+        return SharedPtr( new Swapchain::Impl(
             device,
             swapchain,
             0, // Start at frame 0
@@ -220,7 +224,7 @@ namespace VulkanHelper
             VulkanHelper::Move(frameFence),
             VulkanHelper::Move(acquireSemaphores),
             VulkanHelper::Move(submitSemaphores)
-        );
+        ));
     }
 
     Swapchain::Impl::~Impl()
@@ -275,26 +279,25 @@ namespace VulkanHelper
 
     VHResult Swapchain::Impl::AcquireNextImage()
     {
-
-        Semaphore::Impl* acquireSemaphoreImpl = Semaphore::Impl::GetImplementation(&m_AcquireSemaphores[m_CurrentFrameIndex]);
+        SharedPtr<Semaphore::Impl> acquireSemaphoreImpl = Semaphore::Impl::GetImplementation(m_AcquireSemaphores[m_CurrentFrameIndex]);
         VkSemaphore acquireSemaphore = acquireSemaphoreImpl->GetSemaphore();
         
         return (VHResult)vkAcquireNextImageKHR(m_Device->GetDevice(), m_Swapchain, UINT64_MAX, acquireSemaphore, VK_NULL_HANDLE, &m_CurrentImageIndex);
     }
 
-    VHResult Swapchain::Impl::Submit(CommandBuffer::Impl* commandBuffer)
+    VHResult Swapchain::Impl::Submit(const SharedPtr<CommandBuffer::Impl>& commandBuffer)
     {
-        Semaphore::Impl* submitSemaphoreImpl = Semaphore::Impl::GetImplementation(&m_SubmitSemaphores[m_CurrentImageIndex]);
+        SharedPtr<Semaphore::Impl> submitSemaphoreImpl = Semaphore::Impl::GetImplementation(m_SubmitSemaphores[m_CurrentImageIndex]);
         VkSemaphore submitSemaphoreVk = submitSemaphoreImpl->GetSemaphore();
 
-        VkFence fence = Fence::Impl::GetImplementation(&m_FrameFence)->GetFenceHandle();
+        VkFence fence = Fence::Impl::GetImplementation(m_FrameFence)->GetFenceHandle();
         vkWaitForFences(m_Device->GetDevice(), 1, &fence, VK_TRUE, UINT64_MAX);
         vkResetFences(m_Device->GetDevice(), 1, &fence);
         VHResult res = commandBuffer->Submit(
             PipelineStages::COLOR_ATTACHMENT_OUTPUT_BIT,
-            {Semaphore::Impl::GetImplementation(&m_AcquireSemaphores[m_CurrentFrameIndex])},
-            {Semaphore::Impl::GetImplementation(&m_SubmitSemaphores[m_CurrentImageIndex])},
-            Fence::Impl::GetImplementation(&m_FrameFence)
+            {Semaphore::Impl::GetImplementation(m_AcquireSemaphores[m_CurrentFrameIndex])},
+            {Semaphore::Impl::GetImplementation(m_SubmitSemaphores[m_CurrentImageIndex])},
+            Fence::Impl::GetImplementation(m_FrameFence)
         );
 
         if (res != VHResult::OK)
@@ -332,15 +335,9 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Vulkan Swapchain Implementation");
 
-        if (config.Device == nullptr || config.Window == nullptr)
-        {
-            VH_LOG_ERROR("Invalid Swapchain configuration: Device or Window is null.");
-            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
-        Swapchain::Impl* previousSwapchainImpl = nullptr;
+        SharedPtr<Swapchain::Impl> previousSwapchainImpl = nullptr;
         if (config.PreviousSwapchain != nullptr)
-            previousSwapchainImpl = Swapchain::Impl::GetImplementation(config.PreviousSwapchain);
+            previousSwapchainImpl = Swapchain::Impl::GetImplementation(*config.PreviousSwapchain);
         
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
@@ -355,15 +352,37 @@ namespace VulkanHelper
         return Swapchain::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
+    Swapchain::Swapchain()
+        : m_Impl(nullptr)
+    {
+        
+    }
+
     Swapchain::~Swapchain()
     {
 
     }
 
-    Swapchain::Swapchain(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Swapchain::Swapchain(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
+    }
+
+    Swapchain::Swapchain(const Swapchain& other)
+        : m_Impl(other.m_Impl)
+    {
+        
+    }
+
+    Swapchain& Swapchain::operator=(const Swapchain& other)
+    {
+        if (this == &other)
+            return *this;
+
+        m_Impl = other.m_Impl;
+
+        return *this;
     }
 
     Swapchain::Swapchain(Swapchain&& other) noexcept
@@ -387,9 +406,9 @@ namespace VulkanHelper
         return m_Impl->AcquireNextImage();
     }
 
-    VHResult Swapchain::Submit(CommandBuffer& commandBuffer)
+    VHResult Swapchain::Submit(const CommandBuffer& commandBuffer)
     {
-        return m_Impl->Submit(CommandBuffer::Impl::GetImplementation(&commandBuffer));
+        return m_Impl->Submit(CommandBuffer::Impl::GetImplementation(commandBuffer));
     }
 
     Image* Swapchain::GetCurrentSwapchainImage() const

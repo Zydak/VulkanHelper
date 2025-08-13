@@ -1,17 +1,17 @@
 #pragma once
 
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Macros.h"
 #include "Core/Enums.h"
 #include "Core/Vector.h"
 
+#include "Vulkan/Device.h"
+#include "Vulkan/Fence.h"
+#include "Vulkan/Semaphore.h"
+
 namespace VulkanHelper
 {
-    class CommandPool;
-    class Semaphore;
-    class Fence;
-
     /**
      * @class CommandBuffer
      * @brief RAII wrapper for Vulkan command buffer objects
@@ -56,28 +56,14 @@ namespace VulkanHelper
             VulkanHelper::CommandBuffer::Level Level = VulkanHelper::CommandBuffer::Level::PRIMARY;
         };
 
-        CommandBuffer(const CommandBuffer& other) = delete;
-        CommandBuffer& operator=(const CommandBuffer& other) = delete;
+        CommandBuffer();
 
-        /**
-        * @brief Move constructor. Takes ownership of another CommandBuffer's resources.
-        *
-        * @param other The CommandBuffer to move from.
-        */
+        CommandBuffer(const CommandBuffer& other);
+        CommandBuffer& operator=(const CommandBuffer& other);
+
         CommandBuffer(CommandBuffer&& other) noexcept;
-        
-        /**
-        * @brief Move assignment operator. Takes ownership of another CommandBuffer's resources.
-        *
-        * @param other The CommandBuffer to move from.
-        *
-        * @return Reference to this CommandBuffer.
-        */
         CommandBuffer& operator=(CommandBuffer&& other) noexcept;
 
-        /**
-        * @brief Destructor. Destroys the CommandBuffer and releases resources.
-        */
         ~CommandBuffer();
 
         /**
@@ -112,14 +98,14 @@ namespace VulkanHelper
         * @param fence Fence to signal after execution (can be nullptr).
         * @return VHResult indicating success or failure.
         */
-        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Vector<Semaphore*> waitSemaphores, Vector<Semaphore*> signalSemaphores, Fence* fence);
+        [[nodiscard]] VHResult Submit(PipelineStages waitStage, Vector<Semaphore> waitSemaphores, Vector<Semaphore> signalSemaphores, Fence* fence);
 
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        CommandBuffer(UniquePtr<Impl>&& impl);
+        CommandBuffer(const SharedPtr<Impl>& impl);
 
         friend class CommandPool;
     };

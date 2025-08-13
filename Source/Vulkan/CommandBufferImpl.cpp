@@ -72,9 +72,9 @@ namespace VulkanHelper
 
     VHResult CommandBuffer::Impl::Submit(
         PipelineStages waitStage,
-        const Vector<Semaphore::Impl*>& waitSemaphores,
-        const Vector<Semaphore::Impl*>& signalSemaphores,
-        Fence::Impl* fence
+        const Vector<SharedPtr<Semaphore::Impl>>& waitSemaphores,
+        const Vector<SharedPtr<Semaphore::Impl>>& signalSemaphores,
+        SharedPtr<Fence::Impl> fence
     )
     {
         if (m_CommandPool->m_Device == nullptr)
@@ -130,6 +130,35 @@ namespace VulkanHelper
     //  Forward Functions
     //
 
+    CommandBuffer::Impl::Impl(const SharedPtr<CommandPool::Impl>& pool, VkCommandBuffer commandBuffer)
+        : m_CommandPool(pool), m_CommandBuffer(commandBuffer)
+    {
+        
+    }
+
+    CommandBuffer::CommandBuffer()
+        : m_Impl(nullptr)
+    {
+    }
+
+    CommandBuffer::CommandBuffer(const CommandBuffer& other)
+        : m_Impl(other.m_Impl)
+    {
+        
+    }
+
+    CommandBuffer& CommandBuffer::operator=(const CommandBuffer& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~CommandBuffer(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
+    }
+
     CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept
         : m_Impl(VulkanHelper::Move(other.m_Impl))
     {
@@ -153,8 +182,8 @@ namespace VulkanHelper
 
     }
 
-    CommandBuffer::CommandBuffer(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    CommandBuffer::CommandBuffer(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }
@@ -174,22 +203,22 @@ namespace VulkanHelper
         return m_Impl->SubmitAndWait();
     }
 
-    VHResult CommandBuffer::Submit(PipelineStages waitStage, Vector<Semaphore*> waitSemaphores, Vector<Semaphore*> signalSemaphores, Fence* fence)
+    VHResult CommandBuffer::Submit(PipelineStages waitStage, Vector<Semaphore> waitSemaphores, Vector<Semaphore> signalSemaphores, Fence* fence)
     {
-        Vector<Semaphore::Impl*> waitSemaphoresImpl(waitSemaphores.Size());
+        Vector<SharedPtr<Semaphore::Impl>> waitSemaphoresImpl(waitSemaphores.Size());
         for (size_t i = 0; i < waitSemaphores.Size(); i++)
         {
             waitSemaphoresImpl[i] = Semaphore::Impl::GetImplementation(waitSemaphores[i]);
         }
-        Vector<Semaphore::Impl*> signalSemaphoresImpl(signalSemaphores.Size());
+        Vector<SharedPtr<Semaphore::Impl>> signalSemaphoresImpl(signalSemaphores.Size());
         for (size_t i = 0; i < signalSemaphores.Size(); i++)
         {
             signalSemaphoresImpl[i] = Semaphore::Impl::GetImplementation(signalSemaphores[i]);
         }
 
-        Fence::Impl* fenceImpl = nullptr;
+        SharedPtr<Fence::Impl> fenceImpl = nullptr;
         if (fence != nullptr)
-            fenceImpl = Fence::Impl::GetImplementation(fence);
+            fenceImpl = Fence::Impl::GetImplementation(*fence);
 
         return m_Impl->Submit(waitStage, waitSemaphoresImpl, signalSemaphoresImpl, fenceImpl);
     }

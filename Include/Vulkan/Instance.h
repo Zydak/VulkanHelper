@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Error.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Vector.h"
 
 namespace VulkanHelper
@@ -36,8 +36,10 @@ namespace VulkanHelper
          */
         static VulkanHelper::Expected<Instance, VHResult> New(const Config& config);
 
-        Instance(const Instance& other) = delete;
-        Instance& operator=(const Instance& other) = delete;
+        Instance();
+
+        Instance(const Instance& other);
+        Instance& operator=(const Instance& other);
 
         Instance(Instance&& other) noexcept;
         Instance& operator=(Instance&& other) noexcept;
@@ -54,8 +56,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        VulkanHelper::SharedPtr<Impl> m_Impl;
 
-        Instance(VulkanHelper::UniquePtr<Impl>&& impl);
+        Instance(const VulkanHelper::SharedPtr<Impl>& impl);
     };
 }

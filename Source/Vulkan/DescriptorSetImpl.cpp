@@ -14,7 +14,12 @@
 
 namespace VulkanHelper
 {
-    Expected<DescriptorSet::Impl, VHResult> DescriptorSet::Impl::New(Device::Impl* device, VkDescriptorSet descriptorSet, VkDescriptorSetLayout descriptorSetLayout, const DescriptorSet::Config& config)
+    Expected<SharedPtr<DescriptorSet::Impl>, VHResult> DescriptorSet::Impl::New(
+        const SharedPtr<Device::Impl>& device,
+        VkDescriptorSet descriptorSet,
+        VkDescriptorSetLayout descriptorSetLayout,
+        const DescriptorSet::Config& config
+    )
     {
         VH_LOG_INFO("Creating Vulkan DescriptorSet Implementation");
 
@@ -47,7 +52,7 @@ namespace VulkanHelper
             bindingDescriptions.PushBack(config.Bindings[i]);
         }
 
-        return Impl(device, descriptorSet, descriptorSetLayout, Move(bindingDescriptions));
+        return SharedPtr<Impl>(new Impl(device, descriptorSet, descriptorSetLayout, Move(bindingDescriptions)));
     }
 
     DescriptorSet::Impl::~Impl()
@@ -91,7 +96,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    VHResult DescriptorSet::Impl::AddBuffer(uint32_t binding, uint32_t arrayIndex, const Buffer::Impl* buffer)
+    VHResult DescriptorSet::Impl::AddBuffer(uint32_t binding, uint32_t arrayIndex, const SharedPtr<Buffer::Impl>& buffer)
     {
         VH_LOG_INFO("Adding buffer to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
 
@@ -155,7 +160,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult DescriptorSet::Impl::AddImage(uint32_t binding, uint32_t arrayIndex, const ImageView::Impl* imageView, Image::Layout layout)
+    VHResult DescriptorSet::Impl::AddImage(uint32_t binding, uint32_t arrayIndex, const SharedPtr<ImageView::Impl>& imageView, Image::Layout layout)
     {
         VH_LOG_INFO("Adding image to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
 
@@ -224,7 +229,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult DescriptorSet::Impl::AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler::Impl* sampler)
+    VHResult DescriptorSet::Impl::AddSampler(uint32_t binding, uint32_t arrayIndex, const SharedPtr<Sampler::Impl>& sampler)
     {
         VH_LOG_INFO("Adding sampler to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
 
@@ -286,7 +291,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult DescriptorSet::Impl::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS::Impl* accelerationStructure)
+    VHResult DescriptorSet::Impl::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const SharedPtr<TLAS::Impl>& accelerationStructure)
     {
         VH_LOG_INFO("Adding acceleration structure to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
 
@@ -352,6 +357,30 @@ namespace VulkanHelper
     //  Forward Functions
     //
 
+    DescriptorSet::DescriptorSet()
+        : m_Impl(nullptr)
+    {
+
+    }
+
+    DescriptorSet::DescriptorSet(const DescriptorSet& other)
+        : m_Impl(other.m_Impl)
+    {
+
+    }
+
+    DescriptorSet& DescriptorSet::operator=(const DescriptorSet& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~DescriptorSet(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
+    }
+
     DescriptorSet::DescriptorSet(DescriptorSet&& other) noexcept
         : m_Impl(VulkanHelper::Move(other.m_Impl))
     {}
@@ -373,28 +402,28 @@ namespace VulkanHelper
 
     }
 
-    DescriptorSet::DescriptorSet(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    DescriptorSet::DescriptorSet(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }
 
     VHResult DescriptorSet::AddBuffer(uint32_t binding, uint32_t arrayIndex, const Buffer& buffer)
     {
-        return m_Impl->AddBuffer(binding, arrayIndex, Buffer::Impl::GetImplementation(&buffer));
+        return m_Impl->AddBuffer(binding, arrayIndex, Buffer::Impl::GetImplementation(buffer));
     }
 
     VHResult DescriptorSet::AddImage(uint32_t binding, uint32_t arrayIndex, const ImageView& imageView, Image::Layout layout)
     {
-        return m_Impl->AddImage(binding, arrayIndex, ImageView::Impl::GetImplementation(&imageView), layout);
+        return m_Impl->AddImage(binding, arrayIndex, ImageView::Impl::GetImplementation(imageView), layout);
     }
 
     VHResult DescriptorSet::AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler& sampler)
     {
-        return m_Impl->AddSampler(binding, arrayIndex, Sampler::Impl::GetImplementation(&sampler));
+        return m_Impl->AddSampler(binding, arrayIndex, Sampler::Impl::GetImplementation(sampler));
     }
 
-    VHResult DescriptorSet::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS* accelerationStructure)
+    VHResult DescriptorSet::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS& accelerationStructure)
     {
         return m_Impl->AddAccelerationStructure(binding, arrayIndex, TLAS::Impl::GetImplementation(accelerationStructure));
     }

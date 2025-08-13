@@ -44,8 +44,8 @@ namespace VulkanHelper
         }
     }
 
-    Expected<Image::Impl, VHResult> Image::Impl::New(
-        Device::Impl* device,
+    Expected<SharedPtr<Image::Impl>, VHResult> Image::Impl::New(
+        const SharedPtr<Device::Impl>& device,
         uint32_t height,
         uint32_t width,
         uint32_t mipCount,
@@ -155,7 +155,7 @@ namespace VulkanHelper
             staginBuffer = stagingBufferResult.Value();
         }
 
-        return Impl(
+        return SharedPtr<Impl>(new Impl(
             device,
             format,
             initialLayout,
@@ -167,10 +167,10 @@ namespace VulkanHelper
             allowMapping,
             Move(image.Value()),
             Move(staginBuffer)
-        );
+        ));
     }
 
-    void Image::Impl::TransitionImageLayout(Layout newLayout, CommandBuffer::Impl* commandBuffer, uint32_t baseLayer, uint32_t layerCount)
+    void Image::Impl::TransitionImageLayout(Layout newLayout, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount)
     {
         if (m_Layout == newLayout)
             return;
@@ -372,7 +372,7 @@ namespace VulkanHelper
         m_Device->UnmapMemory(m_Allocation.Allocation);
     }
 
-    VHResult Image::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd)
+    VHResult Image::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd)
     {
         if (!data)
         {
@@ -496,7 +496,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult Image::Impl::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd) const
+    VHResult Image::Impl::DownloadData(void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd) const
     {
         if (!data)
         {
@@ -644,7 +644,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult Image::Impl::CopyFromImage(const Image& srcImage, CommandBuffer::Impl* commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
+    VHResult Image::Impl::CopyFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
     {
         VkCommandBuffer vkCmd = commandBuffer->GetCommandBuffer();
 
@@ -671,7 +671,7 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
-    VHResult Image::Impl::BlitFromImage(const Image& srcImage, CommandBuffer::Impl* commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
+    VHResult Image::Impl::BlitFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
     {
         VkCommandBuffer vkCmd = commandBuffer->GetCommandBuffer();
 
@@ -723,7 +723,26 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(implResult.Error());
         }
 
-        return Image::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
+        return Image::Impl::CreatePublicInterface(implResult.Value());
+    }
+
+    Image::Image()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Image::Image(const Image& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    Image& Image::operator=(const Image& other)
+    {
+        if (this != &other)
+        {
+            m_Impl = other.m_Impl;
+        }
+        return *this;
     }
 
     Image::Image(Image&& other) noexcept
@@ -747,15 +766,15 @@ namespace VulkanHelper
 
     }
 
-    Image::Image(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Image::Image(const VulkanHelper::SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }
 
     void Image::TransitionImageLayout(Layout newLayout, CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount)
     {
-        m_Impl->TransitionImageLayout(newLayout, CommandBuffer::Impl::GetImplementation(&commandBuffer), baseLayer, layerCount);
+        m_Impl->TransitionImageLayout(newLayout, CommandBuffer::Impl::GetImplementation(commandBuffer), baseLayer, layerCount);
     }
 
     [[nodiscard]] Format Image::GetFormat() const { return m_Impl->GetFormat(); }
@@ -769,18 +788,18 @@ namespace VulkanHelper
 
     VHResult Image::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd)
     {
-        CommandBuffer::Impl* commandBufferImpl = nullptr;
+        SharedPtr<CommandBuffer::Impl> commandBufferImpl = nullptr;
         if (cmd)
-            commandBufferImpl = CommandBuffer::Impl::GetImplementation(cmd);
-        
+            commandBufferImpl = CommandBuffer::Impl::GetImplementation(*cmd);
+
         return m_Impl->UploadData(data, size, offset, commandBufferImpl);
     }
 
     VHResult Image::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd) const
     {
-        CommandBuffer::Impl* commandBufferImpl = nullptr;
+        SharedPtr<CommandBuffer::Impl> commandBufferImpl = nullptr;
         if (cmd)
-            commandBufferImpl = CommandBuffer::Impl::GetImplementation(cmd);
+            commandBufferImpl = CommandBuffer::Impl::GetImplementation(*cmd);
 
         return m_Impl->DownloadData(data, size, offset, commandBufferImpl);
     }
@@ -797,11 +816,11 @@ namespace VulkanHelper
 
     VHResult Image::CopyFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
     {
-        return m_Impl->CopyFromImage(srcImage, CommandBuffer::Impl::GetImplementation(&commandBuffer), srcBaseLayer, dstBaseLayer, layerCount);
+        return m_Impl->CopyFromImage(srcImage, CommandBuffer::Impl::GetImplementation(commandBuffer), srcBaseLayer, dstBaseLayer, layerCount);
     }
 
     VHResult Image::BlitFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
     {
-        return m_Impl->BlitFromImage(srcImage, CommandBuffer::Impl::GetImplementation(&commandBuffer), srcBaseLayer, dstBaseLayer, layerCount);
+        return m_Impl->BlitFromImage(srcImage, CommandBuffer::Impl::GetImplementation(commandBuffer), srcBaseLayer, dstBaseLayer, layerCount);
     }
 }

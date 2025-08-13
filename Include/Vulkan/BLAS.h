@@ -2,7 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/Macros.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Enums.h"
 
@@ -28,15 +28,15 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the BLAS on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Vertex buffers containing geometry data
              * @note Must not be empty and all buffers must be valid
              */
-            VulkanHelper::Vector<VulkanHelper::Buffer*> VertexBuffers;
+            VulkanHelper::Vector<VulkanHelper::Buffer> VertexBuffers;
 
             /**
              * @brief Size of each vertex in bytes
@@ -48,7 +48,7 @@ namespace VulkanHelper
              * @brief Index buffers for indexed geometry (optional)
              * @note If used, the count must match VertexBuffers count, fill with nullptrs if not used
              */
-            VulkanHelper::Vector<VulkanHelper::Buffer*> IndexBuffers;
+            VulkanHelper::Vector<VulkanHelper::Buffer> IndexBuffers;
 
             /**
              * @brief Whether to compact the acceleration structure after building
@@ -71,8 +71,10 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<BLAS, VHResult> New(const Config& config);
 
-        BLAS(const BLAS& other) = delete;
-        BLAS& operator=(const BLAS& other) = delete;
+        BLAS();
+
+        BLAS(const BLAS& other);
+        BLAS& operator=(const BLAS& other);
 
         BLAS(BLAS&& other) noexcept;
         BLAS& operator=(BLAS&& other) noexcept;
@@ -82,8 +84,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        BLAS(VulkanHelper::UniquePtr<Impl>&& impl);
+        BLAS(const SharedPtr<Impl>& impl);
     };
 }

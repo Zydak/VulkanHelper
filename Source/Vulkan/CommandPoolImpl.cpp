@@ -5,15 +5,13 @@
 #include "Vulkan/CommandBuffer.h"
 #include "Vulkan/Device.h"
 #include "Core/Error.h"
-#include "DeviceImpl.h"
 
 namespace VulkanHelper
 {
-    Expected<CommandPool::Impl, VHResult> CommandPool::Impl::New(
-        Device::Impl* device,
+    Expected<SharedPtr<CommandPool::Impl>, VHResult> CommandPool::Impl::New(
+        const SharedPtr<Device::Impl>& device,
         Flags flags,
-        uint32_t
-        queueFamilyIndex
+        uint32_t queueFamilyIndex
     )
     {
         VH_LOG_INFO("Creating Vulkan CommandPool Implementation");
@@ -46,7 +44,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return Impl(device, commandPool, queue, flags, queueFamilyIndex);
+        return SharedPtr<Impl>(new Impl(device, commandPool, queue, flags, queueFamilyIndex));
     }
 
     CommandPool::Impl::~Impl()
@@ -86,24 +84,24 @@ namespace VulkanHelper
         return *this;
     }
 
-    VulkanHelper::Expected<CommandBuffer, VHResult> CommandPool::Impl::AllocateCommandBuffer(CommandBuffer::Level level)
+    VulkanHelper::Expected<CommandBuffer, VHResult> CommandPool::Impl::AllocateCommandBuffer(const SharedPtr<Impl>& impl, CommandBuffer::Level level)
     {
         VH_LOG_INFO("Allocating Command Buffer");
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = m_CommandPool;
+        allocInfo.commandPool = impl->m_CommandPool;
         allocInfo.level = (VkCommandBufferLevel)level;
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
-        VkResult res = vkAllocateCommandBuffers(m_Device->GetDevice(), &allocInfo, &commandBuffer);
+        VkResult res = vkAllocateCommandBuffers(impl->m_Device->GetDevice(), &allocInfo, &commandBuffer);
         if (res != VK_SUCCESS)
         {
             VH_LOG_ERROR("Failed to allocate command buffer");
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return CommandBuffer{ UniquePtr<CommandBuffer::Impl>( new CommandBuffer::Impl(this, commandBuffer)) };
+        return CommandBuffer{ SharedPtr<CommandBuffer::Impl>( new CommandBuffer::Impl(impl, commandBuffer)) };
     }
 
     VHResult CommandPool::Impl::FreeCommandBuffer(CommandBuffer::Impl* commandBuffer) const
@@ -142,7 +140,26 @@ namespace VulkanHelper
 
     VulkanHelper::Expected<CommandBuffer, VHResult> CommandPool::AllocateCommandBuffer(const CommandBuffer::Config& config) const
     {
-        return m_Impl->AllocateCommandBuffer(config.Level);
+        return m_Impl->AllocateCommandBuffer(m_Impl, config.Level);
+    }
+
+    CommandPool::CommandPool()
+        : m_Impl(nullptr)
+    {
+    }
+
+    CommandPool::CommandPool(const CommandPool& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    CommandPool& CommandPool::operator=(const CommandPool& other)
+    {
+        if (this == &other)
+            return *this;
+
+        m_Impl = other.m_Impl;
+        return *this;
     }
 
     CommandPool::CommandPool(CommandPool&& other) noexcept
@@ -168,8 +185,8 @@ namespace VulkanHelper
 
     }
 
-    CommandPool::CommandPool(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    CommandPool::CommandPool(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }

@@ -10,11 +10,11 @@ namespace VulkanHelper
     class TLAS::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(
-            Device::Impl* device,
-            const Vector<const BLAS::Impl*>& blasList,
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            const Vector<SharedPtr<BLAS::Impl>>& blasList,
             const glm::mat4* transforms,
-            CommandBuffer::Impl* commandBuffer
+            const SharedPtr<CommandBuffer::Impl>& commandBuffer
         );
 
         Impl(const Impl& other) = delete;
@@ -25,9 +25,8 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const TLAS* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static TLAS CreatePublicInterface(Impl&& impl) { return TLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<TLAS> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new TLAS(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const TLAS& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static TLAS CreatePublicInterface(const SharedPtr<Impl>& impl) { return TLAS(impl); }
 
         [[nodiscard]] inline VkAccelerationStructureKHR GetHandle() const { return m_Handle; }
     private:
@@ -35,14 +34,14 @@ namespace VulkanHelper
 
         static constexpr size_t MAX_SCRATCH_SIZE = 256 * 1024 * 1024; // 256 MB max size for TLAS scratch buffer
 
-        Device::Impl* m_Device = nullptr;
+        SharedPtr<Device::Impl> m_Device = nullptr;
         VkAccelerationStructureKHR m_Handle = VK_NULL_HANDLE;
-        Buffer::Impl m_Buffer;
+        SharedPtr<Buffer::Impl> m_Buffer;
 
         Impl(
-            Device::Impl* device,
+            const SharedPtr<Device::Impl>& device,
             VkAccelerationStructureKHR handle,
-            Buffer::Impl&& buffer
+            SharedPtr<Buffer::Impl> buffer
         )
             : m_Device(device)
             , m_Handle(handle)

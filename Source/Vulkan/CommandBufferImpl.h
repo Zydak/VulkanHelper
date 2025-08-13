@@ -18,9 +18,8 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const CommandBuffer* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static CommandBuffer CreatePublicInterface(Impl&& impl) { return CommandBuffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<CommandBuffer> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new CommandBuffer(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const CommandBuffer& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static CommandBuffer CreatePublicInterface(const SharedPtr<Impl>& impl) { return CommandBuffer(impl); }
 
         [[nodiscard]] VHResult BeginRecording(Usage usageFlags);
         [[nodiscard]] VHResult EndRecording();
@@ -28,20 +27,16 @@ namespace VulkanHelper
         [[nodiscard]] VHResult SubmitAndWait();
         [[nodiscard]] VHResult Submit(
             PipelineStages waitStage,
-            const Vector<Semaphore::Impl*>& waitSemaphores,
-            const Vector<Semaphore::Impl*>& signalSemaphores,
-            Fence::Impl* fence
+            const Vector<SharedPtr<Semaphore::Impl>>& waitSemaphores,
+            const Vector<SharedPtr<Semaphore::Impl>>& signalSemaphores,
+            SharedPtr<Fence::Impl> fence
         );
 
         [[nodiscard]] inline VkCommandBuffer GetCommandBuffer() const { return m_CommandBuffer; }
     private:
-        Impl(VulkanHelper::CommandPool::Impl* pool, VkCommandBuffer commandBuffer)
-            : m_CommandPool(pool), m_CommandBuffer(commandBuffer)
-        {
+        Impl(const SharedPtr<CommandPool::Impl>& pool, VkCommandBuffer commandBuffer);
 
-        }
-
-        VulkanHelper::CommandPool::Impl* m_CommandPool;
+        SharedPtr<CommandPool::Impl> m_CommandPool;
         VkCommandBuffer m_CommandBuffer;
 
         friend class CommandPool; // Allow CommandPool to create CommandBuffer::Impl instances

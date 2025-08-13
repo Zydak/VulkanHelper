@@ -13,9 +13,9 @@ namespace VulkanHelper
     class Mesh::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(
-            Device::Impl* device,
-            CommandBuffer::Impl* commandBuffer,
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            const SharedPtr<CommandBuffer::Impl>& commandBuffer,
             Format* vertexAttributes,
             uint32_t vertexAttributeCount,
             void* vertexData,
@@ -33,25 +33,25 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Mesh* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Mesh CreatePublicInterface(Impl&& impl) { return Mesh(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Mesh> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Mesh(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Mesh& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Mesh CreatePublicInterface(const SharedPtr<Impl>& impl) { return Mesh(impl); }
 
-        void Bind(CommandBuffer::Impl* commandBuffer) const;
-        void Draw(CommandBuffer::Impl* commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const;
+        void Bind(const SharedPtr<CommandBuffer::Impl> commandBuffer) const;
+        void Draw(const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const;
 
         [[nodiscard]] inline const VulkanHelper::Vector<VertexAttributeDescription>* GetAttributesDescriptions() const { return &m_VertexAttributes; };
         [[nodiscard]] VertexBindingDescription GetBindingDescription() const;
 
-        [[nodiscard]] inline Buffer* GetVertexBuffer() { return &m_VertexBuffer; }
-        [[nodiscard]] inline Buffer* GetIndexBuffer() { return m_IndexBuffer.Get(); }
+        [[nodiscard]] inline Buffer GetVertexBuffer() { return m_VertexBuffer; }
+        [[nodiscard]] inline Buffer GetIndexBuffer() { return *m_IndexBuffer; }
         [[nodiscard]] inline uint32_t GetVertexSize() const { return m_VertexSize; }
 
         [[nodiscard]] static VulkanHelper::Vector<VertexAttributeDescription> CreateAttributeDescriptions(const VulkanHelper::Format* formats, uint32_t count);
         [[nodiscard]] static VertexBindingDescription CreateBindingDescription(uint32_t vertexSize);
 
     private:
-        explicit Impl(Device::Impl* device,
+        explicit Impl(
+            const SharedPtr<Device::Impl>& device,
             Buffer&& vertexBuffer,
             UniquePtr<Buffer>&& indexBuffer,
             uint32_t vertexSize,
@@ -64,7 +64,7 @@ namespace VulkanHelper
             , m_VertexAttributes(std::move(vertexAttributes))
         {}
 
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         Buffer m_VertexBuffer;
         UniquePtr<Buffer> m_IndexBuffer;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Expected.h"
 
@@ -31,15 +32,15 @@ namespace VulkanHelper
         {
             /**
              * @brief Vulkan logical device for rendering
-             * @note Must not be nullptr and must outlive the renderer
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief Window to render to
-             * @note Must not be nullptr and must outlive the renderer
+             * @note Must be a valid window
              */
-            VulkanHelper::Window* Window = nullptr;
+            VulkanHelper::Window Window{};
         };
 
         /**
@@ -49,29 +50,12 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Renderer, VHResult> New(const Config& config);
 
-        /**
-         * @brief Destructor
-         */
+        Renderer();
         ~Renderer();
 
-        /**
-         * @brief Delete copy constructor
-         */
-        Renderer(const Renderer& other) = delete;
-
-        /**
-         * @brief Delete copy assignment operator
-         */
-        Renderer& operator=(const Renderer& other) = delete;
-
-        /**
-         * @brief Move constructor
-         */
+        Renderer(const Renderer& other);
+        Renderer& operator=(const Renderer& other);
         Renderer(Renderer&& other) noexcept;
-
-        /**
-         * @brief Move assignment operator
-         */
         Renderer& operator=(Renderer&& other) noexcept;
 
         /**
@@ -150,8 +134,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend Impl;
-        UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Renderer(UniquePtr<Impl>&& impl);
+        Renderer(const SharedPtr<Impl>& impl);
     };
 }

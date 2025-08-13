@@ -10,7 +10,7 @@ namespace VulkanHelper
     class ImageView::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -20,9 +20,8 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const ImageView* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static ImageView CreatePublicInterface(Impl&& impl) { return ImageView(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<ImageView> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new ImageView(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const ImageView& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static ImageView CreatePublicInterface(const SharedPtr<Impl>& impl) { return ImageView(impl); }
 
         [[nodiscard]] inline const Image::Impl* GetImage() const { return m_Image; }
         [[nodiscard]] inline VkImageView GetImageView() const { return m_ImageView; }

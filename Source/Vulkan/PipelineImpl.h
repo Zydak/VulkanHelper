@@ -15,9 +15,9 @@ namespace VulkanHelper
     {
     public:
         // Graphics
-        [[nodiscard]] static Expected<Impl, VHResult> New(
-            Device::Impl* device,
-            Vector<Shader::Impl*>&& shaders,
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            const Vector<SharedPtr<Shader::Impl>>& shaders,
             const Vector<Mesh::VertexAttributeDescription>* attributeDesc,
             Mesh::VertexBindingDescription bindingDesc,
             PolygonMode polygonMode,
@@ -26,8 +26,8 @@ namespace VulkanHelper
             bool depthTestEnable,
             bool depthClamp,
             bool blendingEnable,
-            Vector<DescriptorSet::Impl*>&& descriptorSets,
-            PushConstant::Impl* pushConstant,
+            Vector<SharedPtr<DescriptorSet::Impl>>&& descriptorSets,
+            const SharedPtr<PushConstant::Impl>& pushConstant,
             uint32_t colorAttachmentCount,
             Vector<Format>&& colorFormats,
             Format depthFormat,
@@ -35,22 +35,22 @@ namespace VulkanHelper
         );
 
         // Compute
-        [[nodiscard]] static Expected<Impl, VHResult> New(
-            Device::Impl* device,
-            Shader::Impl* computeShader,
-            Vector<DescriptorSet::Impl*>&& descriptorSets,
-            PushConstant::Impl* pushConstant
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            const SharedPtr<Shader::Impl>& computeShader,
+            Vector<SharedPtr<DescriptorSet::Impl>>&& descriptorSets,
+            const SharedPtr<PushConstant::Impl>& pushConstant
         );
 
         // Ray Tracing
-        [[nodiscard]] static Expected<Impl, VHResult> New(
-            Device::Impl* device,
-            Vector<Shader::Impl*>&& RayGenShaders,
-            Vector<Shader::Impl*>&& HitShaders,
-            Vector<Shader::Impl*>&& MissShaders,
-            Vector<DescriptorSet::Impl*>&& descriptorSets,
-            PushConstant::Impl* pushConstant,
-            CommandBuffer::Impl* cmd
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            const Vector<SharedPtr<Shader::Impl>>& RayGenShaders,
+            const Vector<SharedPtr<Shader::Impl>>& HitShaders,
+            const Vector<SharedPtr<Shader::Impl>>& MissShaders,
+            Vector<SharedPtr<DescriptorSet::Impl>>&& descriptorSets,
+            const SharedPtr<PushConstant::Impl>& pushConstant,
+            const SharedPtr<CommandBuffer::Impl>& cmd
         );
 
         ~Impl();
@@ -59,43 +59,46 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Pipeline* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Pipeline CreatePublicInterface(Impl&& impl) { return Pipeline(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Pipeline> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Pipeline(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Pipeline& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Pipeline CreatePublicInterface(const SharedPtr<Impl>& impl) { return Pipeline(impl); }
 
-        void Bind(CommandBuffer::Impl* commandBuffer);
+        void Bind(const SharedPtr<CommandBuffer::Impl>& commandBuffer);
 
-        void Dispatch(CommandBuffer::Impl* commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+        void Dispatch(const SharedPtr<CommandBuffer::Impl>& commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
-        void RayTrace(CommandBuffer::Impl* commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
+        void RayTrace(const SharedPtr<CommandBuffer::Impl>& commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
 
         [[nodiscard]] inline VkPipeline GetPipeline() const { return m_Pipeline; }
         [[nodiscard]] inline VkPipelineLayout GetLayout() const { return m_Layout; }
         [[nodiscard]] inline PipelineType GetPipelineType() const { return m_PipelineType; }
 
-        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+        [[nodiscard]] inline SharedPtr<Device::Impl> GetDevice() const { return m_Device; }
 
-        [[nodiscard]] inline const Vector<DescriptorSet::Impl*>& GetDescriptorSets() const { return m_DescriptorSets; }
-        [[nodiscard]] inline PushConstant::Impl* GetPushConstant() const { return m_PushConstant; }
+        [[nodiscard]] inline const Vector<SharedPtr<DescriptorSet::Impl>>& GetDescriptorSets() const { return m_DescriptorSets; }
+        [[nodiscard]] inline SharedPtr<PushConstant::Impl> GetPushConstant() const { return m_PushConstant; }
 
     private:
-        [[nodiscard]] static Expected<VkPipelineLayout, VHResult> CreatePipelineLayout(Device::Impl* device, const Vector<DescriptorSet::Impl*>& descriptorSets, PushConstant::Impl* pushConstant);
+        [[nodiscard]] static Expected<VkPipelineLayout, VHResult> CreatePipelineLayout(
+            const SharedPtr<Device::Impl>& device,
+            const Vector<SharedPtr<DescriptorSet::Impl>>& descriptorSets,
+            const SharedPtr<PushConstant::Impl>& pushConstant
+        );
 
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VkPipeline m_Pipeline;
         VkPipelineLayout m_Layout;
         PipelineType m_PipelineType;
-        Vector<DescriptorSet::Impl*> m_DescriptorSets; // Store references to descriptor sets for binding
-        PushConstant::Impl* m_PushConstant; // Store reference to push constant for binding
+        Vector<SharedPtr<DescriptorSet::Impl>> m_DescriptorSets; // Store references to descriptor sets for binding
+        SharedPtr<PushConstant::Impl> m_PushConstant; // Store reference to push constant for binding
         UniquePtr<SBT> m_SBT; // Optional SBT for ray tracing pipelines
 
         Impl(
-            Device::Impl* device,
+            const SharedPtr<Device::Impl>& device,
             VkPipeline pipeline,
             VkPipelineLayout layout,
             PipelineType type,
-            Vector<DescriptorSet::Impl*>&& descriptorSets,
-            PushConstant::Impl* pushConstant,
+            Vector<SharedPtr<DescriptorSet::Impl>>&& descriptorSets,
+            const SharedPtr<PushConstant::Impl>& pushConstant,
             UniquePtr<SBT>&& sbt
         )
             : m_Device(device)

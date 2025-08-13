@@ -7,7 +7,14 @@
 
 namespace VulkanHelper
 {
-    Expected<SBT, VHResult> SBT::New(Device::Impl* device, VkPipeline rtPipeline, uint32_t rgenCount, uint32_t missCount, uint32_t hitGroupCount, CommandBuffer::Impl* cmd)
+    Expected<SBT, VHResult> SBT::New(
+        const SharedPtr<Device::Impl>& device,
+        VkPipeline rtPipeline,
+        uint32_t rgenCount,
+        uint32_t missCount,
+        uint32_t hitGroupCount,
+        const SharedPtr<CommandBuffer::Impl> cmd
+    )
     {
         VH_LOG_INFO("Creating SBT Implementation");
 
@@ -53,7 +60,7 @@ namespace VulkanHelper
 
         const uint32_t sbtSize = rgenRegion.size + missRegion.size + hitRegion.size;
 
-        VulkanHelper::Buffer::Impl stagingBuffer = VulkanHelper::Buffer::Impl::New(
+        SharedPtr<VulkanHelper::Buffer::Impl> stagingBuffer = VulkanHelper::Buffer::Impl::New(
             device,
             sbtSize,
             VulkanHelper::Buffer::Usage::TRANSFER_SRC_BIT | VulkanHelper::Buffer::Usage::SHADER_BINDING_TABLE_BIT,
@@ -63,7 +70,7 @@ namespace VulkanHelper
             "SBT Staging Buffer"
         ).Value();
 
-        auto mappedDataRes = stagingBuffer.Map();
+        auto mappedDataRes = stagingBuffer->Map();
         if (!mappedDataRes.HasValue())
         {
             VH_LOG_ERROR("Failed to map staging buffer for SBT");
@@ -94,9 +101,9 @@ namespace VulkanHelper
         }
         mappedData += missRegion.size;
 
-        stagingBuffer.Unmap();
+        stagingBuffer->Unmap();
 
-        VulkanHelper::Buffer::Impl sbtBuffer = VulkanHelper::Buffer::Impl::New(
+        SharedPtr<VulkanHelper::Buffer::Impl> sbtBuffer = VulkanHelper::Buffer::Impl::New(
             device,
             sbtSize,
             Buffer::Usage::SHADER_BINDING_TABLE_BIT | Buffer::Usage::TRANSFER_DST_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
@@ -106,14 +113,14 @@ namespace VulkanHelper
             "SBT Buffer"
         ).Value();
 
-        sbtBuffer.CopyFrom(cmd, stagingBuffer, 0, 0, sbtSize);
+        sbtBuffer->CopyFrom(cmd, *stagingBuffer, 0, 0, sbtSize);
 
-        rgenRegion.deviceAddress = sbtBuffer.GetDeviceAddress();
+        rgenRegion.deviceAddress = sbtBuffer->GetDeviceAddress();
         hitRegion.deviceAddress = rgenRegion.deviceAddress + rgenRegion.size;
         missRegion.deviceAddress = hitRegion.deviceAddress + hitRegion.size;
 
         return SBT(
-            VulkanHelper::Move(sbtBuffer),
+            sbtBuffer,
             rgenRegion,
             missRegion,
             hitRegion

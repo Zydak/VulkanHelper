@@ -6,11 +6,11 @@
 
 namespace VulkanHelper
 {
-    Expected<TLAS::Impl, VHResult> TLAS::Impl::New(
-        Device::Impl* device,
-        const Vector<const BLAS::Impl*>& blasList,
+    Expected<SharedPtr<TLAS::Impl>, VHResult> TLAS::Impl::New(
+        const SharedPtr<Device::Impl>& device,
+        const Vector<SharedPtr<BLAS::Impl>>& blasList,
         const glm::mat4* transforms,
-        CommandBuffer::Impl* commandBuffer
+        const SharedPtr<CommandBuffer::Impl>& commandBuffer
     )
     {
         VulkanHelper::Vector<VkAccelerationStructureInstanceKHR> instances;
@@ -18,7 +18,7 @@ namespace VulkanHelper
 
         for (uint32_t i = 0; i < blasList.Size(); i++)
         {
-            const BLAS::Impl* const blasImpl = blasList[i];
+            SharedPtr<BLAS::Impl> const blasImpl = blasList[i];
             if (!blasImpl)
             {
                 VH_LOG_ERROR("BLAS at index {} is null!", i);
@@ -52,9 +52,9 @@ namespace VulkanHelper
             return Unexpected(instancesBufferRes.Error());
         }
 
-        VulkanHelper::Buffer::Impl instancesBuffer = Move(instancesBufferRes.Value());
-        instancesBuffer.UploadData(instances.Data(), instances.Size() * sizeof(VkAccelerationStructureInstanceKHR), 0, commandBuffer);
-        instancesBuffer.Barrier(
+        SharedPtr<Buffer::Impl> instancesBuffer = Move(instancesBufferRes.Value());
+        instancesBuffer->UploadData(instances.Data(), instances.Size() * sizeof(VkAccelerationStructureInstanceKHR), 0, commandBuffer);
+        instancesBuffer->Barrier(
             commandBuffer,
             VulkanHelper::AccessFlags::TRANSFER_WRITE_BIT,
             VulkanHelper::AccessFlags::SHADER_READ_BIT,
@@ -68,7 +68,7 @@ namespace VulkanHelper
 
         VkAccelerationStructureGeometryInstancesDataKHR instancesVk{};
         instancesVk.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
-		instancesVk.data.deviceAddress = instancesBuffer.GetDeviceAddress();
+		instancesVk.data.deviceAddress = instancesBuffer->GetDeviceAddress();
 
         VkAccelerationStructureGeometryKHR topASGeometry{};
         topASGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
@@ -95,7 +95,7 @@ namespace VulkanHelper
             &sizeInfo
         );
 
-        VulkanHelper::Buffer::Impl asBuffer = VulkanHelper::Buffer::Impl::New(
+        SharedPtr<Buffer::Impl> asBuffer = VulkanHelper::Buffer::Impl::New(
             device,
             sizeInfo.accelerationStructureSize,
             VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_STORAGE_BIT | VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
@@ -106,7 +106,7 @@ namespace VulkanHelper
         ).Value();
 
         VH_ASSERT(sizeInfo.buildScratchSize <= MAX_SCRATCH_SIZE, "Scratch size for TLAS exceeds maximum allowed size");
-        VulkanHelper::Buffer::Impl scratchBuffer = VulkanHelper::Buffer::Impl::New(
+        SharedPtr<Buffer::Impl> scratchBuffer = VulkanHelper::Buffer::Impl::New(
             device,
             sizeInfo.buildScratchSize,
             VulkanHelper::Buffer::Usage::STORAGE_BUFFER_BIT | VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
@@ -115,13 +115,13 @@ namespace VulkanHelper
             device->GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment, // Min alignment
             "TLAS Scratch Buffer"
         ).Value();
-        buildInfo.scratchData.deviceAddress = scratchBuffer.GetDeviceAddress();
+        buildInfo.scratchData.deviceAddress = scratchBuffer->GetDeviceAddress();
 
         VkAccelerationStructureCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
 		createInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
 		createInfo.size = sizeInfo.accelerationStructureSize;
-        createInfo.buffer = asBuffer.GetBuffer();
+        createInfo.buffer = asBuffer->GetBuffer();
 
         const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo{
             .primitiveCount = instanceCount,
@@ -153,11 +153,11 @@ namespace VulkanHelper
         VH_ASSERT(commandBuffer->SubmitAndWait() == VHResult::OK, "Failed to submit command buffer for TLAS build");
         VH_ASSERT(commandBuffer->BeginRecording(CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VHResult::OK, "Failed to begin command buffer recording for TLAS build");
 
-        return Impl(
+        return SharedPtr( new Impl(
             device,
             accelerationStructure,
             VulkanHelper::Move(asBuffer)
-        );
+        ));
     }
 
     VkTransformMatrixKHR TLAS::Impl::ConvertToVulkanMatrix(const glm::mat4& mat)
@@ -210,11 +210,6 @@ namespace VulkanHelper
     Expected<TLAS, VHResult> TLAS::New(const Config& config)
     {
         VH_LOG_INFO("Creating TLAS Implementation");
-        if (config.Device == nullptr)
-        {
-            VH_LOG_ERROR("Device is null in TLAS configuration");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
 
         if (config.BlasList.Empty())
         {
@@ -228,15 +223,10 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        VulkanHelper::Vector<const BLAS::Impl*> blasList;
+        VulkanHelper::Vector<SharedPtr<BLAS::Impl>> blasList;
         blasList.Reserve(config.BlasList.Size());
         for (uint32_t i = 0; i < config.BlasList.Size(); i++)
         {
-            if (config.BlasList[i] == nullptr)
-            {
-                VH_LOG_ERROR("BLAS at index {} is null in TLAS configuration", i);
-                return Unexpected(VHResult::WRONG_ARGUMENTS);
-            }
             blasList.PushBack(BLAS::Impl::GetImplementation(config.BlasList[i]));
         }
 
@@ -244,7 +234,7 @@ namespace VulkanHelper
             Device::Impl::GetImplementation(config.Device),
             blasList,
             config.Transforms,
-            CommandBuffer::Impl::GetImplementation(config.CommandBuffer)
+            CommandBuffer::Impl::GetImplementation(*config.CommandBuffer)
         );
 
         if (!implRes.HasValue())
@@ -253,7 +243,28 @@ namespace VulkanHelper
             return Unexpected(implRes.Error());
         }
 
-        return TLAS{ UniquePtr<Impl>(new Impl(Move(implRes.Value()))) };
+        return TLAS{ VulkanHelper::Move(implRes.Value()) };
+    }
+
+    TLAS::TLAS()
+        : m_Impl(nullptr)
+    {
+    }
+
+    TLAS::TLAS(const TLAS& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    TLAS& TLAS::operator=(const TLAS& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~TLAS(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+        return *this;
     }
 
     TLAS::TLAS(TLAS&& other) noexcept
@@ -264,11 +275,12 @@ namespace VulkanHelper
 
     TLAS& TLAS::operator=(TLAS&& other) noexcept
     {
-        if (this != &other)
-        {
-            m_Impl = VulkanHelper::Move(other.m_Impl);
-            other.m_Impl = nullptr;
-        }
+        if (this == &other)
+            return *this;
+
+        this->~TLAS(); // Clean up current state
+
+        m_Impl = Move(other.m_Impl);
         return *this;
     }
 
@@ -277,8 +289,8 @@ namespace VulkanHelper
         m_Impl = nullptr;
     }
 
-    TLAS::TLAS(UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    TLAS::TLAS(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
 
     }

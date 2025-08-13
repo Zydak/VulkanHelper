@@ -11,9 +11,9 @@
 
 namespace VulkanHelper
 {
-    Expected<Mesh::Impl, VHResult> Mesh::Impl::New(
-        Device::Impl* device,
-        CommandBuffer::Impl* commandBuffer,
+    Expected<SharedPtr<Mesh::Impl>, VHResult> Mesh::Impl::New(
+        const SharedPtr<Device::Impl>& device,
+        const SharedPtr<CommandBuffer::Impl>& commandBuffer,
         Format* vertexAttributes,
         uint32_t vertexAttributeCount,
         void* vertexData,
@@ -56,7 +56,7 @@ namespace VulkanHelper
         // Upload vertex data
         if (vertexData != nullptr)
         {
-            VHResult uploadResult = Buffer::Impl::GetImplementation(&vertexBuffer)->UploadData(vertexData, vertexDataSize, 0, commandBuffer);
+            VHResult uploadResult = Buffer::Impl::GetImplementation(vertexBuffer)->UploadData(vertexData, vertexDataSize, 0, commandBuffer);
             if (uploadResult != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to upload vertex data to buffer");
@@ -110,10 +110,10 @@ namespace VulkanHelper
                 return Unexpected(indexBufferResult.Error());
             }
 
-            indexBuffer = Buffer::Impl::CreatePublicInterfacePtr(Move(indexBufferResult.Value()));
+            indexBuffer = new Buffer(Buffer::Impl::CreatePublicInterface(indexBufferResult.Value()));
 
             // Upload index data
-            VHResult uploadResult = Buffer::Impl::GetImplementation(indexBuffer.Get())->UploadData(indexData, indexDataSize, 0, commandBuffer);
+            VHResult uploadResult = Buffer::Impl::GetImplementation(*indexBuffer)->UploadData(indexData, indexDataSize, 0, commandBuffer);
             if (uploadResult != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to upload index data to buffer");
@@ -130,7 +130,7 @@ namespace VulkanHelper
 
         VH_LOG_INFO("Created Mesh with {} vertices and {} indices", vertexCount, indexCount);
 
-        return Impl(device, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec));
+        return SharedPtr<Impl>(new Impl(device, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec)));
     }
 
     Mesh::Impl::Impl(Impl&& other) noexcept
@@ -166,12 +166,12 @@ namespace VulkanHelper
         VH_LOG_DEBUG("Destroying Mesh Implementation");
     }
 
-    void Mesh::Impl::Bind(CommandBuffer::Impl* commandBuffer) const
+    void Mesh::Impl::Bind(const SharedPtr<CommandBuffer::Impl> commandBuffer) const
     {
         VkCommandBuffer vkCommandBuffer = commandBuffer->GetCommandBuffer();
 
         // Bind vertex buffer
-        Buffer::Impl* vertexBufferImpl = Buffer::Impl::GetImplementation(&m_VertexBuffer);
+        SharedPtr<Buffer::Impl> vertexBufferImpl = Buffer::Impl::GetImplementation(m_VertexBuffer);
         VkBuffer vertexBuffer = vertexBufferImpl->GetBuffer();
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &vertexBuffer, offsets);
@@ -179,14 +179,14 @@ namespace VulkanHelper
         // Bind index buffer if it exists
         if (m_IndexBuffer.Get() != nullptr)
         {
-            Buffer::Impl* indexBufferImpl = Buffer::Impl::GetImplementation(m_IndexBuffer.Get());
+            SharedPtr<Buffer::Impl> indexBufferImpl = Buffer::Impl::GetImplementation(*m_IndexBuffer);
             VkBuffer indexBuffer = indexBufferImpl->GetBuffer();
             // Using 32-bit indices (VK_INDEX_TYPE_UINT32)
             vkCmdBindIndexBuffer(vkCommandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         }
     }
 
-    void Mesh::Impl::Draw(CommandBuffer::Impl* commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const
+    void Mesh::Impl::Draw(const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const
     {
         VkCommandBuffer vkCommandBuffer = commandBuffer->GetCommandBuffer();
 
@@ -253,12 +253,6 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Mesh Implementation");
 
-        if (!config.Device)
-        {
-            VH_LOG_ERROR("Device cannot be null");
-            return Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
         if (!config.CommandBuffer)
         {
             VH_LOG_ERROR("CommandBuffer cannot be null");
@@ -267,7 +261,7 @@ namespace VulkanHelper
 
         auto implResult = Impl::New(
             Device::Impl::GetImplementation(config.Device),
-            CommandBuffer::Impl::GetImplementation(config.CommandBuffer),
+            CommandBuffer::Impl::GetImplementation(*config.CommandBuffer),
             config.VertexAttributes,
             config.VertexAttributeCount,
             config.VertexData,
@@ -289,6 +283,16 @@ namespace VulkanHelper
     //  Forward Functions
     //
 
+    Mesh::Mesh()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Mesh::Mesh(const Mesh& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
     Mesh::Mesh(Mesh&& other) noexcept
         : m_Impl(Move(other.m_Impl))
     {
@@ -306,23 +310,36 @@ namespace VulkanHelper
         return *this;
     }
 
-    Mesh::~Mesh()
+    Mesh& Mesh::operator=(const Mesh& other)
     {
+        if (this == &other)
+            return *this;
+
+        this->~Mesh(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
     }
 
-    Mesh::Mesh(UniquePtr<Impl>&& impl)
-        : m_Impl(Move(impl))
+    Mesh::~Mesh()
+    {
+
+    }
+
+    Mesh::Mesh(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
     }
 
     void Mesh::Bind(CommandBuffer& commandBuffer) const
     {
-        m_Impl->Bind(CommandBuffer::Impl::GetImplementation(&commandBuffer));
+        m_Impl->Bind(CommandBuffer::Impl::GetImplementation(commandBuffer));
     }
 
     void Mesh::Draw(CommandBuffer& commandBuffer, uint32_t instanceCount, uint32_t firstInstance) const
     {
-        m_Impl->Draw(CommandBuffer::Impl::GetImplementation(&commandBuffer), instanceCount, firstInstance);
+        m_Impl->Draw(CommandBuffer::Impl::GetImplementation(commandBuffer), instanceCount, firstInstance);
     }
 
     const VulkanHelper::Vector<Mesh::VertexAttributeDescription>* Mesh::GetAttributesDescriptions() const
@@ -345,12 +362,12 @@ namespace VulkanHelper
         return Impl::CreateBindingDescription(vertexSize);
     }
 
-    Buffer* Mesh::GetVertexBuffer()
+    Buffer Mesh::GetVertexBuffer()
     {
         return m_Impl->GetVertexBuffer();
     }
 
-    Buffer* Mesh::GetIndexBuffer()
+    Buffer Mesh::GetIndexBuffer()
     {
         return m_Impl->GetIndexBuffer();
     }

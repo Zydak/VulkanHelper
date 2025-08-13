@@ -16,7 +16,11 @@ namespace VulkanHelper
     class Swapchain::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, Window::Impl* window, Swapchain::Impl* previousSwapchain);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            const SharedPtr<Window::Impl>& window,
+            SharedPtr<Swapchain::Impl> previousSwapchain
+        );
 
         ~Impl();
         Impl(const Impl& other) = delete;
@@ -24,12 +28,11 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Swapchain* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Swapchain CreatePublicInterface(Impl&& impl) { return Swapchain(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Swapchain> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Swapchain(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Swapchain& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Swapchain CreatePublicInterface(const SharedPtr<Impl>& impl) { return Swapchain(impl); }
 
         [[nodiscard]] VHResult AcquireNextImage();
-        [[nodiscard]] VHResult Submit(CommandBuffer::Impl* commandBuffer);
+        [[nodiscard]] VHResult Submit(const SharedPtr<CommandBuffer::Impl>& commandBuffer);
         [[nodiscard]] inline Image* GetCurrentSwapchainImage() { return &m_Images[m_CurrentImageIndex]; };
         [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() { return &m_ImageViews[m_CurrentImageIndex]; };
 
@@ -37,7 +40,7 @@ namespace VulkanHelper
 
         [[nodiscard]] inline Format GetSwapchainImageFormat() const { return m_Images[0].GetFormat(); }
 
-        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+        [[nodiscard]] inline SharedPtr<Device::Impl> GetDevice() const { return m_Device; }
 
         [[nodiscard]] inline VkSwapchainKHR GetSwapchain() const { return m_Swapchain; }
 
@@ -50,7 +53,7 @@ namespace VulkanHelper
     private:
 
         Impl(
-            Device::Impl* device,
+            const SharedPtr<Device::Impl>& device,
             VkSwapchainKHR swapchain,
             uint32_t currentFrameIndex,
             uint32_t imageCount,
@@ -73,7 +76,7 @@ namespace VulkanHelper
               m_SubmitSemaphores(VulkanHelper::Move(submitSemaphores))
         {}
 
-        VulkanHelper::Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VkSwapchainKHR m_Swapchain;
 
         uint32_t m_CurrentFrameIndex;

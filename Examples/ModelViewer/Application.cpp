@@ -12,7 +12,7 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
 )
 {
     VulkanHelper::Image::Config colorImageConfig{};
-    colorImageConfig.Device = &device;
+    colorImageConfig.Device = device;
     colorImageConfig.Width = width;
     colorImageConfig.Height = height;
     colorImageConfig.Format = format;
@@ -32,7 +32,7 @@ static std::tuple<VulkanHelper::Image, VulkanHelper::ImageView, VulkanHelper::Im
     }).Value();
 
     VulkanHelper::Image::Config depthImageConfig{};
-    depthImageConfig.Device = &device;
+    depthImageConfig.Device = device;
     depthImageConfig.Width = width;
     depthImageConfig.Height = height;
     depthImageConfig.Format = VulkanHelper::Format::D32_SFLOAT;
@@ -66,20 +66,20 @@ Application Application::New()
     VH_ASSERT(!physicalDevices.Empty(), "No suitable physical devices found!");
 
     // Prefer a discrete GPU if available
-    VulkanHelper::PhysicalDevice* selectedDevice = &physicalDevices[0];
+    VulkanHelper::PhysicalDevice selectedDevice = physicalDevices[0];
     for (size_t i = 0; i < physicalDevices.Size(); i++)
     {   
         if (physicalDevices[i].IsDiscrete())
         {
             VH_LOG_INFO("Selected Discrete GPU: {}", physicalDevices[i].GetName());
-            selectedDevice = &physicalDevices[i];
+            selectedDevice = physicalDevices[i];
             break;
         }
     }
 
-    VulkanHelper::Window window = VulkanHelper::Window::New({&instance, 900, 900, "Example Project", "", true}).Value();
-    VulkanHelper::Device device = VulkanHelper::Device::New({*selectedDevice, {&window}, &instance}).Value();
-    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({&device, &window}).Value();
+    VulkanHelper::Window window = VulkanHelper::Window::New({instance, 900, 900, "Example Project", "", true}).Value();
+    VulkanHelper::Device device = VulkanHelper::Device::New({selectedDevice, {window}, instance}).Value();
+    VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({device, window}).Value();
 
     s_SampleCount = device.GetMaxSampleCount();
     if (s_SampleCount > VulkanHelper::SampleCount::COUNT_4_BIT)
@@ -89,10 +89,10 @@ Application Application::New()
 
     VulkanHelper::Shader::InitializeSession("../../../ModelViewer/Shaders/");
 
-    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({&device, "Vertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
-    VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({&device, "Fragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
+    VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({device, "Vertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
+    VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({device, "Fragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
 
-    VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({&device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
+    VulkanHelper::CommandPool commandPool = VulkanHelper::CommandPool::New({device, VulkanHelper::CommandPool::Flags::RESET_COMMAND_BUFFER_BIT, device.GetQueueFamilyIndices().GraphicsFamily}).Value();
     VulkanHelper::CommandBuffer initializationCmd = commandPool.AllocateCommandBuffer({}).Value();
 
     std::array<VulkanHelper::Format, 3> vertexAttributes = {
@@ -102,7 +102,7 @@ Application Application::New()
     };
     
     VulkanHelper::Mesh::Config meshConfig{};
-    meshConfig.Device = &device;
+    meshConfig.Device = device;
     meshConfig.VertexAttributes = vertexAttributes.data();
     meshConfig.VertexAttributeCount = vertexAttributes.size();
     meshConfig.VertexData = scene.Value().Meshes[0].Vertices.Data();
@@ -116,7 +116,7 @@ Application Application::New()
 
     // Mesh texture image
     VulkanHelper::Image::Config textureImageConfig{};
-    textureImageConfig.Device = &device;
+    textureImageConfig.Device = device;
     textureImageConfig.Width = scene.Value().AlbedoTextures[0].Width;
     textureImageConfig.Height = scene.Value().AlbedoTextures[0].Height;
     textureImageConfig.Format = VulkanHelper::Format::R8G8B8A8_UNORM;
@@ -149,7 +149,7 @@ Application Application::New()
     // Sampler
 
     VulkanHelper::Sampler::Config samplerConfig{};
-    samplerConfig.Device = &device;
+    samplerConfig.Device = device;
     samplerConfig.AddressMode = VulkanHelper::Sampler::AddressMode::REPEAT;
     samplerConfig.MinFilter = VulkanHelper::Sampler::Filter::LINEAR;
     samplerConfig.MagFilter = VulkanHelper::Sampler::Filter::LINEAR;
@@ -163,7 +163,7 @@ Application Application::New()
     };
     
     VulkanHelper::DescriptorPool::Config descriptorPoolConfig{};
-    descriptorPoolConfig.Device = &device;
+    descriptorPoolConfig.Device = device;
     descriptorPoolConfig.MaxSets = 1;
     descriptorPoolConfig.PoolSizes = poolSizes.data();
     descriptorPoolConfig.PoolSizeCount = poolSizes.size();
@@ -182,15 +182,15 @@ Application Application::New()
     VH_ASSERT(descriptorSet.AddSampler(1, 0, sampler) == VulkanHelper::VHResult::OK, "Failed to add sampler to descriptor set");
 
     VulkanHelper::Pipeline::GraphicsConfig pipelineConfig{};
-    pipelineConfig.Device = &device;
-    pipelineConfig.Shaders.PushBack(&vertexShader);
-    pipelineConfig.Shaders.PushBack(&fragShader);
+    pipelineConfig.Device = device;
+    pipelineConfig.Shaders.PushBack(vertexShader);
+    pipelineConfig.Shaders.PushBack(fragShader);
     pipelineConfig.ColorFormats.PushBack(renderer.GetSwapchainImageFormat());
     pipelineConfig.AttributeDesc = loadedMesh.GetAttributesDescriptions();
     pipelineConfig.BindingDesc = loadedMesh.GetBindingDescription();
     pipelineConfig.PushConstant = &pushConstant;
     pipelineConfig.DepthTestEnable = true;
-    pipelineConfig.DescriptorSets.PushBack(&descriptorSet);
+    pipelineConfig.DescriptorSets.PushBack(descriptorSet);
     pipelineConfig.SampleCount = s_SampleCount;
 
     VulkanHelper::Pipeline pipeline = VulkanHelper::Pipeline::New(pipelineConfig).Value();

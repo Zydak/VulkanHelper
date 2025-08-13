@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 #include "Core/Error.h"
 #include "Core/Expected.h"
 #include "Core/Enums.h"
@@ -64,9 +65,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Device to create the mesh on
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
             
             /**
              * @brief Command buffer for uploading mesh data
@@ -123,29 +124,13 @@ namespace VulkanHelper
          */
         [[nodiscard]] static Expected<Mesh, VHResult> New(const Config& config);
 
-        /**
-         * @brief Delete copy constructor
-         */
-        Mesh(const Mesh& other) = delete;
-        
-        /**
-         * @brief Delete copy assignment operator
-         */
-        Mesh& operator=(const Mesh& other) = delete;
-        
-        /**
-         * @brief Move constructor
-         */
+        Mesh();
+
+        Mesh(const Mesh& other);
+        Mesh& operator=(const Mesh& other);
         Mesh(Mesh&& other) noexcept;
-        
-        /**
-         * @brief Move assignment operator
-         */
         Mesh& operator=(Mesh&& other) noexcept;
 
-        /**
-         * @brief Destructor
-         */
         ~Mesh();
 
         /**
@@ -180,13 +165,13 @@ namespace VulkanHelper
          * @brief Get the vertex buffer used by this mesh
          * @return Pointer to the vertex buffer
          */
-        [[nodiscard]] Buffer* GetVertexBuffer();
+        [[nodiscard]] Buffer GetVertexBuffer();
 
         /**
          * @brief Get the index buffer used by this mesh
          * @return Pointer to the index buffer, or nullptr if no index buffer is used
          */
-        [[nodiscard]] Buffer* GetIndexBuffer();
+        [[nodiscard]] Buffer GetIndexBuffer();
 
         /**
          * @brief Get the size of each vertex in bytes
@@ -200,7 +185,7 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        UniquePtr<Impl> m_Impl;
-        Mesh(UniquePtr<Impl>&& impl);
+        SharedPtr<Impl> m_Impl;
+        Mesh(const SharedPtr<Impl>& impl);
     };
 }

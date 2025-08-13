@@ -9,7 +9,7 @@
 
 namespace VulkanHelper
 {
-    Expected<PhysicalDevice::Impl, VHResult> PhysicalDevice::Impl::New(VkInstance instance, VkPhysicalDevice physicalDevice)
+    Expected<SharedPtr<PhysicalDevice::Impl>, VHResult> PhysicalDevice::Impl::New(VkInstance instance, VkPhysicalDevice physicalDevice)
     {
         if (physicalDevice == nullptr || instance == nullptr)
         {
@@ -48,28 +48,7 @@ namespace VulkanHelper
 
         bool discrete = (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
-        return Impl(physicalDevice, vendor, properties.deviceName, discrete);
-    }
-
-    PhysicalDevice::Impl::Impl(const Impl& other)
-        : m_Device(other.m_Device), m_Vendor(other.m_Vendor), m_Name(other.m_Name), m_Discrete(other.m_Discrete)
-    {
-
-    }
-
-    PhysicalDevice::Impl& PhysicalDevice::Impl::operator=(const Impl& other)
-    {
-        if (this == &other)
-            return *this;
-
-        this->~Impl(); // Clean up current state
-
-        m_Device = other.m_Device;
-        m_Vendor = other.m_Vendor;
-        m_Name = other.m_Name;
-        m_Discrete = other.m_Discrete;
-
-        return *this;
+        return SharedPtr<Impl>(new Impl(physicalDevice, vendor, properties.deviceName, discrete));
     }
 
     PhysicalDevice::Impl::Impl(Impl&& other) noexcept
@@ -125,6 +104,11 @@ namespace VulkanHelper
     //  Forward functions
     //
 
+    PhysicalDevice::PhysicalDevice()
+        : m_Impl(nullptr)
+    {
+    }
+
     PhysicalDevice::PhysicalDevice(PhysicalDevice&& other) noexcept
         : m_Impl(VulkanHelper::Move(other.m_Impl))
     {}
@@ -142,7 +126,7 @@ namespace VulkanHelper
     }
 
     PhysicalDevice::PhysicalDevice(const PhysicalDevice& other)
-        : m_Impl(new Impl(*other.m_Impl)) // Deep copy
+        : m_Impl(other.m_Impl)
     {
     }
 
@@ -153,7 +137,7 @@ namespace VulkanHelper
 
         this->~PhysicalDevice(); // Clean up current state
 
-        m_Impl = new Impl(*other.m_Impl); // Deep copy
+        m_Impl = other.m_Impl;
 
         return *this;
     }
@@ -163,8 +147,8 @@ namespace VulkanHelper
         
     }
 
-    PhysicalDevice::PhysicalDevice(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    PhysicalDevice::PhysicalDevice(const VulkanHelper::SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }

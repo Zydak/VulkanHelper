@@ -9,8 +9,9 @@ namespace VulkanHelper
     class Sampler::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(Device::Impl* device, 
-            Sampler::AddressMode addressMode, 
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
+            Sampler::AddressMode addressMode,
             Sampler::Filter minFilter,
             Sampler::Filter magFilter,
             Sampler::MipmapMode mipmapMode);
@@ -23,17 +24,16 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Sampler* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Sampler CreatePublicInterface(Impl&& impl) { return Sampler(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Sampler> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Sampler(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Sampler& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Sampler CreatePublicInterface(const SharedPtr<Impl>& impl) { return Sampler(impl); }
 
         [[nodiscard]] inline VkSampler GetSampler() const { return m_Sampler; }
     private:
-        Impl(Device::Impl* device, VkSampler sampler)
+        Impl(const SharedPtr<Device::Impl>& device, VkSampler sampler)
             : m_Device(device), m_Sampler(sampler)
         {}
 
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
         VkSampler m_Sampler;
     };
 }

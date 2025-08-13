@@ -14,8 +14,8 @@ namespace VulkanHelper
     class Image::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(
-            Device::Impl* device,
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<Device::Impl>& device,
             uint32_t height,
             uint32_t width,
             uint32_t mipCount,
@@ -38,11 +38,10 @@ namespace VulkanHelper
 
         ~Impl();
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Image* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Image CreatePublicInterface(Impl&& impl) { return Image(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Image> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Image(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Image& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Image CreatePublicInterface(const SharedPtr<Impl>& impl) { return Image(impl); }
 
-        [[nodiscard]] inline Device::Impl* GetDevice() const { return m_Device; }
+        [[nodiscard]] inline SharedPtr<Device::Impl> GetDevice() const { return m_Device; }
 
         [[nodiscard]] inline Format GetFormat() const { return m_Format; }
         [[nodiscard]] inline Layout GetLayout() const { return m_Layout; }
@@ -55,19 +54,19 @@ namespace VulkanHelper
 
         [[nodiscard]] inline VkImage GetImage() const { return m_Allocation.image; }
 
-        void TransitionImageLayout(Layout newLayout, CommandBuffer::Impl* commandBuffer, uint32_t baseLayer, uint32_t layerCount);
+        void TransitionImageLayout(Layout newLayout, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount);
 
-        VHResult CopyFromImage(const Image& srcImage, CommandBuffer::Impl* commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
-        VHResult BlitFromImage(const Image& srcImage, CommandBuffer::Impl* commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+        VHResult CopyFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+        VHResult BlitFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
 
         [[nodiscard]] Expected<void*, VHResult> Map();
         void Unmap();
-        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr);
+        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr);
 
-        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer::Impl* cmd = nullptr) const;
+        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
 
     private:
-        Device::Impl* m_Device;
+        SharedPtr<Device::Impl> m_Device;
 
         Format m_Format;
         Layout m_Layout;
@@ -83,7 +82,8 @@ namespace VulkanHelper
         VulkanMemoryAllocator::ImageAllocation m_Allocation;
         VulkanMemoryAllocator::BufferAllocation m_StagingBufferAllocation;
 
-        explicit Impl(Device::Impl* device,
+        explicit Impl(
+            const SharedPtr<Device::Impl>& device,
             Format format,
             Layout layout,
             Aspect aspect,
@@ -109,7 +109,8 @@ namespace VulkanHelper
         {}
 
         // Special case, alternative constructor for swapchain
-        explicit Impl(Device::Impl* device,
+        explicit Impl(
+            const SharedPtr<Device::Impl>& device,
             Format format,
             Layout layout,
             Aspect aspect,

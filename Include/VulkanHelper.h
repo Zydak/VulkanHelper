@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Core/Macros.h"
 #include "Core/Move.h"
+#include "Core/SharedPtr.h"
 #include "Core/UniquePtr.h"
 #include "Core/Vector.h"
 

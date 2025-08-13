@@ -19,7 +19,14 @@ namespace VulkanHelper
         impl->m_Height = static_cast<uint32_t>(height);
     }
 
-    Expected<Window::Impl, VHResult> Window::Impl::New(Instance::Impl* instance, uint32_t width, uint32_t height, const char* name, const char* iconPath, bool resizable)
+    Expected<SharedPtr<Window::Impl>, VHResult> Window::Impl::New(
+        const SharedPtr<Instance::Impl>& instance,
+        uint32_t width,
+        uint32_t height,
+        const char* name,
+        const char* iconPath,
+        bool resizable
+    )
     {
         // TODO: Icon, for now there's no image loading
         (void)iconPath; // Suppress unused parameter warning
@@ -39,7 +46,7 @@ namespace VulkanHelper
 
         glfwSetWindowSizeCallback(window, WindowSizeCallback);
 
-        return Impl(instance, window, surface, VulkanHelper::Move(nameStr), width, height);
+        return SharedPtr<Impl>(new Impl(instance, window, surface, VulkanHelper::Move(nameStr), width, height));
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
@@ -104,7 +111,7 @@ namespace VulkanHelper
 
     bool Window::Impl::IsPhysicalDeviceCompatible(const PhysicalDevice& device) const
     {
-        PhysicalDevice::Impl* physicalDeviceImpl = PhysicalDevice::Impl::GetImplementation(&device);
+        SharedPtr<PhysicalDevice::Impl> physicalDeviceImpl = PhysicalDevice::Impl::GetImplementation(device);
         // Check queue family support for presentation
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(physicalDeviceImpl->GetDevice(), &queueFamilyCount, nullptr);
@@ -162,12 +169,6 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Creating Window Implementation");
 
-        if (config.Instance == nullptr)
-        {
-            VH_LOG_ERROR("Window initialization failed. Instance can't be nullptr!");
-            return VulkanHelper::Unexpected(VHResult::WRONG_ARGUMENTS);
-        }
-
         auto implResult = Impl::New(
             Instance::Impl::GetImplementation(config.Instance),
             config.Width,
@@ -206,8 +207,30 @@ namespace VulkanHelper
 
     }
 
-    Window::Window(VulkanHelper::UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    Window::Window(const Window& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    Window& Window::operator=(const Window& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~Window(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
+    }
+
+    Window::Window()
+        : m_Impl(nullptr)
+    {
+    }
+
+    Window::Window(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
 
     }

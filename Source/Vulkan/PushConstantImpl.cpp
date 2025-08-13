@@ -7,7 +7,7 @@
 
 namespace VulkanHelper
 {
-    Expected<PushConstant::Impl, VHResult> PushConstant::Impl::New(ShaderStages stage, void* data, uint32_t size)
+    Expected<SharedPtr<PushConstant::Impl>, VHResult> PushConstant::Impl::New(ShaderStages stage, void* data, uint32_t size)
     {
         VH_LOG_INFO("Creating PushConstant Implementation");
 
@@ -29,7 +29,7 @@ namespace VulkanHelper
             VH_LOG_WARN("PushConstant size {} bytes exceeds common Vulkan limit of 128 bytes. Check device limits. Also note that this may not run on platforms with stricter limits. If you really need more than 128 bytes of space, consider using a Uniform buffer.", size);
         }
 
-        return Impl(stage, data, size);
+        return SharedPtr<Impl>(new Impl(stage, data, size));
     }
 
     PushConstant::Impl::Impl(ShaderStages stage, const void* data, uint32_t size)
@@ -114,9 +114,28 @@ namespace VulkanHelper
         return PushConstant::Impl::CreatePublicInterface(VulkanHelper::Move(implResult.Value()));
     }
 
-    PushConstant::PushConstant(UniquePtr<Impl>&& impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    PushConstant::PushConstant(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
+    }
+
+    PushConstant::PushConstant()
+        : m_Impl(nullptr)
+    {
+    }
+
+    PushConstant::PushConstant(const PushConstant& other)
+        : m_Impl(other.m_Impl)
+    {
+    }
+
+    PushConstant& PushConstant::operator=(const PushConstant& other)
+    {
+        if (this == &other)
+            return *this;
+
+        m_Impl = other.m_Impl;
+        return *this;
     }
 
     PushConstant::PushConstant(PushConstant&& other) noexcept

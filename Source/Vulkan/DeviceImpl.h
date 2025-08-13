@@ -13,19 +13,23 @@ namespace VulkanHelper
     class Device::Impl
     {
     public:
-        [[nodiscard]] static Expected<Impl, VHResult> New(PhysicalDevice::Impl physicalDevice, const Vector<Window::Impl*>& windows, Instance::Impl* instance, bool requestRTSupport = false);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
+            const SharedPtr<PhysicalDevice::Impl>& physicalDevice,
+            const Vector<SharedPtr<Window::Impl>>& windows,
+            const SharedPtr<Instance::Impl>& instance,
+            bool requestRTSupport = false
+        );
         ~Impl();
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const Device* publicInterface) { return publicInterface->m_Impl.Get(); }
-        [[nodiscard]] inline static Device CreatePublicInterface(Impl&& impl) { return Device(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl))))); }
-        [[nodiscard]] inline static UniquePtr<Device> CreatePublicInterfacePtr(Impl&& impl) { return UniquePtr(new Device(VulkanHelper::Move(UniquePtr<Impl>(new Impl(Move(impl)))))); }
+        [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Device& publicInterface) { return publicInterface.m_Impl; }
+        [[nodiscard]] inline static Device CreatePublicInterface(const SharedPtr<Impl>& impl) { return Device(impl); }
 
         [[nodiscard]] inline VkDevice GetDevice() const { return m_Device; }
-        [[nodiscard]] inline const PhysicalDevice::Impl& GetPhysicalDevice() const { return m_PhysicalDevice; }
+        [[nodiscard]] inline SharedPtr<PhysicalDevice::Impl> GetPhysicalDevice() const { return m_PhysicalDevice; }
         [[nodiscard]] inline QueueFamilyIndices GetQueueFamilyIndices() const { return m_QueueFamilyIndices; }
         void WaitUntilIdle() const;
 
@@ -50,9 +54,9 @@ namespace VulkanHelper
         void InitializeDeleteQueue(uint32_t framesDelay);
     private:
 
-        Instance::Impl* m_Instance;
+        SharedPtr<Instance::Impl> m_Instance;
         VkDevice m_Device = nullptr;
-        PhysicalDevice::Impl m_PhysicalDevice;
+        SharedPtr<PhysicalDevice::Impl> m_PhysicalDevice;
         QueueFamilyIndices m_QueueFamilyIndices = {};
         VulkanHelper::VulkanMemoryAllocator m_Allocator;
         DeleteQueue m_DeleteQueue;
@@ -62,9 +66,9 @@ namespace VulkanHelper
         VkPhysicalDeviceAccelerationStructurePropertiesKHR m_AccelerationStructureProperties = {};
 
         explicit Impl(
-            Instance::Impl* instance,
+            const SharedPtr<Instance::Impl>& instance,
             VkDevice device,
-            PhysicalDevice::Impl&& physicalDevice,
+            const SharedPtr<PhysicalDevice::Impl>& physicalDevice,
             QueueFamilyIndices&& indices,
             VulkanHelper::VulkanMemoryAllocator&& allocator,
             VkPhysicalDeviceProperties2&& physicalDeviceProperties,
@@ -82,6 +86,6 @@ namespace VulkanHelper
             , m_AccelerationStructureProperties(Move(accelerationStructureProperties))
         {}
 
-        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const PhysicalDevice::Impl& physicalDevice, const VulkanHelper::Vector<Window::Impl*>& windows);
+        [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const SharedPtr<PhysicalDevice::Impl>& physicalDevice, const VulkanHelper::Vector<SharedPtr<Window::Impl>>& windows);
     };
 }

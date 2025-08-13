@@ -2,7 +2,7 @@
 
 #include "Core/Error.h"
 #include "Core/Expected.h"
-#include "Core/UniquePtr.h"
+#include "Core/SharedPtr.h"
 
 #include "Device.h"
 #include "Image.h"
@@ -25,15 +25,15 @@ namespace VulkanHelper
         {
             /**
              * @brief The logical device that will own this swapchain
-             * 
-             * @note Must not be nullptr and must outlive this object
+             * @note Must be a valid device
              */
-            VulkanHelper::Device* Device = nullptr;
+            VulkanHelper::Device Device{};
 
             /**
              * @brief The window where images will be presented
+             * @note Must be a valid window
              */
-            VulkanHelper::Window* Window = nullptr;
+            VulkanHelper::Window Window{};
 
             /**
              * @brief The previous swapchain to be reused (Optional)
@@ -50,11 +50,15 @@ namespace VulkanHelper
          */
         [[nodiscard]] static VulkanHelper::Expected<Swapchain, VHResult> New(const Config& config);
 
-        ~Swapchain();
-        Swapchain(const Swapchain& other) = delete;
-        Swapchain& operator=(const Swapchain& other) = delete;
+        Swapchain();
+
+        Swapchain(const Swapchain& other);
+        Swapchain& operator=(const Swapchain& other);
+
         Swapchain(Swapchain&& other) noexcept;
         Swapchain& operator=(Swapchain&& other) noexcept;
+
+        ~Swapchain();
 
         /**
          * @brief Gets the next available swapchain image for rendering.
@@ -71,7 +75,7 @@ namespace VulkanHelper
          * @return VHResult Success or swapchain recreation required
          * @note Must be called after rendering is complete
          */
-        [[nodiscard]] VHResult Submit(CommandBuffer& commandBuffer);
+        [[nodiscard]] VHResult Submit(const CommandBuffer& commandBuffer);
 
         /**
          * @brief Gets the current swapchain image for rendering.
@@ -106,8 +110,8 @@ namespace VulkanHelper
         class Impl;
     private:
         friend class Impl;
-        VulkanHelper::UniquePtr<Impl> m_Impl;
+        SharedPtr<Impl> m_Impl;
 
-        Swapchain(VulkanHelper::UniquePtr<Impl>&& impl);
+        Swapchain(const SharedPtr<Impl>& impl);
     };
 }

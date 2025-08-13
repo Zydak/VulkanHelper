@@ -10,7 +10,12 @@
 
 namespace VulkanHelper
 {
-    Expected<DescriptorPool::Impl, VHResult> DescriptorPool::Impl::New(Device::Impl* device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount)
+    Expected<SharedPtr<DescriptorPool::Impl>, VHResult> DescriptorPool::Impl::New(
+        const SharedPtr<Device::Impl>& device,
+        uint32_t maxSets,
+        const PoolSize* poolSizes,
+        uint32_t poolSizeCount
+    )
     {
         VH_LOG_INFO("Creating Vulkan DescriptorPool Implementation");
 
@@ -66,7 +71,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return Impl(device, descriptorPool);
+        return SharedPtr<Impl>(new Impl(device, descriptorPool));
     }
 
     DescriptorPool::Impl::~Impl()
@@ -215,6 +220,29 @@ namespace VulkanHelper
         return DescriptorPool::Impl::CreatePublicInterface(Move(implResult.Value()));
     }
 
+    DescriptorPool::DescriptorPool()
+        : m_Impl(nullptr)
+    {
+    }
+
+    DescriptorPool::DescriptorPool(const DescriptorPool& other)
+        : m_Impl(other.m_Impl)
+    {
+
+    }
+
+    DescriptorPool& DescriptorPool::operator=(const DescriptorPool& other)
+    {
+        if (this == &other)
+            return *this;
+
+        this->~DescriptorPool(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
+        return *this;
+    }
+
     DescriptorPool::DescriptorPool(DescriptorPool&& other) noexcept
         : m_Impl(VulkanHelper::Move(other.m_Impl))
     {}
@@ -236,8 +264,8 @@ namespace VulkanHelper
 
     }
 
-    DescriptorPool::DescriptorPool(VulkanHelper::UniquePtr<Impl> impl)
-        : m_Impl(VulkanHelper::Move(impl))
+    DescriptorPool::DescriptorPool(const SharedPtr<Impl>& impl)
+        : m_Impl(impl)
     {
         
     }
