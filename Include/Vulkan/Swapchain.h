@@ -80,12 +80,12 @@ namespace VulkanHelper
         /**
          * @brief Gets the current swapchain image for rendering.
          */
-        [[nodiscard]] Image* GetCurrentSwapchainImage() const;
+        [[nodiscard]] Image GetCurrentSwapchainImage() const;
 
         /**
          * @brief Gets the view of the current swapchain image.
          */
-        [[nodiscard]] ImageView* GetCurrentSwapchainImageView() const;
+        [[nodiscard]] ImageView GetCurrentSwapchainImageView() const;
 
         /**
          * @brief Gets the index of the current frame being rendered.

@@ -10,6 +10,7 @@
 #include "Vulkan/Device.h"
 #include "Vulkan/Image.h"
 #include "Vulkan/ImageView.h"
+#include "Vulkan/Sampler.h"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RIGHT_HANDED
@@ -63,7 +64,7 @@ namespace VulkanHelper
          * @return Expected containing command buffer or error code
          * @note Must be paired with EndFrame()
          */
-        [[nodiscard]] Expected<CommandBuffer*, VHResult> BeginFrame(bool* outWasSwapchainRecreated);
+        [[nodiscard]] Expected<CommandBuffer, VHResult> BeginFrame(bool* outWasSwapchainRecreated);
 
         /**
          * @brief Ends the current frame and submits for presentation
@@ -73,7 +74,6 @@ namespace VulkanHelper
 
         /**
          * @brief Begins a render pass for specified render targets
-         * @param commandBuffer Command buffer to record commands into
          * @param targetImagesColor Array of color target image views
          * @param targetImageDepth Optional depth target image view
          * @param clearColor Clear color for the render targets
@@ -83,8 +83,7 @@ namespace VulkanHelper
          * @note Must be paired with EndRendering()
          */
         void BeginRendering(
-            CommandBuffer& commandBuffer,
-            const VulkanHelper::Vector<ImageView*>& targetImagesColor,
+            const VulkanHelper::Vector<ImageView>& targetImagesColor,
             const ImageView* targetImageDepth,
             glm::vec4 clearColor = {0.1f, 0.1f, 0.1f, 1.0f},
             float clearDepth = 1.0f,
@@ -94,24 +93,48 @@ namespace VulkanHelper
         );
 
         /**
-         * @brief Ends the current render pass
-         * @param commandBuffer Command buffer containing the render pass
+         * @brief Begins ImGui rendering
+         * @param clearColor Clear color for the ImGui framebuffer
          */
-        void EndRendering(CommandBuffer& commandBuffer);
+        void BeginImGuiRendering(
+            glm::vec4 clearColor = {0.1f, 0.1f, 0.1f, 1.0f}
+        );
+
+        /**
+         * @brief Ends ImGui rendering
+         * @note Must be called after BeginImGuiRendering()
+         */
+        void EndImGuiRendering();
+
+        /**
+         * @brief Ends the current render pass
+         */
+        void EndRendering();
+
+        uint32_t CreateImGuiDescriptorSet(
+            const ImageView& imageView,
+            const Sampler& sampler,
+            const Image::Layout& imageLayout
+        );
+
+        void RenderImGuiImage(
+            uint32_t index,
+            glm::vec2 size
+        );
 
         /**
          * @brief Gets the current swapchain image being rendered to
-         * @return Pointer to the current swapchain image
+         * @return Current swapchain image
          * @note Valid only between BeginFrame() and EndFrame()
          */
-        [[nodiscard]] Image* GetCurrentSwapchainImage() const;
+        [[nodiscard]] Image GetCurrentSwapchainImage() const;
 
         /**
          * @brief Gets the current swapchain image view
-         * @return Pointer to the current swapchain image view
+         * @return Current swapchain image view
          * @note Valid only between BeginFrame() and EndFrame()
          */
-        [[nodiscard]] ImageView* GetCurrentSwapchainImageView() const;
+        [[nodiscard]] ImageView GetCurrentSwapchainImageView() const;
 
         /**
          * @brief Gets the format of swapchain images

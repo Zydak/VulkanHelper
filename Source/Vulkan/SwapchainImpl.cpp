@@ -411,12 +411,12 @@ namespace VulkanHelper
         return m_Impl->Submit(CommandBuffer::Impl::GetImplementation(commandBuffer));
     }
 
-    Image* Swapchain::GetCurrentSwapchainImage() const
+    Image Swapchain::GetCurrentSwapchainImage() const
     {
         return m_Impl->GetCurrentSwapchainImage();
     }
 
-    ImageView* Swapchain::GetCurrentSwapchainImageView() const
+    ImageView Swapchain::GetCurrentSwapchainImageView() const
     {
         return m_Impl->GetCurrentSwapchainImageView();
     }

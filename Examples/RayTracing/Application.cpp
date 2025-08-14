@@ -215,7 +215,7 @@ void Application::Run()
     {
         VulkanHelper::Window::PollEvents();
 
-        VulkanHelper::CommandBuffer* commandBuffer = m_Renderer.BeginFrame(&wasSwapchainRecreated).Value();
+        VulkanHelper::CommandBuffer commandBuffer = m_Renderer.BeginFrame(&wasSwapchainRecreated).Value();
 
         {
             float time = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - timer).count();
@@ -237,9 +237,9 @@ void Application::Run()
             }
 
             // You probably want to make only one upload per frame, but this is just an example so perfmance doesn't really matter
-            VH_ASSERT(m_UniformBufferCamera.UploadData(&view, sizeof(glm::mat4), 0, commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
-            VH_ASSERT(m_UniformBufferCamera.UploadData(&projection, sizeof(glm::mat4), sizeof(glm::mat4), commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
-            VH_ASSERT(m_UniformBufferCamera.UploadData(&renderNormalsOrTexCoords, sizeof(bool), sizeof(glm::mat4) * 2, commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
+            VH_ASSERT(m_UniformBufferCamera.UploadData(&view, sizeof(glm::mat4), 0, &commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
+            VH_ASSERT(m_UniformBufferCamera.UploadData(&projection, sizeof(glm::mat4), sizeof(glm::mat4), &commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
+            VH_ASSERT(m_UniformBufferCamera.UploadData(&renderNormalsOrTexCoords, sizeof(bool), sizeof(glm::mat4) * 2, &commandBuffer) == VulkanHelper::VHResult::OK, "Failed to set uniform buffer data");
         }
 
         if (wasSwapchainRecreated)
@@ -250,15 +250,15 @@ void Application::Run()
             projection = glm::inverse(projection);
         }
 
-        m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, *commandBuffer);
+        m_Renderer.GetCurrentSwapchainImage().TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, commandBuffer);
 
-        m_RTPipeline.Bind(*commandBuffer);
-        m_RTPipeline.RayTrace(*commandBuffer, m_Renderer.GetCurrentSwapchainImage()->GetWidth(), m_Renderer.GetCurrentSwapchainImage()->GetHeight(), 1);
+        m_RTPipeline.Bind(commandBuffer);
+        m_RTPipeline.RayTrace(commandBuffer, m_Renderer.GetCurrentSwapchainImage().GetWidth(), m_Renderer.GetCurrentSwapchainImage().GetHeight(), 1);
 
-        m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_SRC_OPTIMAL, *commandBuffer);
-        m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_DST_OPTIMAL, *commandBuffer);
-        VH_ASSERT(m_Renderer.GetCurrentSwapchainImage()->BlitFromImage(m_ColorImage, *commandBuffer) == VulkanHelper::VHResult::OK, "Failed to copy image");
-        m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::GENERAL, *commandBuffer);
+        m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_SRC_OPTIMAL, commandBuffer);
+        m_Renderer.GetCurrentSwapchainImage().TransitionImageLayout(VulkanHelper::Image::Layout::TRANSFER_DST_OPTIMAL, commandBuffer);
+        VH_ASSERT(m_Renderer.GetCurrentSwapchainImage().BlitFromImage(m_ColorImage, commandBuffer) == VulkanHelper::VHResult::OK, "Failed to copy image");
+        m_ColorImage.TransitionImageLayout(VulkanHelper::Image::Layout::GENERAL, commandBuffer);
 
         VH_ASSERT(m_Renderer.EndFrame(&wasSwapchainRecreated) == VulkanHelper::VHResult::OK, "Failed to end frame");
         if (wasSwapchainRecreated)
@@ -276,11 +276,6 @@ void Application::Run()
 void Application::Resize()
 {
     VH_ASSERT(m_InitializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin command buffer recording");
-            
-    m_ColorImageView.~ImageView();
-    m_ColorImage.~Image();
-    m_DepthImageView.~ImageView();
-    m_DepthImage.~Image();
 
     std::tie(m_ColorImage, m_ColorImageView, m_DepthImage, m_DepthImageView) = CreateImages(m_Device, m_Renderer.GetSwapchainImageWidth(), m_Renderer.GetSwapchainImageHeight(), m_InitializationCmd, VulkanHelper::Format::R8G8B8A8_UNORM);
     VH_ASSERT(m_TextureSet.AddImage(0, 0, m_ColorImageView, VulkanHelper::Image::Layout::GENERAL) == VulkanHelper::VHResult::OK, "Failed to add image to descriptor set");

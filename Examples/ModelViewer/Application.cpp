@@ -250,7 +250,7 @@ void Application::Run()
 
         VulkanHelper::Window::PollEvents();
 
-        VulkanHelper::CommandBuffer* commandBuffer = m_Renderer.BeginFrame(&wasSwapchainRecreated).Value();
+        VulkanHelper::CommandBuffer commandBuffer = m_Renderer.BeginFrame(&wasSwapchainRecreated).Value();
         if (wasSwapchainRecreated)
         {
             Resize();
@@ -258,16 +258,17 @@ void Application::Run()
             projection = glm::perspective(glm::radians(38.0f), aspect, 0.1f, 100.0f);
         }
 
-        m_Renderer.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, *commandBuffer);
-        m_Renderer.BeginRendering(*commandBuffer, {&m_ColorImageView}, &m_DepthImageView, {0.1f, 0.1f, 0.1f, 1.0f}, 1.0f, m_Renderer.GetCurrentSwapchainImageView());
+        m_Renderer.GetCurrentSwapchainImage().TransitionImageLayout(VulkanHelper::Image::Layout::COLOR_ATTACHMENT_OPTIMAL, commandBuffer);
+        VulkanHelper::ImageView swapView = m_Renderer.GetCurrentSwapchainImageView();
+        m_Renderer.BeginRendering({m_ColorImageView}, &m_DepthImageView, {0.1f, 0.1f, 0.1f, 1.0f}, 1.0f, &swapView);
 
-        m_GraphicsPipeline.Bind(*commandBuffer);
+        m_GraphicsPipeline.Bind(commandBuffer);
 
         // Bind and draw the triangle mesh
-        m_LoadedMesh.Bind(*commandBuffer);
-        m_LoadedMesh.Draw(*commandBuffer);
+        m_LoadedMesh.Bind(commandBuffer);
+        m_LoadedMesh.Draw(commandBuffer);
 
-        m_Renderer.EndRendering(*commandBuffer);
+        m_Renderer.EndRendering();
 
         VH_ASSERT(m_Renderer.EndFrame(&wasSwapchainRecreated) == VulkanHelper::VHResult::OK, "Failed to end frame");
         if (wasSwapchainRecreated)
@@ -284,11 +285,6 @@ void Application::Run()
 void Application::Resize()
 {
     VH_ASSERT(m_InitializationCmd.BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VulkanHelper::VHResult::OK, "Failed to begin command buffer recording");
-            
-    m_ColorImageView.~ImageView();
-    m_ColorImage.~Image();
-    m_DepthImageView.~ImageView();
-    m_DepthImage.~Image();
 
     std::tie(m_ColorImage, m_ColorImageView, m_DepthImage, m_DepthImageView) = CreateImages(m_Device, m_Renderer.GetSwapchainImageWidth(), m_Renderer.GetSwapchainImageHeight(), m_InitializationCmd, m_Renderer.GetSwapchainImageFormat());
     

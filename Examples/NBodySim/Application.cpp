@@ -168,24 +168,24 @@ void Application::Run()
     {
         m_Window.PollEvents();
         
-        VulkanHelper::CommandBuffer* cmd = m_Renderer.BeginFrame(nullptr).Value();
+        VulkanHelper::CommandBuffer cmd = m_Renderer.BeginFrame(nullptr).Value();
 
-        m_Pipeline.Bind(*cmd);
-        m_Pipeline.Dispatch(*cmd, POINTS_COUNT / 32 + 1, 1, 1);
+        m_Pipeline.Bind(cmd);
+        m_Pipeline.Dispatch(cmd, POINTS_COUNT / 32 + 1, 1, 1);
 
         m_Points.GetVertexBuffer().Barrier(
-            *cmd,
+            cmd,
             VulkanHelper::AccessFlags::SHADER_WRITE_BIT,
             VulkanHelper::AccessFlags::VERTEX_ATTRIBUTE_READ_BIT,
             VulkanHelper::PipelineStages::COMPUTE_SHADER_BIT,
             VulkanHelper::PipelineStages::VERTEX_INPUT_BIT
         );
 
-        m_Renderer.BeginRendering(*cmd, {m_Renderer.GetCurrentSwapchainImageView()}, nullptr, {0.1f, 0.1f, 0.1f, 1.0f});
-        m_GraphicsPipeline.Bind(*cmd);
-        m_Points.Bind(*cmd);
-        m_Points.Draw(*cmd);
-        m_Renderer.EndRendering(*cmd);
+        m_Renderer.BeginRendering({m_Renderer.GetCurrentSwapchainImageView()}, nullptr, {0.1f, 0.1f, 0.1f, 1.0f});
+        m_GraphicsPipeline.Bind(cmd);
+        m_Points.Bind(cmd);
+        m_Points.Draw(cmd);
+        m_Renderer.EndRendering();
 
         VH_ASSERT(m_Renderer.EndFrame(nullptr) == VulkanHelper::VHResult::OK, "Failed to end frame!");
     }

@@ -28,6 +28,7 @@ namespace VulkanHelper
         [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const Device& publicInterface) { return publicInterface.m_Impl; }
         [[nodiscard]] inline static Device CreatePublicInterface(const SharedPtr<Impl>& impl) { return Device(impl); }
 
+        [[nodiscard]] inline SharedPtr<Instance::Impl> GetInstance() const { return m_Instance; }
         [[nodiscard]] inline VkDevice GetDevice() const { return m_Device; }
         [[nodiscard]] inline SharedPtr<PhysicalDevice::Impl> GetPhysicalDevice() const { return m_PhysicalDevice; }
         [[nodiscard]] inline QueueFamilyIndices GetQueueFamilyIndices() const { return m_QueueFamilyIndices; }

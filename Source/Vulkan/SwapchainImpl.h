@@ -33,8 +33,8 @@ namespace VulkanHelper
 
         [[nodiscard]] VHResult AcquireNextImage();
         [[nodiscard]] VHResult Submit(const SharedPtr<CommandBuffer::Impl>& commandBuffer);
-        [[nodiscard]] inline Image* GetCurrentSwapchainImage() { return &m_Images[m_CurrentImageIndex]; };
-        [[nodiscard]] inline ImageView* GetCurrentSwapchainImageView() { return &m_ImageViews[m_CurrentImageIndex]; };
+        [[nodiscard]] inline Image GetCurrentSwapchainImage() { return m_Images[m_CurrentImageIndex]; };
+        [[nodiscard]] inline ImageView GetCurrentSwapchainImageView() { return m_ImageViews[m_CurrentImageIndex]; };
 
         [[nodiscard]] inline uint32_t GetCurrentFrameIndex() const { return m_CurrentFrameIndex; }
 

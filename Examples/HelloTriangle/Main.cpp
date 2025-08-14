@@ -89,17 +89,17 @@ int main()
     while (!window.WantsToClose())
     {
         VulkanHelper::Window::PollEvents();
-        VulkanHelper::CommandBuffer* commandBuffer = renderer.BeginFrame(nullptr).Value();
+        VulkanHelper::CommandBuffer commandBuffer = renderer.BeginFrame(nullptr).Value();
 
-        renderer.BeginRendering(*commandBuffer, {renderer.GetCurrentSwapchainImageView()}, nullptr);
+        renderer.BeginRendering({renderer.GetCurrentSwapchainImageView()}, nullptr);
 
-        pipeline.Bind(*commandBuffer);
+        pipeline.Bind(commandBuffer);
 
         // Bind and draw the triangle mesh
-        triangleMesh.Bind(*commandBuffer);
-        triangleMesh.Draw(*commandBuffer);
+        triangleMesh.Bind(commandBuffer);
+        triangleMesh.Draw(commandBuffer);
 
-        renderer.EndRendering(*commandBuffer);
+        renderer.EndRendering();
 
         VH_ASSERT(renderer.EndFrame(nullptr) == VulkanHelper::VHResult::OK, "Failed to end frame");
     }

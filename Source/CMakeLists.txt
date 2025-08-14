@@ -24,6 +24,7 @@ target_link_libraries(
     PUBLIC
     fmt
     glm
+    imgui
 )
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings

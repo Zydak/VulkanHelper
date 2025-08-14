@@ -6,6 +6,8 @@ function(suppress_warnings target)
     endif()
 endfunction()
 
+
+
 include(FetchContent)
 include(ExternalProject)
 
@@ -59,6 +61,12 @@ FetchContent_Declare(
     GIT_TAG f58f558c120e9b32c217290b80bad1a0729fbb2c
 )
 
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.92.2b-docking
+)
+
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 
@@ -72,6 +80,8 @@ FetchContent_MakeAvailable(assimp)
 suppress_warnings(assimp)
 
 FetchContent_MakeAvailable(stb)
+
+FetchContent_MakeAvailable(imgui)
 
 FetchContent_MakeAvailable(VulkanMemoryAllocator)
 
@@ -133,3 +143,21 @@ endif()
 
 add_library(stb INTERFACE)
 target_include_directories(stb SYSTEM INTERFACE "${PROJECT_SOURCE_DIR}/Libraries/stb-src/")
+
+add_library(imgui STATIC)
+target_include_directories(imgui PUBLIC 
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/backends/"
+)
+target_sources(imgui PRIVATE
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/imgui.cpp"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/imgui_draw.cpp"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/imgui_tables.cpp"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/imgui_widgets.cpp"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/imgui_demo.cpp"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/backends/imgui_impl_glfw.cpp"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/backends/imgui_impl_vulkan.cpp"
+)
+target_link_libraries(imgui PRIVATE glfw)
+
+suppress_warnings(imgui)

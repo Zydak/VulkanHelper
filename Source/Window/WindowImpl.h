@@ -40,6 +40,7 @@ namespace VulkanHelper
         [[nodiscard]] inline uint32_t GetHeight() const { return m_Height; }
         [[nodiscard]] inline const char* GetName() const { return m_Name.c_str(); }
         [[nodiscard]] inline VkSurfaceKHR GetSurface() const { return m_Surface; }
+        [[nodiscard]] inline GLFWwindow* GetWindow() const { return m_Window; }
 
     private:
         // Constructable only by calling New(...)

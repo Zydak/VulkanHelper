@@ -11,7 +11,26 @@
 #include "Vulkan/CommandPoolImpl.h"
 #include "Vulkan/FunctionLoader.h"
 
+#include "Vulkan/DescriptorPoolImpl.h"
+#include "Vulkan/SamplerImpl.h"
+
 #include <vulkan/vulkan.h>
+
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
+
+#include <array>
+
+void ImGui_ImplVulkan_DestroyDeviceObjects();
+
+static void CheckVulkanResult(VkResult result)
+{
+    if (result != VK_SUCCESS)
+    {
+        VH_LOG_ERROR("IMGUI VULKAN ERROR");
+    }
+}
 
 namespace VulkanHelper
 {
@@ -43,18 +62,76 @@ namespace VulkanHelper
             commandBuffers.PushBack(Move(cmdBuf)); // Allocate cmdBuffer for each frame
         }
 
+        std::array<DescriptorPool::PoolSize, 2> poolSizes = {
+            DescriptorPool::PoolSize{ DescriptorType::UNIFORM_BUFFER, 1000 },
+            DescriptorPool::PoolSize{ DescriptorType::COMBINED_IMAGE_SAMPLER, 1000 }
+        };
+
+        DescriptorPool::Config poolInfo;
+        poolInfo.Device = Device::Impl::CreatePublicInterface(device);
+        poolInfo.MaxSets = 1000;
+        poolInfo.PoolSizes = poolSizes.data();
+        poolInfo.PoolSizeCount = static_cast<uint32_t>(poolSizes.size());
+
+        auto poolResult = DescriptorPool::New(poolInfo);
+        if (!poolResult.HasValue())
+        {
+            VH_LOG_ERROR("Couldn't create ImGui descriptor pool!");
+            return Unexpected(poolResult.Error());
+        }
+
+        DescriptorPool imguiPool = poolResult.Value();
+
+        float resWidth, resHeight;
+        glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &resWidth, &resHeight);
+
+        float scale = glm::min(resWidth, resHeight);
+
+        //
+        // ImGui initialization
+        //
+
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+        ImGui_ImplGlfw_InitForVulkan(window->GetWindow(), true);
+        ImGui_ImplVulkan_InitInfo info{};
+		info.Instance = device->GetInstance()->GetInstance();
+		info.PhysicalDevice = device->GetPhysicalDevice()->GetDevice();
+		info.Device = device->GetDevice();
+		info.Queue = CommandPool::Impl::GetImplementation(commandPool)->GetQueue();
+		info.DescriptorPool = DescriptorPool::Impl::GetImplementation(imguiPool)->GetDescriptorPool();
+		info.Subpass = 0;
+		info.MinImageCount = 2;
+		info.ImageCount = 3;
+        info.UseDynamicRendering = true;
+        info.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+        info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+        info.CheckVkResultFn = CheckVulkanResult;
+        VkFormat swapchainFormat = (VkFormat)swapchain.GetSwapchainImageFormat();
+        info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &swapchainFormat;
+		ImGui_ImplVulkan_Init(&info);
+
+        (void)scale; // TODO - ImGui scaling is not implemented yet
+
+        //
+        //
+        //
+
         return SharedPtr<Impl>( new Impl(
             device,
             window,
             Move(swapchain),
             Move(commandPool),
-            Move(commandBuffers)
+            Move(commandBuffers),
+            imguiPool
         ));
     }
 
     Renderer::Impl::~Impl()
     {
-
+        ImGui_ImplVulkan_DestroyDeviceObjects();
     }
 
     Renderer::Impl::Impl(Impl&& other) noexcept
@@ -87,7 +164,7 @@ namespace VulkanHelper
         return *this;
     }
 
-    Expected<CommandBuffer*, VHResult> Renderer::Impl::BeginFrame(bool* outWasSwapchainRecreated)
+    Expected<CommandBuffer, VHResult> Renderer::Impl::BeginFrame(bool* outWasSwapchainRecreated)
     {
         m_Device->GetDeleteQueue().Update();
         if (outWasSwapchainRecreated)
@@ -113,7 +190,7 @@ namespace VulkanHelper
         if (res != VHResult::OK)
             return Unexpected(res);
         
-        return &m_CommandBuffers[currentFrameIndex];
+        return m_CommandBuffers[currentFrameIndex];
     }
 
     VHResult Renderer::Impl::EndFrame(bool* outWasSwapchainRecreated)
@@ -122,7 +199,7 @@ namespace VulkanHelper
             *outWasSwapchainRecreated = false;
         const uint32_t currentFrameIndex = m_Swapchain.GetCurrentFrameIndex();
 
-        m_Swapchain.GetCurrentSwapchainImage()->TransitionImageLayout(VulkanHelper::Image::Layout::PRESENT_SRC_KHR, m_CommandBuffers[currentFrameIndex], 0, 1);
+        m_Swapchain.GetCurrentSwapchainImage().TransitionImageLayout(VulkanHelper::Image::Layout::PRESENT_SRC_KHR, m_CommandBuffers[currentFrameIndex], 0, 1);
         VHResult res = m_CommandBuffers[currentFrameIndex].EndRecording();
         if (res != VHResult::OK)
             return res;
@@ -145,7 +222,6 @@ namespace VulkanHelper
     }
 
     void Renderer::Impl::BeginRendering(
-        const SharedPtr<CommandBuffer::Impl>& commandBuffer,
         const VulkanHelper::Vector<SharedPtr<ImageView::Impl>>& targetImagesColor,
         const SharedPtr<ImageView::Impl>& targetImageDepth,
         glm::vec4 clearColor,
@@ -155,6 +231,8 @@ namespace VulkanHelper
         glm::uvec2 scissorsEnd
     )
     {
+        auto commandBuffer = CommandBuffer::Impl::GetImplementation(m_CommandBuffers[m_Swapchain.GetCurrentFrameIndex()]);
+
         // Make sure that all images are the same size
         if (!targetImagesColor.Empty())
         {
@@ -208,10 +286,17 @@ namespace VulkanHelper
         {
             VkRenderingAttachmentInfo info{};
             info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            if (clearColor.x < 0.0f && clearColor.y < 0.0f && clearColor.z < 0.0f && clearColor.w < 0.0f)
+            {
+                info.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            }
+            else
+            {
+                info.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                info.clearValue = { {{clearColor.x, clearColor.y, clearColor.z, clearColor.w}} };
+            }
             info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            info.clearValue = { {{clearColor.x, clearColor.y, clearColor.z, clearColor.w}} };
             info.resolveMode = VK_RESOLVE_MODE_NONE;
             if (resolveImageView != nullptr)
             {
@@ -230,10 +315,17 @@ namespace VulkanHelper
         if (targetImageDepth != nullptr)
         {
             depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-            depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            if(clearDepth < 0.0f)
+            {
+                depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            }
+            else
+            {
+                depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                depthAttachment.clearValue = { {{clearDepth, 0}} };
+            }
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthAttachment.clearValue = { {{clearDepth, 0}} };
 
             SharedPtr<ImageView::Impl> targetImageImpl = targetImageDepth;
             depthAttachment.imageView = targetImageImpl->GetImageView();
@@ -251,10 +343,40 @@ namespace VulkanHelper
 	    VulkanHelper::FunctionLoader::vkCmdBeginRendering(commandBufferHandle, &renderingInfo);
     }
 
-    void Renderer::Impl::EndRendering(const SharedPtr<CommandBuffer::Impl>& commandBuffer)
+    void Renderer::Impl::EndRendering()
     {
-        VkCommandBuffer commandBufferHandle = commandBuffer->GetCommandBuffer();
+        VkCommandBuffer commandBufferHandle = CommandBuffer::Impl::GetImplementation(m_CommandBuffers[m_Swapchain.GetCurrentFrameIndex()])->GetCommandBuffer();
 	    VulkanHelper::FunctionLoader::vkCmdEndRendering(commandBufferHandle);
+    }
+
+    void Renderer::Impl::BeginImGuiRendering(
+        glm::vec4 clearColor
+    )
+    {
+        BeginRendering(
+            {ImageView::Impl::GetImplementation(m_Swapchain.GetCurrentSwapchainImageView())},
+            nullptr,
+            clearColor,
+            1.0f,
+            nullptr,
+            {0, 0},
+            {m_Swapchain.GetSwapchainImageWidth(), m_Swapchain.GetSwapchainImageHeight()}
+        );
+
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+
+		ImGui::NewFrame();
+    }
+
+    void Renderer::Impl::EndImGuiRendering()
+    {
+        const uint32_t currentFrameIndex = m_Swapchain.GetCurrentFrameIndex();
+
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), CommandBuffer::Impl::GetImplementation(m_CommandBuffers[currentFrameIndex])->GetCommandBuffer());
+
+        EndRendering();
     }
 
     VHResult Renderer::Impl::RecreateSwapchain()
@@ -271,6 +393,27 @@ namespace VulkanHelper
 
         m_Swapchain = Move(Swapchain::Impl::CreatePublicInterface(Move(swapchainResult.Value())));
         return VHResult::OK;
+    }
+
+    uint32_t Renderer::Impl::CreateImGuiDescriptorSet(const SharedPtr<ImageView::Impl>& imageView, const SharedPtr<Sampler::Impl>& sampler, const Image::Layout& imageLayout)
+    {
+        VkDescriptorSet set = ImGui_ImplVulkan_AddTexture(
+            sampler->GetSampler(),
+            imageView->GetImageView(),
+            (VkImageLayout)imageLayout
+        );
+
+        static uint32_t descriptorSetIndex = 0;
+        m_ImGuiDescriptorSets[descriptorSetIndex] = set;
+        descriptorSetIndex++;
+
+        return descriptorSetIndex - 1;
+    }
+
+    void Renderer::Impl::RenderImGuiImage(uint32_t index, glm::vec2 size)
+    {
+        VkDescriptorSet descriptorSet = m_ImGuiDescriptorSets[index];
+        ImGui::Image(descriptorSet, {size.x, size.y});
     }
 
     //
@@ -342,7 +485,7 @@ namespace VulkanHelper
         
     }
 
-    Expected<CommandBuffer*, VHResult> Renderer::BeginFrame(bool* outWasSwapchainRecreated)
+    Expected<CommandBuffer, VHResult> Renderer::BeginFrame(bool* outWasSwapchainRecreated)
     {
         return m_Impl->BeginFrame(outWasSwapchainRecreated);
     }
@@ -353,8 +496,7 @@ namespace VulkanHelper
     }
 
     void Renderer::BeginRendering(
-        CommandBuffer& commandBuffer,
-        const VulkanHelper::Vector<ImageView*>& targetImagesColor,
+        const VulkanHelper::Vector<ImageView>& targetImagesColor,
         const ImageView* targetImageDepth,
         glm::vec4 clearColor,
         float clearDepth,
@@ -373,10 +515,9 @@ namespace VulkanHelper
 
         Vector<SharedPtr<ImageView::Impl>> targetImagesColorImpl;
         for (const auto& imageView : targetImagesColor)
-            targetImagesColorImpl.PushBack(ImageView::Impl::GetImplementation(*imageView));
+            targetImagesColorImpl.PushBack(ImageView::Impl::GetImplementation(imageView));
 
         m_Impl->BeginRendering(
-            CommandBuffer::Impl::GetImplementation(commandBuffer),
             targetImagesColorImpl,
             targetImageDepthImpl,
             clearColor,
@@ -387,17 +528,45 @@ namespace VulkanHelper
         );
     }
 
-    void Renderer::EndRendering(CommandBuffer& commandBuffer)
+    uint32_t Renderer::CreateImGuiDescriptorSet(
+        const ImageView& imageView,
+        const Sampler& sampler,
+        const Image::Layout& imageLayout
+    )
     {
-        m_Impl->EndRendering(CommandBuffer::Impl::GetImplementation(commandBuffer));
+        return m_Impl->CreateImGuiDescriptorSet(
+            ImageView::Impl::GetImplementation(imageView),
+            Sampler::Impl::GetImplementation(sampler),
+            imageLayout
+        );
     }
 
-    Image* Renderer::GetCurrentSwapchainImage() const
+    void Renderer::RenderImGuiImage(uint32_t index, glm::vec2 size)
+    {
+        m_Impl->RenderImGuiImage(index, size);
+    }
+
+    void Renderer::EndRendering()
+    {
+        m_Impl->EndRendering();
+    }
+
+    void Renderer::BeginImGuiRendering(glm::vec4 clearColor)
+    {
+        m_Impl->BeginImGuiRendering(clearColor);
+    }
+
+    void Renderer::EndImGuiRendering()
+    {
+        m_Impl->EndImGuiRendering();
+    }
+
+    Image Renderer::GetCurrentSwapchainImage() const
     {
         return m_Impl->GetCurrentSwapchainImage();
     }
 
-    ImageView* Renderer::GetCurrentSwapchainImageView() const
+    ImageView Renderer::GetCurrentSwapchainImageView() const
     {
         return m_Impl->GetCurrentSwapchainImageView();
     }
