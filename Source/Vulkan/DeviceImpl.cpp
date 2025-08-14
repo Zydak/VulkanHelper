@@ -341,7 +341,7 @@ namespace VulkanHelper
             PhysicalDevice::Impl::GetImplementation(config.PhysicalDevice),
             Move(windows),
             Instance::Impl::GetImplementation(config.Instance),
-            true
+            config.RequestRTSupport
         );
         if (!implResult.HasValue())
         {

@@ -43,6 +43,12 @@ namespace VulkanHelper
              * @note Must not be a valid instance
              */
             VulkanHelper::Instance Instance{};
+
+            /**
+             * @brief Request ray tracing support
+             * @note If true, device will enable ray tracing extensions
+             */
+            bool RequestRTSupport = false;
         };
 
         /**
