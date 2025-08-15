@@ -51,6 +51,7 @@ namespace VulkanHelper
         uint32_t Width = 0;
         uint32_t Height = 0;
         uint32_t Channels = 0;
+        bool HighDynamicRange = false;
 
         TextureAsset() = default;
         TextureAsset(const TextureAsset&) = delete;

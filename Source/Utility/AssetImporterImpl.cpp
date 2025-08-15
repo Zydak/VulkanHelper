@@ -352,11 +352,11 @@ namespace VulkanHelper
     {
         if (texturePath.empty())
         {
-            TextureAsset emptyTexture;
+            TextureAsset emptyTexture{};
             emptyTexture.Width = 1;
             emptyTexture.Height = 1;
-            emptyTexture.Channels = 4;
-            emptyTexture.Data.Resize(4, 255);
+            emptyTexture.Channels = 4; // Default to a 1x1 white texture
+            emptyTexture.Data.Resize(4, 255); // Fill with white color (RGBA)
             return emptyTexture;
         }
 
@@ -375,8 +375,18 @@ namespace VulkanHelper
     Expected<TextureAsset, VHResult> AssetImporter::Impl::LoadTexture(const std::string& texturePath)
     {
         int width, height, channels;
+        void* data;
+        bool isHDR = (texturePath.find(".hdr") != std::string::npos);
+        if (isHDR)
+        {
+            data = stbi_loadf(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        }
+        else
+        {
+            data = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        }
+         
         // Force 4 channels (RGBA) that's because vulkan really rarely supports 3 channel images, it's really bad for tiling
-        unsigned char* data = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
         channels = 4;
         
         if (!data)
@@ -395,18 +405,18 @@ namespace VulkanHelper
 
         // Calculate the total size with proper casting
         size_t dataSize = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(channels);
+        if (isHDR)
+            dataSize *= sizeof(float); // HDR textures use float per channel
         
-        TextureAsset textureAsset;
+        TextureAsset textureAsset{};
         textureAsset.Width = static_cast<uint32_t>(width);
         textureAsset.Height = static_cast<uint32_t>(height);
         textureAsset.Channels = static_cast<uint32_t>(channels);
-        textureAsset.Data.Reserve(dataSize);
+        textureAsset.HighDynamicRange = isHDR;
+        textureAsset.Data.Resize(dataSize);
         
         // Copy data to our vector
-        for (size_t i = 0; i < dataSize; ++i)
-        {
-            textureAsset.Data.PushBack(data[i]);
-        }
+        memcpy(textureAsset.Data.Data(), data, dataSize);
 
         // Free stbi memory
         stbi_image_free(data);
