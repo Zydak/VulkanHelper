@@ -208,7 +208,16 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        return SharedPtr<Impl>(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Graphics, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr)));
+        return SharedPtr<Impl>(new Impl(
+            device,
+            pipeline,
+            pipelineLayout,
+            Pipeline::PipelineType::Graphics,
+            VulkanHelper::Move(descriptorSets),
+            pushConstant,
+            UniquePtr<SBT>(nullptr),
+            shaders
+        ));
     }
 
     Expected<SharedPtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(
@@ -250,7 +259,16 @@ namespace VulkanHelper
             return Unexpected((VHResult)res);
         }
 
-        return SharedPtr<Impl>(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::Compute, VulkanHelper::Move(descriptorSets), pushConstant, UniquePtr<SBT>(nullptr)));
+        return SharedPtr<Impl>(new Impl(
+            device,
+            pipeline,
+            pipelineLayout,
+            Pipeline::PipelineType::Compute,
+            VulkanHelper::Move(descriptorSets),
+            pushConstant,
+            UniquePtr<SBT>(nullptr),
+            {computeShader}
+        ));
     }
 
     Expected<SharedPtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(
@@ -356,7 +374,25 @@ namespace VulkanHelper
         }
         UniquePtr<SBT> sbt(new SBT(Move(sbtRes.Value())));
 
-        return SharedPtr<Impl>(new Impl(device, pipeline, pipelineLayout, Pipeline::PipelineType::RayTracing, VulkanHelper::Move(descriptorSets), pushConstant, Move(sbt)));
+        Vector<SharedPtr<Shader::Impl>> shaders;
+        shaders.Reserve(RayGenShaders.Size() + HitShaders.Size() + MissShaders.Size());
+        for (auto& shader : RayGenShaders)
+            shaders.PushBack(shader);
+        for (auto& shader : HitShaders)
+            shaders.PushBack(shader);
+        for (auto& shader : MissShaders)
+            shaders.PushBack(shader);
+
+        return SharedPtr<Impl>(new Impl(
+            device,
+            pipeline,
+            pipelineLayout,
+            Pipeline::PipelineType::RayTracing,
+            VulkanHelper::Move(descriptorSets),
+            pushConstant,
+            Move(sbt),
+            Move(shaders)
+        ));
     }
 
     Pipeline::Impl::~Impl()

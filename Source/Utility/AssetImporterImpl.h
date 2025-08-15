@@ -40,7 +40,7 @@ namespace VulkanHelper
         glm::mat4 ConvertAssimpMatrix(const aiMatrix4x4& assimpMatrix);
         
         [[nodiscard]] Expected<SceneAsset, VHResult> ProcessScene(const aiScene* scene, const std::string& filePath);
-        [[nodiscard]] Expected<VulkanHelper::Vector<glm::mat4>, VHResult> ProcessCameras(const aiScene* scene);
+        [[nodiscard]] Expected<VulkanHelper::Vector<CameraAsset>, VHResult> ProcessCameras(const aiScene* scene);
         
         [[nodiscard]] VHResult ProcessNode(
             const aiNode* node,

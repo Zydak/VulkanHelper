@@ -10,7 +10,7 @@ namespace VulkanHelper
     class DescriptorPool::Impl
     {
     public:
-        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device, uint32_t maxSets, const PoolSize* poolSizes, uint32_t poolSizeCount, Flags poolFlags);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;

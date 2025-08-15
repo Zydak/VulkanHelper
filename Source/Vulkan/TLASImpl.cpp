@@ -156,7 +156,8 @@ namespace VulkanHelper
         return SharedPtr( new Impl(
             device,
             accelerationStructure,
-            VulkanHelper::Move(asBuffer)
+            VulkanHelper::Move(asBuffer),
+            blasList
         ));
     }
 

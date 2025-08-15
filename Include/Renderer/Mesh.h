@@ -165,13 +165,13 @@ namespace VulkanHelper
          * @brief Get the vertex buffer used by this mesh
          * @return Pointer to the vertex buffer
          */
-        [[nodiscard]] Buffer GetVertexBuffer();
+        [[nodiscard]] Buffer GetVertexBuffer() const;
 
         /**
          * @brief Get the index buffer used by this mesh
          * @return Pointer to the index buffer, or nullptr if no index buffer is used
          */
-        [[nodiscard]] Buffer GetIndexBuffer();
+        [[nodiscard]] Buffer GetIndexBuffer() const;
 
         /**
          * @brief Get the size of each vertex in bytes

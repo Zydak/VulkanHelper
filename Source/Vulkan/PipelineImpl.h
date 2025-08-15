@@ -91,6 +91,7 @@ namespace VulkanHelper
         Vector<SharedPtr<DescriptorSet::Impl>> m_DescriptorSets; // Store references to descriptor sets for binding
         SharedPtr<PushConstant::Impl> m_PushConstant; // Store reference to push constant for binding
         UniquePtr<SBT> m_SBT; // Optional SBT for ray tracing pipelines
+        Vector<SharedPtr<Shader::Impl>> m_Shaders; // Store shaders for graphics and compute pipelines
 
         Impl(
             const SharedPtr<Device::Impl>& device,
@@ -99,7 +100,8 @@ namespace VulkanHelper
             PipelineType type,
             Vector<SharedPtr<DescriptorSet::Impl>>&& descriptorSets,
             const SharedPtr<PushConstant::Impl>& pushConstant,
-            UniquePtr<SBT>&& sbt
+            UniquePtr<SBT>&& sbt,
+            const Vector<SharedPtr<Shader::Impl>>& shaders
         )
             : m_Device(device)
             , m_Pipeline(pipeline)
@@ -108,6 +110,7 @@ namespace VulkanHelper
             , m_DescriptorSets(VulkanHelper::Move(descriptorSets))
             , m_PushConstant(pushConstant)
             , m_SBT(Move(sbt))
+            , m_Shaders(shaders.Clone())
         {}
     };
 }

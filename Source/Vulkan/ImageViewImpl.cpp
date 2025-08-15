@@ -8,7 +8,7 @@
 
 namespace VulkanHelper
 {
-    Expected<SharedPtr<ImageView::Impl>, VHResult> ImageView::Impl::New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount)
+    Expected<SharedPtr<ImageView::Impl>, VHResult> ImageView::Impl::New(const SharedPtr<Image::Impl>& image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount)
     {
         VH_LOG_INFO("Creating Image View Implementation");
 
@@ -88,7 +88,7 @@ namespace VulkanHelper
     VulkanHelper::Expected<ImageView, VHResult> ImageView::New(const Config& config)
     {
         auto implResult = Impl::New(
-            Image::Impl::GetImplementation(*config.image).Get(),
+            Image::Impl::GetImplementation(config.image),
             config.ViewType,
             config.BaseLayer,
             config.LayerCount
@@ -148,6 +148,11 @@ namespace VulkanHelper
         : m_Impl(impl)
     {
         
+    }
+
+    [[nodiscard]] Image ImageView::GetImage() const
+    {
+        return Image::Impl::CreatePublicInterface(m_Impl->GetImage());
     }
 
     [[nodiscard]] Format ImageView::GetFormat() const { return m_Impl->GetFormat(); }

@@ -48,9 +48,9 @@ namespace VulkanHelper
         {
             /**
              * @brief Source image to create the view from
-             * @note Must not be nullptr and must outlive this view
+             * @note Must be a valid image
              */
-            const VulkanHelper::Image* image;
+            VulkanHelper::Image image;
 
             /**
              * @brief Type of view to create
@@ -88,6 +88,12 @@ namespace VulkanHelper
         ImageView& operator=(ImageView&& other) noexcept;
 
         ~ImageView();
+
+        /**
+         * @brief Gets the underlying image of the view
+         * @return The image associated with this view
+         */
+        [[nodiscard]] Image GetImage() const;
 
         /**
          * @brief Gets the format of the view's image

@@ -42,8 +42,8 @@ namespace VulkanHelper
         [[nodiscard]] inline const VulkanHelper::Vector<VertexAttributeDescription>* GetAttributesDescriptions() const { return &m_VertexAttributes; };
         [[nodiscard]] VertexBindingDescription GetBindingDescription() const;
 
-        [[nodiscard]] inline Buffer GetVertexBuffer() { return m_VertexBuffer; }
-        [[nodiscard]] inline Buffer GetIndexBuffer() { return *m_IndexBuffer; }
+        [[nodiscard]] inline Buffer GetVertexBuffer() const { return m_VertexBuffer; }
+        [[nodiscard]] inline Buffer GetIndexBuffer() const { return *m_IndexBuffer; }
         [[nodiscard]] inline uint32_t GetVertexSize() const { return m_VertexSize; }
 
         [[nodiscard]] static VulkanHelper::Vector<VertexAttributeDescription> CreateAttributeDescriptions(const VulkanHelper::Format* formats, uint32_t count);

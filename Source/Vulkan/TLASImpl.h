@@ -37,15 +37,18 @@ namespace VulkanHelper
         SharedPtr<Device::Impl> m_Device = nullptr;
         VkAccelerationStructureKHR m_Handle = VK_NULL_HANDLE;
         SharedPtr<Buffer::Impl> m_Buffer;
+        Vector<SharedPtr<BLAS::Impl>> m_BlasList;
 
         Impl(
             const SharedPtr<Device::Impl>& device,
             VkAccelerationStructureKHR handle,
-            SharedPtr<Buffer::Impl> buffer
+            SharedPtr<Buffer::Impl> buffer,
+            const Vector<SharedPtr<BLAS::Impl>>& blasList
         )
             : m_Device(device)
             , m_Handle(handle)
             , m_Buffer(VulkanHelper::Move(buffer))
+            , m_BlasList(blasList.Clone())
         {}
     };
 }

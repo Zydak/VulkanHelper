@@ -13,16 +13,21 @@ namespace VulkanHelper
         switch (format) {
             case VK_FORMAT_R8_UNORM:
             case VK_FORMAT_R8_SNORM:
+            case VK_FORMAT_R8_SRGB:
             case VK_FORMAT_R8_UINT:
             case VK_FORMAT_R8_SINT:
                 return 1;
 
             case VK_FORMAT_R8G8_UNORM:
+            case VK_FORMAT_R8G8_SNORM:
+            case VK_FORMAT_R8G8_SRGB:
             case VK_FORMAT_R8G8_UINT:
             case VK_FORMAT_R8G8_SINT:
                 return 2;
 
             case VK_FORMAT_R8G8B8A8_UNORM:
+            case VK_FORMAT_R8G8B8A8_SNORM:
+            case VK_FORMAT_R8G8B8A8_SRGB:
             case VK_FORMAT_R8G8B8A8_UINT:
             case VK_FORMAT_B8G8R8A8_UNORM:
             case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
@@ -738,10 +743,13 @@ namespace VulkanHelper
 
     Image& Image::operator=(const Image& other)
     {
-        if (this != &other)
-        {
-            m_Impl = other.m_Impl;
-        }
+        if (this == &other)
+            return *this;
+
+        this->~Image(); // Clean up current state
+
+        m_Impl = other.m_Impl;
+
         return *this;
     }
 

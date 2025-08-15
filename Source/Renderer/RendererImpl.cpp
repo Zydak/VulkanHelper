@@ -72,6 +72,7 @@ namespace VulkanHelper
         poolInfo.MaxSets = 1000;
         poolInfo.PoolSizes = poolSizes.data();
         poolInfo.PoolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.PoolFlags = DescriptorPool::Flags::FREE_DESCRIPTOR_SET_BIT;
 
         auto poolResult = DescriptorPool::New(poolInfo);
         if (!poolResult.HasValue())
@@ -113,7 +114,8 @@ namespace VulkanHelper
         info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &swapchainFormat;
 		ImGui_ImplVulkan_Init(&info);
 
-        (void)scale; // TODO - ImGui scaling is not implemented yet
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.FontScaleDpi = scale;
 
         //
         //

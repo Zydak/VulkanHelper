@@ -14,7 +14,8 @@ namespace VulkanHelper
         const SharedPtr<Device::Impl>& device,
         uint32_t maxSets,
         const PoolSize* poolSizes,
-        uint32_t poolSizeCount
+        uint32_t poolSizeCount,
+        Flags poolFlags
     )
     {
         VH_LOG_INFO("Creating Vulkan DescriptorPool Implementation");
@@ -58,7 +59,7 @@ namespace VulkanHelper
         // Create descriptor pool
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.flags = 0;
+        poolInfo.flags = static_cast<VkDescriptorPoolCreateFlags>(poolFlags);
         poolInfo.maxSets = maxSets;
         poolInfo.poolSizeCount = poolSizeCount;
         poolInfo.pPoolSizes = vkPoolSizes.Data();
@@ -210,7 +211,8 @@ namespace VulkanHelper
             Device::Impl::GetImplementation(config.Device),
             config.MaxSets,
             config.PoolSizes,
-            config.PoolSizeCount
+            config.PoolSizeCount,
+            config.PoolFlags
         );
         if (!implResult.HasValue())
         {

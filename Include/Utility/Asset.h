@@ -12,7 +12,7 @@
 
 namespace VulkanHelper
 {
-    struct Vertex
+    struct LoadedMeshVertex
     {
         glm::vec3 Position;
         glm::vec3 Normal;
@@ -21,7 +21,7 @@ namespace VulkanHelper
 
     struct MeshAsset
     {
-        VulkanHelper::Vector<Vertex> Vertices;
+        VulkanHelper::Vector<LoadedMeshVertex> Vertices;
         VulkanHelper::Vector<uint32_t> Indices;
 
         MeshAsset() = default;
@@ -87,11 +87,18 @@ namespace VulkanHelper
         // TODO for later, don't care now.
     };
 
+    struct CameraAsset
+    {
+        glm::mat4 ViewMatrix = glm::mat4(1.0f);
+        float FOV = 45.0f; // Field of View in degrees
+        float AspectRatio = 1.0f; // Width / Height
+    };
+
     struct SceneAsset
     {
         VulkanHelper::Vector<MeshAsset> Meshes;
         VulkanHelper::Vector<TextureAsset> AlbedoTextures;
         VulkanHelper::Vector<MaterialAsset> Materials;
-        VulkanHelper::Vector<glm::mat4> Cameras;
+        VulkanHelper::Vector<CameraAsset> Cameras;
     };
 }

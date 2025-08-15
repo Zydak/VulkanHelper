@@ -53,36 +53,30 @@ namespace VulkanHelper
         sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
         sync2Features.synchronization2 = VK_TRUE;
 
-        VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufferDeviceAddressFeatures{};
-        bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR;
-        bufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
-
-        VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures{};
-        scalarBlockLayoutFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
-        scalarBlockLayoutFeatures.scalarBlockLayout = VK_TRUE;
+        VkPhysicalDeviceVulkan12Features features12{};
+        features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        features12.runtimeDescriptorArray = VK_TRUE;
+        features12.bufferDeviceAddress = VK_TRUE;
+        features12.scalarBlockLayout = VK_TRUE;
 
         features.pNext = &dynamicRenderingFeatures;
         dynamicRenderingFeatures.pNext = &device11Features;
         device11Features.pNext = &sync2Features;
-        sync2Features.pNext = &bufferDeviceAddressFeatures;
-        bufferDeviceAddressFeatures.pNext = &scalarBlockLayoutFeatures;
+        sync2Features.pNext = &features12;
 
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures{};
         VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
-        VkPhysicalDeviceHostQueryResetFeatures hostQueryResetFeatures{};
         if (requestRTSupport)
         {
             rtFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
             rtFeatures.rayTracingPipeline = VK_TRUE;
-            scalarBlockLayoutFeatures.pNext = &rtFeatures;
+            features12.pNext = &rtFeatures;
 
             asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
             asFeatures.accelerationStructure = VK_TRUE;
             rtFeatures.pNext = &asFeatures;
 
-            hostQueryResetFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES;
-            hostQueryResetFeatures.hostQueryReset = VK_TRUE;
-            asFeatures.pNext = &hostQueryResetFeatures;
+            features12.hostQueryReset = VK_TRUE;
         }
 
         if (!windows.Empty())

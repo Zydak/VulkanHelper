@@ -102,7 +102,7 @@ Application Application::New()
     meshConfig.VertexAttributes = vertexAttributes.data();
     meshConfig.VertexAttributeCount = vertexAttributes.size();
     meshConfig.VertexData = scene.Value().Meshes[0].Vertices.Data();
-    meshConfig.VertexDataSize = scene.Value().Meshes[0].Vertices.Size() * sizeof(VulkanHelper::Vertex);
+    meshConfig.VertexDataSize = scene.Value().Meshes[0].Vertices.Size() * sizeof(VulkanHelper::LoadedMeshVertex);
     meshConfig.IndexData = scene.Value().Meshes[0].Indices.Data();
     meshConfig.IndexDataSize = scene.Value().Meshes[0].Indices.Size() * sizeof(uint32_t);
     meshConfig.AdditionalUsageFlags = VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT | VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT | VulkanHelper::Buffer::Usage::STORAGE_BUFFER_BIT;

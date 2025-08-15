@@ -362,12 +362,12 @@ namespace VulkanHelper
         return Impl::CreateBindingDescription(vertexSize);
     }
 
-    Buffer Mesh::GetVertexBuffer()
+    Buffer Mesh::GetVertexBuffer() const
     {
         return m_Impl->GetVertexBuffer();
     }
 
-    Buffer Mesh::GetIndexBuffer()
+    Buffer Mesh::GetIndexBuffer() const
     {
         return m_Impl->GetIndexBuffer();
     }

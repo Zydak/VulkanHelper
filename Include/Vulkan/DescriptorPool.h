@@ -18,6 +18,15 @@ namespace VulkanHelper
     class DescriptorPool
     {
     public:
+        enum class Flags
+        {
+            NONE = 0x00000000,
+            FREE_DESCRIPTOR_SET_BIT = 0x00000001,
+            UPDATE_AFTER_BIND_BIT = 0x00000002,
+            HOST_ONLY_BIT = 0x00000004,
+            UNDEFINED = 0x7FFFFFFF
+        };
+
         /**
          * @struct PoolSize
          * @brief Specifies the number of descriptors of a particular type to allocate
@@ -66,6 +75,12 @@ namespace VulkanHelper
              * @note Must be greater than 0
              */
             uint32_t PoolSizeCount = 0;
+
+            /**
+             * @brief Flags for creating the descriptor pool
+             * @note Can be a combination of DescriptorPool::Flags
+             */
+            Flags PoolFlags = Flags::NONE;
         };
 
         /**
@@ -112,4 +127,6 @@ namespace VulkanHelper
 
         DescriptorPool(const SharedPtr<Impl>& impl);
     };
+
+    DEFINE_BITWISE_OPERATORS(DescriptorPool::Flags);
 }

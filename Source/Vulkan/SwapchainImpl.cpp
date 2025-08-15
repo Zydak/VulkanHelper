@@ -200,7 +200,7 @@ namespace VulkanHelper
             image.TransitionImageLayout(Image::Layout::PRESENT_SRC_KHR, commandBuffer);
             images.PushBack(VulkanHelper::Move(image));
 
-            auto imageView = ImageView::New({&images[i], ImageView::ViewType::VIEW_2D});
+            auto imageView = ImageView::New({images[i], ImageView::ViewType::VIEW_2D});
             if (!imageView.HasValue())
             {
                 VH_LOG_ERROR("Failed to create image views");

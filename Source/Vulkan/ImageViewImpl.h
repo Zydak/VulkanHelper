@@ -10,7 +10,7 @@ namespace VulkanHelper
     class ImageView::Impl
     {
     public:
-        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const Image::Impl* image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount);
+        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Image::Impl>& image, ImageView::ViewType viewType, uint32_t baseLayer, uint32_t layerCount);
 
         Impl(const Impl& other) = delete;
         Impl& operator=(const Impl& other) = delete;
@@ -23,7 +23,7 @@ namespace VulkanHelper
         [[nodiscard]] inline static SharedPtr<Impl> GetImplementation(const ImageView& publicInterface) { return publicInterface.m_Impl; }
         [[nodiscard]] inline static ImageView CreatePublicInterface(const SharedPtr<Impl>& impl) { return ImageView(impl); }
 
-        [[nodiscard]] inline const Image::Impl* GetImage() const { return m_Image; }
+        [[nodiscard]] inline const SharedPtr<Image::Impl> GetImage() const { return m_Image; }
         [[nodiscard]] inline VkImageView GetImageView() const { return m_ImageView; }
         [[nodiscard]] inline ViewType GetViewType() const { return m_ViewType; }
 
@@ -37,13 +37,13 @@ namespace VulkanHelper
         [[nodiscard]] inline uint32_t GetMipCount() const { return m_Image->GetMipCount(); }
 
     private:
-        Impl(const Image::Impl* image, VkImageView view, ViewType type)
+        Impl(const SharedPtr<Image::Impl>& image, VkImageView view, ViewType type)
             : m_Image(image)
             , m_ImageView(view)
             , m_ViewType(type)
         {}
 
-        const Image::Impl* m_Image;
+        SharedPtr<Image::Impl> m_Image;
         VkImageView m_ImageView;
         ViewType m_ViewType;
     };

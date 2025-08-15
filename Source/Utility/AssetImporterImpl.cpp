@@ -125,7 +125,7 @@ namespace VulkanHelper
         // Process vertices
         for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
         {
-            Vertex vertex{};
+            LoadedMeshVertex vertex{};
 
             // Position (always present)
             if (mesh->HasPositions())
@@ -403,14 +403,14 @@ namespace VulkanHelper
         return textureAsset;
     }
 
-    Expected<VulkanHelper::Vector<glm::mat4>, VHResult> AssetImporter::Impl::ProcessCameras(const aiScene* scene)
+    Expected<VulkanHelper::Vector<CameraAsset>, VHResult> AssetImporter::Impl::ProcessCameras(const aiScene* scene)
     {
         if (!scene)
         {
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        VulkanHelper::Vector<glm::mat4> cameras;
+        VulkanHelper::Vector<CameraAsset> cameras;
         cameras.Reserve(scene->mNumCameras);
 
         VH_LOG_DEBUG("Processing {} cameras", scene->mNumCameras);
@@ -484,7 +484,11 @@ namespace VulkanHelper
             // Apply world transformation
             glm::mat4 finalCameraMatrix = (cameraTransform * localCameraMatrix);
             
-            cameras.PushBack(glm::inverse(finalCameraMatrix));
+            CameraAsset cameraAsset;
+            cameraAsset.ViewMatrix = glm::inverse(finalCameraMatrix);
+            cameraAsset.FOV = camera->mHorizontalFOV * (180.0f / 3.14159265358979323846f); // Convert radians to degrees
+            cameraAsset.AspectRatio = camera->mAspect > 0.0f ? camera->mAspect : 1.0f; // Default to 1.0 if aspect ratio is not defined
+            cameras.PushBack(cameraAsset);
         }
 
         VH_LOG_INFO("Successfully processed {} cameras", cameras.Size());
