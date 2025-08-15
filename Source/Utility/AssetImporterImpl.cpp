@@ -132,7 +132,7 @@ namespace VulkanHelper
             {
                 glm::vec3 position = glm::vec3(
                     mesh->mVertices[i].x,
-                    -mesh->mVertices[i].y, // Assimp uses +Y-up, Vulkan uses -Y-up, so invert Y or the model will be mirrored
+                    mesh->mVertices[i].y,
                     mesh->mVertices[i].z
                 );
                 
@@ -146,7 +146,7 @@ namespace VulkanHelper
             {
                 glm::vec3 normal = glm::vec3(
                     mesh->mNormals[i].x,
-                    -mesh->mNormals[i].y, // Assimp uses +Y-up, Vulkan uses -Y-up, so invert Y or the model will be mirrored
+                    mesh->mNormals[i].y,
                     mesh->mNormals[i].z
                 );
                 
@@ -234,7 +234,7 @@ namespace VulkanHelper
 
             aiString texturePath;
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
-            auto albedoTextureResult = ProcessTexture(sceneFilePath + '/' + texturePath.C_Str());
+            auto albedoTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
             if (!albedoTextureResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to process albedo texture for mesh '{}'", mesh->mName.C_Str());
@@ -264,9 +264,16 @@ namespace VulkanHelper
     {
         // Assimp matrices are row-major, GLM matrices are column-major
         // We need to transpose when converting
+        
+        // Rotate on y axis
+        glm::mat4 vulkanTransform = glm::mat4(
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, -1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        );
 
-        // Also flip the Y and Z axes to match Vulkan's coordinate system
-        return glm::mat4(
+        return vulkanTransform * glm::mat4(
             assimpMatrix.a1, assimpMatrix.b1, assimpMatrix.c1, assimpMatrix.d1,
             assimpMatrix.a2, assimpMatrix.b2, assimpMatrix.c2, assimpMatrix.d2,
             assimpMatrix.a3, assimpMatrix.b3, assimpMatrix.c3, assimpMatrix.d3,
@@ -345,7 +352,12 @@ namespace VulkanHelper
     {
         if (texturePath.empty())
         {
-            return TextureAsset{};
+            TextureAsset emptyTexture;
+            emptyTexture.Width = 1;
+            emptyTexture.Height = 1;
+            emptyTexture.Channels = 4;
+            emptyTexture.Data.Resize(4, 255);
+            return emptyTexture;
         }
 
         // Load the texture using stb_image
@@ -486,8 +498,11 @@ namespace VulkanHelper
             
             CameraAsset cameraAsset;
             cameraAsset.ViewMatrix = glm::inverse(finalCameraMatrix);
-            cameraAsset.FOV = camera->mHorizontalFOV * (180.0f / 3.14159265358979323846f); // Convert radians to degrees
             cameraAsset.AspectRatio = camera->mAspect > 0.0f ? camera->mAspect : 1.0f; // Default to 1.0 if aspect ratio is not defined
+
+            // glm expects vertical FOV but assimp gives us horizontal
+            float vFOV = 2.0f * atan(tan(camera->mHorizontalFOV / 2.0f) / cameraAsset.AspectRatio);
+            cameraAsset.FOV = vFOV * (180.0f / 3.14159265358979323846f); // Convert radians to degrees
             cameras.PushBack(cameraAsset);
         }
 

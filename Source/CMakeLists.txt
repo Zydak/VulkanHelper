@@ -4,6 +4,8 @@ add_library(VulkanHelper STATIC ${SOURCES})
 
 if (NOT MSVC)
     target_compile_options(VulkanHelper PRIVATE -Wall -Wextra -Werror -Wpedantic -Wsign-conversion -Wconversion -Wshadow -Wcast-align -Wstrict-overflow=2 -Wlogical-op -Wmissing-declarations)
+else()
+    target_compile_options(VulkanHelper PRIVATE /MP)
 endif()
 
 # Libraries

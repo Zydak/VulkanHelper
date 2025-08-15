@@ -158,6 +158,6 @@ target_sources(imgui PRIVATE
     "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/backends/imgui_impl_glfw.cpp"
     "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/backends/imgui_impl_vulkan.cpp"
 )
-target_link_libraries(imgui PRIVATE glfw)
+target_link_libraries(imgui PRIVATE glfw Vulkan-Headers vulkan)
 
 suppress_warnings(imgui)
