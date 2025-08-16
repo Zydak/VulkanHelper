@@ -31,6 +31,7 @@ namespace VulkanHelper
         extensions.PushBack(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
         extensions.PushBack(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
         extensions.PushBack(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+        extensions.PushBack(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
         if (requestRTSupport)
         {
             extensions.PushBack(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);

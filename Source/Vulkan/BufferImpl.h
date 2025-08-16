@@ -40,16 +40,16 @@ namespace VulkanHelper
 
         [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
 
-        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr);
-        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
+        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr);
+        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
 
         [[nodiscard]] Expected<void*, VHResult> Map();
 
         void Unmap();
 
-        VHResult CopyFrom(SharedPtr<CommandBuffer::Impl> cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
+        [[nodiscard]] VHResult CopyFrom(SharedPtr<CommandBuffer::Impl> cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
 
-        VHResult CopyToImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
+        [[nodiscard]] VHResult CopyToImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
 
         void Barrier(SharedPtr<CommandBuffer::Impl> cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
     private:
