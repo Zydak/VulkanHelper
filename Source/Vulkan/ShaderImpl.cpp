@@ -25,8 +25,13 @@ namespace VulkanHelper
         targetDesc.profile = s_GlobalSession->findProfile("spirv_1_5");
 
         std::vector<slang::CompilerOptionEntry> compilerOptions(1);
+#ifdef NDEBUG
 		compilerOptions[0].name = slang::CompilerOptionName::Optimization;
 		compilerOptions[0].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL };
+#else
+		compilerOptions[0].name = slang::CompilerOptionName::DebugInformation;
+		compilerOptions[0].value = slang::CompilerOptionValue{ slang::CompilerOptionValueKind::Int, SlangDebugInfoLevel::SLANG_DEBUG_INFO_LEVEL_MAXIMAL };
+#endif
 
         std::string searchPath = std::filesystem::current_path().string() + "/" + shaderSearchPath;
         const char* searchPathCStr = searchPath.c_str();
