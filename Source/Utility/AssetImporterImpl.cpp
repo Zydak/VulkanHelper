@@ -206,7 +206,11 @@ namespace VulkanHelper
         const glm::mat4& parentTransform,
         const std::string& sceneFilePath,
         VulkanHelper::Vector<MeshAsset>& outMeshAssets,
-        VulkanHelper::Vector<TextureAsset>& outTextureAssets,
+        VulkanHelper::Vector<TextureAsset>& outBaseColorTextures,
+        VulkanHelper::Vector<TextureAsset>& outNormalTextures,
+        VulkanHelper::Vector<TextureAsset>& outRoughnessTextures,
+        VulkanHelper::Vector<TextureAsset>& outMetallicTextures,
+        VulkanHelper::Vector<TextureAsset>& outEmissiveTextures,
         VulkanHelper::Vector<MaterialAsset>& outMaterials
     )
     {
@@ -233,23 +237,65 @@ namespace VulkanHelper
             }
 
             aiString texturePath;
+
+            // Base color
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
-            auto albedoTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
-            if (!albedoTextureResult.HasValue())
+            auto baseColorTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
+            if (!baseColorTextureResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to process albedo texture for mesh '{}'", mesh->mName.C_Str());
-                return albedoTextureResult.Error();
+                return baseColorTextureResult.Error();
+            }
+
+            // Normal
+            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &texturePath);
+            auto normalTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
+            if (!normalTextureResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to process normal texture for mesh '{}'", mesh->mName.C_Str());
+                return normalTextureResult.Error();
+            }
+
+            // Roughness
+            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath);
+            auto roughnessTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
+            if (!roughnessTextureResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to process roughness texture for mesh '{}'", mesh->mName.C_Str());
+                return roughnessTextureResult.Error();
+            }
+
+            // Metallic
+            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_METALNESS, 0, &texturePath);
+            auto metallicTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
+            if (!metallicTextureResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to process metallic texture for mesh '{}'", mesh->mName.C_Str());
+                return metallicTextureResult.Error();
+            }
+
+            // Emissive
+            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_EMISSION_COLOR, 0, &texturePath);
+            auto emissiveTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
+            if (!emissiveTextureResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to process emissive texture for mesh '{}'", mesh->mName.C_Str());
+                return emissiveTextureResult.Error();
             }
 
             outMeshAssets.PushBack(Move(meshResult.Value()));
-            outTextureAssets.PushBack(Move(albedoTextureResult.Value()));
+            outBaseColorTextures.PushBack(Move(baseColorTextureResult.Value()));
+            outNormalTextures.PushBack(Move(normalTextureResult.Value()));
+            outRoughnessTextures.PushBack(Move(roughnessTextureResult.Value()));
+            outMetallicTextures.PushBack(Move(metallicTextureResult.Value()));
+            outEmissiveTextures.PushBack(Move(emissiveTextureResult.Value()));
             outMaterials.PushBack(Move(materialResult.Value()));
         }
 
         // Recursively process child nodes
         for (unsigned int i = 0; i < node->mNumChildren; ++i)
         {
-            VHResult result = ProcessNode(node->mChildren[i], scene, finalTransform, sceneFilePath, outMeshAssets, outTextureAssets, outMaterials);
+            VHResult result = ProcessNode(node->mChildren[i], scene, finalTransform, sceneFilePath, outMeshAssets, outBaseColorTextures, outNormalTextures, outRoughnessTextures, outMetallicTextures, outEmissiveTextures, outMaterials);
             if (result != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to process child node '{}'", node->mChildren[i]->mName.C_Str());
@@ -301,7 +347,11 @@ namespace VulkanHelper
             glm::mat4(1.0f), // Start with identity matrix
             basePath,
             sceneAsset.Meshes,
-            sceneAsset.AlbedoTextures,
+            sceneAsset.BaseColorTextures,
+            sceneAsset.NormalTextures,
+            sceneAsset.RoughnessTextures,
+            sceneAsset.MetallicTextures,
+            sceneAsset.EmissiveTextures,
             sceneAsset.Materials
         );
         if (res != VHResult::OK)
@@ -321,7 +371,7 @@ namespace VulkanHelper
         sceneAsset.Cameras = Move(cameraResult.Value());
 
         VH_LOG_DEBUG("Successfully processed complete scene: {} with {} meshes, {} textures, {} materials, {} cameras",
-                    filePath, sceneAsset.Meshes.Size(), sceneAsset.AlbedoTextures.Size(), sceneAsset.Materials.Size(), sceneAsset.Cameras.Size());
+                    filePath, sceneAsset.Meshes.Size(), sceneAsset.BaseColorTextures.Size(), sceneAsset.Materials.Size(), sceneAsset.Cameras.Size());
 
         return sceneAsset;
     }
@@ -336,14 +386,58 @@ namespace VulkanHelper
         MaterialAsset materialAsset;
 
         // Get base color (diffuse color)
-        aiColor3D baseColor(1.0f, 1.0f, 1.0f);
+        aiColor3D baseColor;
         if (material->Get(AI_MATKEY_COLOR_DIFFUSE, baseColor) == AI_SUCCESS)
-        {
             materialAsset.BaseColor = glm::vec3(baseColor.r, baseColor.g, baseColor.b);
-        }
-        materialAsset.BaseColor.r = baseColor.r;
-        materialAsset.BaseColor.g = baseColor.g;
-        materialAsset.BaseColor.b = baseColor.b;
+        else
+            materialAsset.BaseColor = glm::vec3(1.0f, 1.0f, 1.0f); // Default value
+
+        aiColor3D emissiveColor(0.0f, 0.0f, 0.0f);
+        if (material->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor) == AI_SUCCESS)
+            materialAsset.EmissiveColor = glm::vec3(emissiveColor.r, emissiveColor.g, emissiveColor.b);
+        else
+            materialAsset.EmissiveColor = glm::vec3(0.0f, 0.0f, 0.0f); // Default value
+
+        float emissionStrength;
+        if (material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissionStrength) != AI_SUCCESS)
+            emissionStrength = 1.0f; // Default value
+        materialAsset.EmissiveColor *= emissionStrength;
+
+        float metallic;
+        if (material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == AI_SUCCESS)
+            materialAsset.Metallic = metallic;
+        else
+            materialAsset.Metallic = 0.0f; // Default value
+
+        float roughness;
+        if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == AI_SUCCESS)
+            materialAsset.Roughness = roughness;
+        else
+            materialAsset.Roughness = 1.0f; // Default value
+
+        float ior;
+        if (material->Get(AI_MATKEY_REFRACTI, ior) == AI_SUCCESS)
+            materialAsset.IOR = ior;
+        else
+            materialAsset.IOR = 1.0f; // Default value
+
+        float transmission;
+        if (material->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmission) == AI_SUCCESS)
+            materialAsset.Transmission = transmission;
+        else
+            materialAsset.Transmission = 0.0f; // Default value
+
+        float anisotropy;
+        if (material->Get(AI_MATKEY_ANISOTROPY_FACTOR, anisotropy) == AI_SUCCESS)
+            materialAsset.Anisotropy = anisotropy;
+        else
+            materialAsset.Anisotropy = 0.0f; // Default value
+
+        float anisotropyRotation;
+        if (material->Get(AI_MATKEY_ANISOTROPY_ROTATION, anisotropyRotation) == AI_SUCCESS)
+            materialAsset.AnisotropyRotation = anisotropyRotation;
+        else
+            materialAsset.AnisotropyRotation = 0.0f; // Default value
 
         return materialAsset;
     }

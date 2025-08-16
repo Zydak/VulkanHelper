@@ -231,7 +231,7 @@ namespace VulkanHelper
          * 
          * @note If you pass a command buffer in, you must ensure it is executed before the end of the frame.
          */
-        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
+        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
 
         /**
          * @brief Download data from the image.
@@ -242,7 +242,7 @@ namespace VulkanHelper
          * @param cmd Command buffer for GPU operations (required for non-mappable images).
          * @return VHResult::OK on success, or an error code on failure.
          */
-        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr) const;
+        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr) const;
 
         /**
          * @brief Copies data from another image to this image.

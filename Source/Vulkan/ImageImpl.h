@@ -56,14 +56,14 @@ namespace VulkanHelper
 
         void TransitionImageLayout(Layout newLayout, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount);
 
-        VHResult CopyFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
-        VHResult BlitFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+        [[nodiscard]] VHResult CopyFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+        [[nodiscard]] VHResult BlitFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
 
         [[nodiscard]] Expected<void*, VHResult> Map();
         void Unmap();
-        VHResult UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr);
+        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr);
 
-        VHResult DownloadData(void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
+        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
 
     private:
         SharedPtr<Device::Impl> m_Device;

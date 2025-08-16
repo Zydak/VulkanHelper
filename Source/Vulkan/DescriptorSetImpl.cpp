@@ -98,8 +98,6 @@ namespace VulkanHelper
 
     VHResult DescriptorSet::Impl::AddBuffer(uint32_t binding, uint32_t arrayIndex, const SharedPtr<Buffer::Impl>& buffer)
     {
-        VH_LOG_INFO("Adding buffer to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
-
         // Validate binding exists in the descriptor set
         bool bindingFound = false;
         DescriptorType expectedType = DescriptorType::UNDEFINED;
@@ -162,8 +160,6 @@ namespace VulkanHelper
 
     VHResult DescriptorSet::Impl::AddImage(uint32_t binding, uint32_t arrayIndex, const SharedPtr<ImageView::Impl>& imageView, Image::Layout layout)
     {
-        VH_LOG_INFO("Adding image to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
-
         // Validate binding exists in the descriptor set
         bool bindingFound = false;
         DescriptorType expectedType = DescriptorType::UNDEFINED;
@@ -231,8 +227,6 @@ namespace VulkanHelper
 
     VHResult DescriptorSet::Impl::AddSampler(uint32_t binding, uint32_t arrayIndex, const SharedPtr<Sampler::Impl>& sampler)
     {
-        VH_LOG_INFO("Adding sampler to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
-
         // Validate binding exists in the descriptor set
         bool bindingFound = false;
         DescriptorType expectedType = DescriptorType::UNDEFINED;
@@ -293,8 +287,6 @@ namespace VulkanHelper
 
     VHResult DescriptorSet::Impl::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const SharedPtr<TLAS::Impl>& accelerationStructure)
     {
-        VH_LOG_INFO("Adding acceleration structure to descriptor set at binding: {}, array index: {}", binding, arrayIndex);
-
         // Validate binding exists in the descriptor set
         bool bindingFound = false;
         DescriptorType expectedType = DescriptorType::UNDEFINED;

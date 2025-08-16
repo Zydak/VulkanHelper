@@ -85,7 +85,13 @@ namespace VulkanHelper
     struct MaterialAsset
     {
         glm::vec3 BaseColor = glm::vec3(1.0f);
-        // TODO for later, don't care now.
+        glm::vec3 EmissiveColor = glm::vec3(0.0f);
+        float Metallic = 0.0f;
+        float Roughness = 1.0f;
+        float IOR = 1.5f;
+        float Transmission = 0.0f;
+        float Anisotropy = 0.0f;
+        float AnisotropyRotation = 0.0f;
     };
 
     struct CameraAsset
@@ -98,7 +104,11 @@ namespace VulkanHelper
     struct SceneAsset
     {
         VulkanHelper::Vector<MeshAsset> Meshes;
-        VulkanHelper::Vector<TextureAsset> AlbedoTextures;
+        VulkanHelper::Vector<TextureAsset> BaseColorTextures;
+        VulkanHelper::Vector<TextureAsset> NormalTextures;
+        VulkanHelper::Vector<TextureAsset> RoughnessTextures;
+        VulkanHelper::Vector<TextureAsset> MetallicTextures;
+        VulkanHelper::Vector<TextureAsset> EmissiveTextures;
         VulkanHelper::Vector<MaterialAsset> Materials;
         VulkanHelper::Vector<CameraAsset> Cameras;
     };

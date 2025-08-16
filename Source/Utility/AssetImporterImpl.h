@@ -48,7 +48,11 @@ namespace VulkanHelper
             const glm::mat4& parentTransform,
             const std::string& sceneFilePath,
             VulkanHelper::Vector<MeshAsset>& outMeshAssets,
-            VulkanHelper::Vector<TextureAsset>& outTextureAssets,
+            VulkanHelper::Vector<TextureAsset>& outBaseColorTextures,
+            VulkanHelper::Vector<TextureAsset>& outNormalTextures,
+            VulkanHelper::Vector<TextureAsset>& outRoughnessTextures,
+            VulkanHelper::Vector<TextureAsset>& outMetallicTextures,
+            VulkanHelper::Vector<TextureAsset>& outEmissiveTextures,
             VulkanHelper::Vector<MaterialAsset>& outMaterials
         );
 
