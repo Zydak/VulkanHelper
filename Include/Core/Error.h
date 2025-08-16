@@ -39,6 +39,7 @@ namespace VulkanHelper
         NO_SPECIFIED_SHADER_MODULE_FOUND = -15003,  ///< The specified shader module was not found.
         SHADER_COMPILATION_FAILED = -15004,         ///< Shader compilation failed due to syntax or semantic errors.
         WRONG_IMAGE_LAYOUT = -15005,                ///< Image is in the wrong layout, Transition it to a layout specified by error message.
+        INVALID_WINDOW_SIZE = -15006,               ///< The window size is invalid. (often occurs when window is minimized so it can be safely handled)
 
         
         // Vulkan extensions and platform-specific errors

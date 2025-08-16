@@ -127,7 +127,9 @@ namespace VulkanHelper
             Move(swapchain),
             Move(commandPool),
             Move(commandBuffers),
-            imguiPool
+            imguiPool,
+            false,
+            false
         ));
     }
 
@@ -142,6 +144,10 @@ namespace VulkanHelper
         , m_Swapchain(VulkanHelper::Move(other.m_Swapchain))
         , m_CommandPool(VulkanHelper::Move(other.m_CommandPool))
         , m_CommandBuffers(VulkanHelper::Move(other.m_CommandBuffers))
+        , m_ImGuiDescriptorPool(VulkanHelper::Move(other.m_ImGuiDescriptorPool))
+        , m_ImGuiDescriptorSets(VulkanHelper::Move(other.m_ImGuiDescriptorSets))
+        , m_IsFrameStarted(other.m_IsFrameStarted)
+        , m_IsRenderingStarted(other.m_IsRenderingStarted)
     {
         other.m_Device = nullptr;
         other.m_Window = nullptr;
@@ -162,6 +168,10 @@ namespace VulkanHelper
         m_Swapchain = Move(other.m_Swapchain);
         m_CommandPool = Move(other.m_CommandPool);
         m_CommandBuffers = Move(other.m_CommandBuffers);
+        m_ImGuiDescriptorPool = Move(other.m_ImGuiDescriptorPool);
+        m_ImGuiDescriptorSets = Move(other.m_ImGuiDescriptorSets);
+        m_IsFrameStarted = other.m_IsFrameStarted;
+        m_IsRenderingStarted = other.m_IsRenderingStarted;
 
         return *this;
     }
@@ -171,10 +181,16 @@ namespace VulkanHelper
         m_Device->GetDeleteQueue().Update();
         if (outWasSwapchainRecreated)
             *outWasSwapchainRecreated = false;
+            
+        if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0)
+            return Unexpected(VHResult::INVALID_WINDOW_SIZE);
 
         VHResult res = m_Swapchain.AcquireNextImage();
         if (res == VHResult::OUT_OF_DATE_KHR)
         {
+            if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0)
+                return Unexpected(VHResult::INVALID_WINDOW_SIZE);
+
             res = RecreateSwapchain();
             if (outWasSwapchainRecreated)
                 *outWasSwapchainRecreated = true;
@@ -192,11 +208,17 @@ namespace VulkanHelper
         if (res != VHResult::OK)
             return Unexpected(res);
         
+        m_IsFrameStarted = true;
         return m_CommandBuffers[currentFrameIndex];
     }
 
     VHResult Renderer::Impl::EndFrame(bool* outWasSwapchainRecreated)
     {
+        if (!m_IsFrameStarted)
+            return VHResult::OK; // Skip ending frame if it wasn't started
+
+        m_IsFrameStarted = false;
+
         if (outWasSwapchainRecreated)
             *outWasSwapchainRecreated = false;
         const uint32_t currentFrameIndex = m_Swapchain.GetCurrentFrameIndex();
@@ -209,6 +231,9 @@ namespace VulkanHelper
         res = m_Swapchain.Submit(m_CommandBuffers[currentFrameIndex]);
         if (res == VHResult::OUT_OF_DATE_KHR)
         {
+            if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0)
+                return VHResult::INVALID_WINDOW_SIZE;
+            
             res = RecreateSwapchain();
             if (outWasSwapchainRecreated)
                 *outWasSwapchainRecreated = true;
@@ -263,7 +288,8 @@ namespace VulkanHelper
         {
             scissorsEnd = {renderSize.x, renderSize.y};
         }
-        VH_ASSERT(scissorsStart.x < scissorsEnd.x && scissorsStart.y < scissorsEnd.y, "ScissorsStart must be smaller than ScissorsEnd!");
+
+        VH_ASSERT(scissorsStart.x <= scissorsEnd.x && scissorsStart.y <= scissorsEnd.y, "ScissorsStart must be smaller or equal than ScissorsEnd!");
 
         VkViewport viewport;
         viewport.x = 0.0f;
@@ -343,12 +369,17 @@ namespace VulkanHelper
         renderingInfo.renderArea = { {0, 0}, { renderSize.x, renderSize.y } };
 
 	    VulkanHelper::FunctionLoader::vkCmdBeginRendering(commandBufferHandle, &renderingInfo);
+        m_IsRenderingStarted = true;
     }
 
     void Renderer::Impl::EndRendering()
     {
+        if (!m_IsRenderingStarted)
+            return;
+
         VkCommandBuffer commandBufferHandle = CommandBuffer::Impl::GetImplementation(m_CommandBuffers[m_Swapchain.GetCurrentFrameIndex()])->GetCommandBuffer();
 	    VulkanHelper::FunctionLoader::vkCmdEndRendering(commandBufferHandle);
+        m_IsRenderingStarted = false;
     }
 
     void Renderer::Impl::BeginImGuiRendering(

@@ -67,6 +67,12 @@ FetchContent_Declare(
     GIT_TAG v1.92.2b-docking
 )
 
+FetchContent_Declare(
+    nfd
+    GIT_REPOSITORY https://github.com/mlabbe/nativefiledialog.git
+    GIT_TAG release_116
+)
+
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 
@@ -87,6 +93,7 @@ FetchContent_MakeAvailable(VulkanMemoryAllocator)
 
 FetchContent_MakeAvailable(Vulkan-Headers)
 FetchContent_MakeAvailable(Vulkan-Loader)
+FetchContent_MakeAvailable(nfd)
 
 # Clone prebuilt slang
 if (MSVC)
@@ -161,3 +168,19 @@ target_sources(imgui PRIVATE
 target_link_libraries(imgui PRIVATE glfw Vulkan-Headers vulkan)
 
 suppress_warnings(imgui)
+
+add_library(nfd STATIC)
+target_include_directories(nfd PUBLIC "${PROJECT_SOURCE_DIR}/Libraries/nfd-src/src/include/")
+target_sources(nfd PRIVATE
+    "${PROJECT_SOURCE_DIR}/Libraries/nfd-src/src/nfd_common.c"
+)
+
+find_program(ZENITY_EXECUTABLE zenity)
+find_program(KDIALOG_EXECUTABLE kdialog)
+find_program(XDIALOG_EXECUTABLE Xdialog)
+
+if(MSVC)
+    target_SOURCES(nfd PRIVATE "${PROJECT_SOURCE_DIR}/Libraries/nfd-src/src/nfd_win.cpp")
+else()
+    target_SOURCES(nfd PRIVATE "${PROJECT_SOURCE_DIR}/Libraries/nfd-src/src/nfd_gtk.c")
+endif()

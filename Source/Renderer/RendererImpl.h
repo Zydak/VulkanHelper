@@ -73,13 +73,18 @@ namespace VulkanHelper
         DescriptorPool m_ImGuiDescriptorPool;
         std::unordered_map<uint32_t, VkDescriptorSet> m_ImGuiDescriptorSets;
 
+        bool m_IsFrameStarted = false;
+        bool m_IsRenderingStarted = false;
+
         Impl(
             const SharedPtr<Device::Impl>& device,
             const SharedPtr<Window::Impl>& window,
             Swapchain&& swapchain,
             CommandPool&& pool,
             Vector<CommandBuffer>&& commandBuffers,
-            const DescriptorPool& imguiPool
+            const DescriptorPool& imguiPool,
+            bool isFrameStarted,
+            bool isRenderingStarted
         )
             : m_Device(device)
             , m_Window(window)
@@ -87,6 +92,8 @@ namespace VulkanHelper
             , m_CommandPool(VulkanHelper::Move(pool))
             , m_CommandBuffers(VulkanHelper::Move(commandBuffers))
             , m_ImGuiDescriptorPool(imguiPool)
+            , m_IsFrameStarted(isFrameStarted)
+            , m_IsRenderingStarted(isRenderingStarted)
         {}
     };
 }

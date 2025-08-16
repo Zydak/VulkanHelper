@@ -238,6 +238,7 @@ namespace VulkanHelper
 
             aiString texturePath;
 
+            texturePath.Clear();
             // Base color
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
             auto baseColorTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
@@ -247,6 +248,7 @@ namespace VulkanHelper
                 return baseColorTextureResult.Error();
             }
 
+            texturePath.Clear();
             // Normal
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &texturePath);
             auto normalTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
@@ -256,6 +258,7 @@ namespace VulkanHelper
                 return normalTextureResult.Error();
             }
 
+            texturePath.Clear();
             // Roughness
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath);
             auto roughnessTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
@@ -265,6 +268,7 @@ namespace VulkanHelper
                 return roughnessTextureResult.Error();
             }
 
+            texturePath.Clear();
             // Metallic
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_METALNESS, 0, &texturePath);
             auto metallicTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
@@ -274,6 +278,7 @@ namespace VulkanHelper
                 return metallicTextureResult.Error();
             }
 
+            texturePath.Clear();
             // Emissive
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_EMISSION_COLOR, 0, &texturePath);
             auto emissiveTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
@@ -419,7 +424,7 @@ namespace VulkanHelper
         if (material->Get(AI_MATKEY_REFRACTI, ior) == AI_SUCCESS)
             materialAsset.IOR = ior;
         else
-            materialAsset.IOR = 1.0f; // Default value
+            materialAsset.IOR = 1.5f; // Default value
 
         float transmission;
         if (material->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmission) == AI_SUCCESS)
