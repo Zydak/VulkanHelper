@@ -530,6 +530,30 @@ namespace VulkanHelper
         return vkGetBufferDeviceAddress(m_Device->GetDevice(), &bufferDeviceAddressInfo);
     }
 
+    [[nodiscard]] VHResult Buffer::Impl::CopyFromImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& src)
+    {
+        VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
+        VkImage srcImage = src->GetImage();
+
+        uint64_t imageSize = src->GetSizeInBytes();
+        VH_ASSERT(imageSize == m_Size, "Image and buffer must be exactly the same size, copying different sizes isn't implemented yet");
+
+        VkBufferImageCopy copyRegion{};
+        copyRegion.bufferOffset = 0;
+        copyRegion.bufferRowLength = 0;
+        copyRegion.bufferImageHeight = 0;
+        copyRegion.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(src->GetAspect());
+        copyRegion.imageSubresource.mipLevel = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount = 1;
+        copyRegion.imageOffset = {0, 0, 0};
+        copyRegion.imageExtent = {src->GetWidth(), src->GetHeight(), 1};
+
+        vkCmdCopyImageToBuffer(commandBuffer, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_BufferAllocation.Buffer, 1, &copyRegion);
+
+        return VHResult::OK;
+    }
+
     //
     //  Forward Functions
     //
@@ -645,5 +669,10 @@ namespace VulkanHelper
     void Buffer::Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
     {
         m_Impl->Barrier(CommandBuffer::Impl::GetImplementation(cmd), srcAccess, dstAccess, srcStage, dstStage);
+    }
+
+    VHResult Buffer::CopyFromImage(CommandBuffer& cmd, const Image& src)
+    {
+        return m_Impl->CopyFromImage(CommandBuffer::Impl::GetImplementation(cmd), Image::Impl::GetImplementation(src));
     }
 }

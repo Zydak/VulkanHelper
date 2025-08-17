@@ -51,6 +51,7 @@ namespace VulkanHelper
         [[nodiscard]] inline uint32_t GetHeight() const { return m_Height; }
         [[nodiscard]] inline uint32_t GetLayerCount() const { return m_LayerCount; }
         [[nodiscard]] inline uint32_t GetMipCount() const { return m_MipCount; }
+        [[nodiscard]] uint64_t GetSizeInBytes() const;
 
         [[nodiscard]] inline VkImage GetImage() const { return m_Allocation.image; }
 

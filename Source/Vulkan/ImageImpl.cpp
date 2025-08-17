@@ -702,6 +702,11 @@ namespace VulkanHelper
         return VHResult::OK;
     }
 
+    [[nodiscard]] uint64_t Image::Impl::GetSizeInBytes() const
+    {
+        return m_Width * m_Height * GetTexelSizeInBytes((VkFormat)m_Format);
+    }
+
     //
     //  Forward Functions
     //

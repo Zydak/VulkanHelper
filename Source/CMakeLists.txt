@@ -18,7 +18,6 @@ target_link_libraries(
     slang
     VulkanMemoryAllocator
     assimp
-    stb
 )
 
 target_link_libraries(
@@ -28,6 +27,7 @@ target_link_libraries(
     glm
     imgui
     portable_file_dialogs
+    stb
 )
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings

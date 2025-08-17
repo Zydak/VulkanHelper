@@ -168,6 +168,18 @@ namespace VulkanHelper
                             uint32_t bufferOffset = 0, uint32_t bufferRowLength = 0, 
                             uint32_t bufferImageHeight = 0);
 
+
+        /**
+         * @brief Copy image data to the buffer
+         * @param cmd Command buffer to record the copy into
+         * @param src Source image
+         * 
+         * @return VHResult::OK on success
+         *
+         * @note Buffer has to be exactly the same size as the image, copying with offsets is not implemented yet
+         */
+        [[nodiscard]] VHResult CopyFromImage(CommandBuffer& cmd, const Image& src);
+
         /**
          * @brief Get the buffer size
          * @return Size in bytes
