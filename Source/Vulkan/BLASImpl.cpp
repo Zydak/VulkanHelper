@@ -390,6 +390,7 @@ namespace VulkanHelper
         // Destroy the old acceleration structure
         FunctionLoader::vkDestroyAccelerationStructureKHR(m_Device->GetDevice(), m_Handle, nullptr);
         m_Handle = compactedHandle;
+        m_Buffer = Move(compactedBufferImpl);
 
         return VHResult::OK;
     }
