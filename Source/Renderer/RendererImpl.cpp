@@ -145,7 +145,6 @@ namespace VulkanHelper
         , m_CommandPool(VulkanHelper::Move(other.m_CommandPool))
         , m_CommandBuffers(VulkanHelper::Move(other.m_CommandBuffers))
         , m_ImGuiDescriptorPool(VulkanHelper::Move(other.m_ImGuiDescriptorPool))
-        , m_ImGuiDescriptorSets(VulkanHelper::Move(other.m_ImGuiDescriptorSets))
         , m_IsFrameStarted(other.m_IsFrameStarted)
         , m_IsRenderingStarted(other.m_IsRenderingStarted)
     {
@@ -169,7 +168,6 @@ namespace VulkanHelper
         m_CommandPool = Move(other.m_CommandPool);
         m_CommandBuffers = Move(other.m_CommandBuffers);
         m_ImGuiDescriptorPool = Move(other.m_ImGuiDescriptorPool);
-        m_ImGuiDescriptorSets = Move(other.m_ImGuiDescriptorSets);
         m_IsFrameStarted = other.m_IsFrameStarted;
         m_IsRenderingStarted = other.m_IsRenderingStarted;
 
@@ -437,7 +435,7 @@ namespace VulkanHelper
         );
 
         static uint32_t descriptorSetIndex = 0;
-        m_ImGuiDescriptorSets[descriptorSetIndex] = set;
+        s_ImGuiDescriptorSets[descriptorSetIndex] = set;
         descriptorSetIndex++;
 
         return descriptorSetIndex - 1;
@@ -445,7 +443,7 @@ namespace VulkanHelper
 
     void Renderer::Impl::RenderImGuiImage(uint32_t index, glm::vec2 size)
     {
-        VkDescriptorSet descriptorSet = m_ImGuiDescriptorSets[index];
+        VkDescriptorSet descriptorSet = s_ImGuiDescriptorSets[index];
         ImGui::Image(descriptorSet, {size.x, size.y});
     }
 
@@ -567,7 +565,7 @@ namespace VulkanHelper
         const Image::Layout& imageLayout
     )
     {
-        return m_Impl->CreateImGuiDescriptorSet(
+        return Renderer::Impl::CreateImGuiDescriptorSet(
             ImageView::Impl::GetImplementation(imageView),
             Sampler::Impl::GetImplementation(sampler),
             imageLayout
@@ -576,7 +574,7 @@ namespace VulkanHelper
 
     void Renderer::RenderImGuiImage(uint32_t index, glm::vec2 size)
     {
-        m_Impl->RenderImGuiImage(index, size);
+        Renderer::Impl::RenderImGuiImage(index, size);
     }
 
     void Renderer::EndRendering()

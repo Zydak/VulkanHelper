@@ -34,7 +34,7 @@ namespace VulkanHelper
         
         [[nodiscard]] Expected<MeshAsset, VHResult> ProcessMesh(const aiMesh* mesh, const glm::mat4& bakedTransform);
         [[nodiscard]] Expected<MaterialAsset, VHResult> ProcessMaterial(const aiMaterial* material);
-        [[nodiscard]] Expected<TextureAsset, VHResult> ProcessTexture(const std::string& texturePath);
+        [[nodiscard]] Expected<TextureAsset, VHResult> ProcessTexture(const std::string& texturePath, bool normalMap = false);
         [[nodiscard]] Expected<TextureAsset, VHResult> LoadTexture(const std::string& texturePath);
         
         glm::mat4 ConvertAssimpMatrix(const aiMatrix4x4& assimpMatrix);

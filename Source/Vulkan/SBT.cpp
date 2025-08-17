@@ -113,7 +113,12 @@ namespace VulkanHelper
             "SBT Buffer"
         ).Value();
 
-        sbtBuffer->CopyFrom(cmd, *stagingBuffer, 0, 0, sbtSize);
+        auto res = sbtBuffer->CopyFrom(cmd, *stagingBuffer, 0, 0, sbtSize);
+        if (res != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to copy SBT buffer");
+            return Unexpected(VHResult(res));
+        }
 
         rgenRegion.deviceAddress = sbtBuffer->GetDeviceAddress();
         hitRegion.deviceAddress = rgenRegion.deviceAddress + rgenRegion.size;

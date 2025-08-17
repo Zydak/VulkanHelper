@@ -120,6 +120,7 @@ namespace VulkanHelper
         VH_LOG_DEBUG("Processing mesh with {} vertices and {} faces", mesh->mNumVertices, mesh->mNumFaces);
 
         MeshAsset meshAsset;
+        meshAsset.Name = mesh->mName.C_Str();
         meshAsset.Vertices.Reserve(mesh->mNumVertices);
 
         // Process vertices
@@ -238,8 +239,8 @@ namespace VulkanHelper
 
             aiString texturePath;
 
-            texturePath.Clear();
             // Base color
+            texturePath.Clear();
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
             auto baseColorTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
             if (!baseColorTextureResult.HasValue())
@@ -247,19 +248,25 @@ namespace VulkanHelper
                 VH_LOG_ERROR("Failed to process albedo texture for mesh '{}'", mesh->mName.C_Str());
                 return baseColorTextureResult.Error();
             }
+            VulkanHelper::TextureAsset baseColorTexture = Move(baseColorTextureResult.Value());
+            if (!texturePath.Empty())
+                baseColorTexture.Name = texturePath.C_Str();
 
-            texturePath.Clear();
             // Normal
+            texturePath.Clear();
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &texturePath);
-            auto normalTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
+            auto normalTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str(), true);
             if (!normalTextureResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to process normal texture for mesh '{}'", mesh->mName.C_Str());
                 return normalTextureResult.Error();
             }
+            VulkanHelper::TextureAsset normalTexture = Move(normalTextureResult.Value());
+            if (!texturePath.Empty())
+                normalTexture.Name = texturePath.C_Str();
 
-            texturePath.Clear();
             // Roughness
+            texturePath.Clear();
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath);
             auto roughnessTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
             if (!roughnessTextureResult.HasValue())
@@ -267,9 +274,12 @@ namespace VulkanHelper
                 VH_LOG_ERROR("Failed to process roughness texture for mesh '{}'", mesh->mName.C_Str());
                 return roughnessTextureResult.Error();
             }
+            VulkanHelper::TextureAsset roughnessTexture = Move(roughnessTextureResult.Value());
+            if (!texturePath.Empty())
+                roughnessTexture.Name = texturePath.C_Str();
 
-            texturePath.Clear();
             // Metallic
+            texturePath.Clear();
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_METALNESS, 0, &texturePath);
             auto metallicTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
             if (!metallicTextureResult.HasValue())
@@ -277,23 +287,30 @@ namespace VulkanHelper
                 VH_LOG_ERROR("Failed to process metallic texture for mesh '{}'", mesh->mName.C_Str());
                 return metallicTextureResult.Error();
             }
+            VulkanHelper::TextureAsset metallicTexture = Move(metallicTextureResult.Value());
+            if (!texturePath.Empty())
+                metallicTexture.Name = texturePath.C_Str();
 
-            texturePath.Clear();
             // Emissive
+            texturePath.Clear();
             scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_EMISSION_COLOR, 0, &texturePath);
             auto emissiveTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
+
             if (!emissiveTextureResult.HasValue())
             {
                 VH_LOG_ERROR("Failed to process emissive texture for mesh '{}'", mesh->mName.C_Str());
                 return emissiveTextureResult.Error();
             }
+            VulkanHelper::TextureAsset emissiveTexture = Move(emissiveTextureResult.Value());
+            if (!texturePath.Empty())
+                emissiveTexture.Name = texturePath.C_Str();
 
             outMeshAssets.PushBack(Move(meshResult.Value()));
-            outBaseColorTextures.PushBack(Move(baseColorTextureResult.Value()));
-            outNormalTextures.PushBack(Move(normalTextureResult.Value()));
-            outRoughnessTextures.PushBack(Move(roughnessTextureResult.Value()));
-            outMetallicTextures.PushBack(Move(metallicTextureResult.Value()));
-            outEmissiveTextures.PushBack(Move(emissiveTextureResult.Value()));
+            outBaseColorTextures.PushBack(Move(baseColorTexture));
+            outNormalTextures.PushBack(Move(normalTexture));
+            outRoughnessTextures.PushBack(Move(roughnessTexture));
+            outMetallicTextures.PushBack(Move(metallicTexture));
+            outEmissiveTextures.PushBack(Move(emissiveTexture));
             outMaterials.PushBack(Move(materialResult.Value()));
         }
 
@@ -444,10 +461,12 @@ namespace VulkanHelper
         else
             materialAsset.AnisotropyRotation = 0.0f; // Default value
 
+        materialAsset.Name = material->GetName().C_Str();
+
         return materialAsset;
     }
 
-    Expected<TextureAsset, VHResult> AssetImporter::Impl::ProcessTexture(const std::string& texturePath)
+    Expected<TextureAsset, VHResult> AssetImporter::Impl::ProcessTexture(const std::string& texturePath, bool normalMap)
     {
         if (texturePath.empty())
         {
@@ -455,7 +474,20 @@ namespace VulkanHelper
             emptyTexture.Width = 1;
             emptyTexture.Height = 1;
             emptyTexture.Channels = 4; // Default to a 1x1 white texture
-            emptyTexture.Data.Resize(4, 255); // Fill with white color (RGBA)
+            if (normalMap)
+            {
+                emptyTexture.Data.Resize(4); // Neutral normal map value (128, 128, 255)
+                emptyTexture.Data[0] = 127;
+                emptyTexture.Data[1] = 127;
+                emptyTexture.Data[2] = 255;
+                emptyTexture.Data[3] = 255;
+                emptyTexture.Name = "Default Normal Texture";
+            }
+            else
+            {
+                emptyTexture.Data.Resize(4, 255); // Fill with white color (RGBA)
+                emptyTexture.Name = "Default White Texture";
+            }
             return emptyTexture;
         }
 

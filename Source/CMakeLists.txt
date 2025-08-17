@@ -27,7 +27,7 @@ target_link_libraries(
     fmt
     glm
     imgui
-    nfd
+    portable_file_dialogs
 )
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings

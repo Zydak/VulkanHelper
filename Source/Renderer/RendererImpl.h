@@ -53,8 +53,8 @@ namespace VulkanHelper
 
         void EndImGuiRendering();
 
-        uint32_t CreateImGuiDescriptorSet(const SharedPtr<ImageView::Impl>& imageView, const SharedPtr<Sampler::Impl>& sampler, const Image::Layout& imageLayout);
-        void RenderImGuiImage(uint32_t index, glm::vec2 size);
+        static uint32_t CreateImGuiDescriptorSet(const SharedPtr<ImageView::Impl>& imageView, const SharedPtr<Sampler::Impl>& sampler, const Image::Layout& imageLayout);
+        static void RenderImGuiImage(uint32_t index, glm::vec2 size);
 
         [[nodiscard]] inline Image GetCurrentSwapchainImage() const { return m_Swapchain.GetCurrentSwapchainImage(); }
         [[nodiscard]] inline ImageView GetCurrentSwapchainImageView() const { return m_Swapchain.GetCurrentSwapchainImageView(); }
@@ -71,7 +71,7 @@ namespace VulkanHelper
         CommandPool m_CommandPool;
         Vector<CommandBuffer> m_CommandBuffers;
         DescriptorPool m_ImGuiDescriptorPool;
-        std::unordered_map<uint32_t, VkDescriptorSet> m_ImGuiDescriptorSets;
+        inline static std::unordered_map<uint32_t, VkDescriptorSet> s_ImGuiDescriptorSets;
 
         bool m_IsFrameStarted = false;
         bool m_IsRenderingStarted = false;

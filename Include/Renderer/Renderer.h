@@ -111,13 +111,13 @@ namespace VulkanHelper
          */
         void EndRendering();
 
-        uint32_t CreateImGuiDescriptorSet(
+        static uint32_t CreateImGuiDescriptorSet(
             const ImageView& imageView,
             const Sampler& sampler,
             const Image::Layout& imageLayout
         );
 
-        void RenderImGuiImage(
+        static void RenderImGuiImage(
             uint32_t index,
             glm::vec2 size
         );

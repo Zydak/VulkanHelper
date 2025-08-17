@@ -53,7 +53,13 @@ namespace VulkanHelper
         }
 
         SharedPtr<Buffer::Impl> instancesBuffer = Move(instancesBufferRes.Value());
-        instancesBuffer->UploadData(instances.Data(), instances.Size() * sizeof(VkAccelerationStructureInstanceKHR), 0, commandBuffer);
+        auto res = instancesBuffer->UploadData(instances.Data(), instances.Size() * sizeof(VkAccelerationStructureInstanceKHR), 0, commandBuffer);
+        if (res != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to upload instances buffer");
+            return Unexpected(res);
+        }
+
         instancesBuffer->Barrier(
             commandBuffer,
             VulkanHelper::AccessFlags::TRANSFER_WRITE_BIT,

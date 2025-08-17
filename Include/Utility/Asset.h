@@ -23,13 +23,14 @@ namespace VulkanHelper
     {
         VulkanHelper::Vector<LoadedMeshVertex> Vertices;
         VulkanHelper::Vector<uint32_t> Indices;
+        std::string Name = "Default Mesh Name"; // TODO change string to an internal version
 
         MeshAsset() = default;
         MeshAsset(const MeshAsset&) = delete;
         MeshAsset& operator=(const MeshAsset&) = delete;
 
         MeshAsset(MeshAsset&& other)
-            : Vertices(VulkanHelper::Move(other.Vertices)), Indices(VulkanHelper::Move(other.Indices))
+            : Vertices(VulkanHelper::Move(other.Vertices)), Indices(VulkanHelper::Move(other.Indices)), Name(VulkanHelper::Move(other.Name))
         {}
 
         MeshAsset& operator=(MeshAsset&& other)
@@ -39,6 +40,7 @@ namespace VulkanHelper
 
             Vertices = VulkanHelper::Move(other.Vertices);
             Indices = VulkanHelper::Move(other.Indices);
+            Name = VulkanHelper::Move(other.Name);
 
             return *this;
         }
@@ -52,12 +54,18 @@ namespace VulkanHelper
         uint32_t Height = 0;
         uint32_t Channels = 0;
         bool HighDynamicRange = false;
+        std::string Name = "Default Texture Name"; // TODO change string to an internal version
 
         TextureAsset() = default;
         TextureAsset(const TextureAsset&) = delete;
         TextureAsset& operator=(const TextureAsset&) = delete;
         TextureAsset(TextureAsset&& other)
-            : Data(VulkanHelper::Move(other.Data)), Width(other.Width), Height(other.Height), Channels(other.Channels)
+            : Data(VulkanHelper::Move(other.Data))
+            , Width(other.Width)
+            , Height(other.Height)
+            , Channels(other.Channels)
+            , HighDynamicRange(other.HighDynamicRange)
+            , Name(VulkanHelper::Move(other.Name))
         {
             other.Width = 0;
             other.Height = 0;
@@ -73,10 +81,13 @@ namespace VulkanHelper
             Width = other.Width;
             Height = other.Height;
             Channels = other.Channels;
+            HighDynamicRange = other.HighDynamicRange;
+            Name = VulkanHelper::Move(other.Name);
 
             other.Width = 0;
             other.Height = 0;
             other.Channels = 0;
+            other.HighDynamicRange = false;
 
             return *this;
         }
@@ -92,6 +103,7 @@ namespace VulkanHelper
         float Transmission = 0.0f;
         float Anisotropy = 0.0f;
         float AnisotropyRotation = 0.0f;
+        std::string Name = "Default Material Name"; // TODO change string to an internal version
     };
 
     struct CameraAsset
