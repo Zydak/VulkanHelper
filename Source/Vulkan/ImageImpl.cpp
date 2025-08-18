@@ -163,7 +163,7 @@ namespace VulkanHelper
         return SharedPtr<Impl>(new Impl(
             device,
             format,
-            initialLayout,
+            Vector<Layout>(layerCount, initialLayout), // Initialize all layers with the same layout
             aspect, 
             width,
             height,
@@ -177,7 +177,16 @@ namespace VulkanHelper
 
     void Image::Impl::TransitionImageLayout(Layout newLayout, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount)
     {
-        if (m_Layout == newLayout)
+        bool allLayoutsAreTheSame = true;
+        for (uint32_t i = baseLayer; i < baseLayer + layerCount; ++i)
+        {
+            if (m_Layout[i] != newLayout)
+            {
+                allLayoutsAreTheSame = false;
+                break;
+            }
+        }
+        if (allLayoutsAreTheSame)
             return;
 
         VkAccessFlags srcAccess = 0;
@@ -185,7 +194,7 @@ namespace VulkanHelper
         VkPipelineStageFlags srcStage = 0;
         VkPipelineStageFlags dstStage = 0;
 
-        switch ((VkImageLayout)m_Layout)
+        switch ((VkImageLayout)m_Layout[baseLayer])
         {
         case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
             srcAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -269,7 +278,7 @@ namespace VulkanHelper
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = (VkImageLayout)m_Layout;
+        barrier.oldLayout = (VkImageLayout)m_Layout[baseLayer];
         barrier.newLayout = (VkImageLayout)newLayout;
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL;
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL;
@@ -288,13 +297,16 @@ namespace VulkanHelper
 
         vkCmdPipelineBarrier(commandBuffer->GetCommandBuffer(), srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-        m_Layout = newLayout;
+        for (uint32_t i = baseLayer; i < baseLayer + layerCount; ++i)
+        {
+            m_Layout[i] = newLayout;
+        }
     }
 
     Image::Impl::Impl(Impl&& other) noexcept
         : m_Device(other.m_Device)
         , m_Format(other.m_Format)
-        , m_Layout(other.m_Layout)
+        , m_Layout(Move(other.m_Layout))
         , m_Aspect(other.m_Aspect)
         , m_Width(other.m_Width)
         , m_Height(other.m_Height)
@@ -317,7 +329,7 @@ namespace VulkanHelper
 
         m_Device = other.m_Device;
         m_Format = other.m_Format;
-        m_Layout = other.m_Layout;
+        m_Layout = Move(other.m_Layout);
         m_Aspect = other.m_Aspect;
         m_Width = other.m_Width;
         m_Height = other.m_Height;
@@ -377,7 +389,7 @@ namespace VulkanHelper
         m_Device->UnmapMemory(m_Allocation.Allocation);
     }
 
-    VHResult Image::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd)
+    VHResult Image::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd, uint32_t baseLayer)
     {
         if (!data)
         {
@@ -472,8 +484,8 @@ namespace VulkanHelper
 
             VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
 
-            Layout originalLayout = m_Layout;
-            TransitionImageLayout(Layout::TRANSFER_DST_OPTIMAL, cmd, 0, m_LayerCount);
+            Layout originalLayout = m_Layout[baseLayer];
+            TransitionImageLayout(Layout::TRANSFER_DST_OPTIMAL, cmd, baseLayer, 1);
 
             // Copy buffer to image
             VkBufferImageCopy copyRegion{};
@@ -482,8 +494,8 @@ namespace VulkanHelper
             copyRegion.bufferImageHeight = 0;
             copyRegion.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(m_Aspect);
             copyRegion.imageSubresource.mipLevel = 0;
-            copyRegion.imageSubresource.baseArrayLayer = 0;
-            copyRegion.imageSubresource.layerCount = m_LayerCount;
+            copyRegion.imageSubresource.baseArrayLayer = baseLayer;
+            copyRegion.imageSubresource.layerCount = 1;
             copyRegion.imageOffset = {0, 0, 0};
             copyRegion.imageExtent = {m_Width, m_Height, 1};
 
@@ -492,7 +504,7 @@ namespace VulkanHelper
 
             // Don't transition to undefined since it's pointless and requires vulkan extension
             if (originalLayout != Layout::UNDEFINED)
-                TransitionImageLayout(originalLayout, cmd, 0, m_LayerCount);
+                TransitionImageLayout(originalLayout, cmd, baseLayer, 1);
 
             if (usingTemporaryStagingBuffer)
                 m_Device->GetDeleteQueue().QueueForDeletion(stagingBufferAllocation);
@@ -515,7 +527,8 @@ namespace VulkanHelper
             return VHResult::WRONG_ARGUMENTS;
         }
 
-        if (m_Layout != Layout::TRANSFER_SRC_OPTIMAL)
+        // TODO base layer
+        if (m_Layout[0] != Layout::TRANSFER_SRC_OPTIMAL)
         {
             VH_LOG_ERROR("DownloadData() expects image in Layout::TRANSFER_SRC_OPTIMAL layout.");
             return VHResult::WRONG_IMAGE_LAYOUT;
@@ -601,7 +614,7 @@ namespace VulkanHelper
             copyRegion.imageOffset = {0, 0, 0};
             copyRegion.imageExtent = {m_Width, m_Height, 1};
 
-            vkCmdCopyImageToBuffer(commandBuffer, m_Allocation.image, (VkImageLayout)m_Layout, stagingBufferAllocation.Buffer, 1, &copyRegion);
+            vkCmdCopyImageToBuffer(commandBuffer, m_Allocation.image, (VkImageLayout)m_Layout[0], stagingBufferAllocation.Buffer, 1, &copyRegion);
             
             // We have to wait for the copy to finish so use EndRecording() and SubmitAndWait();
             VHResult res = cmd->EndRecording();
@@ -670,8 +683,8 @@ namespace VulkanHelper
         copyRegion.extent.height = m_Height;
         copyRegion.extent.depth = 1;
 
-        vkCmdCopyImage(vkCmd, srcImage.m_Impl->m_Allocation.image, (VkImageLayout)srcImage.m_Impl->GetLayout(),
-                       m_Allocation.image, (VkImageLayout)m_Layout, 1, &copyRegion);
+        vkCmdCopyImage(vkCmd, srcImage.m_Impl->m_Allocation.image, (VkImageLayout)srcImage.m_Impl->GetLayout(srcBaseLayer),
+                       m_Allocation.image, (VkImageLayout)m_Layout[dstBaseLayer], 1, &copyRegion);
 
         return VHResult::OK;
     }
@@ -695,8 +708,8 @@ namespace VulkanHelper
         blitRegion.dstOffsets[0] = {0, 0, 0};
         blitRegion.dstOffsets[1] = {static_cast<int32_t>(m_Width), static_cast<int32_t>(m_Height), 1};
 
-        vkCmdBlitImage(vkCmd, srcImage.m_Impl->m_Allocation.image, (VkImageLayout)srcImage.m_Impl->GetLayout(),
-                       m_Allocation.image, (VkImageLayout)m_Layout, 1, &blitRegion,
+        vkCmdBlitImage(vkCmd, srcImage.m_Impl->m_Allocation.image, (VkImageLayout)srcImage.m_Impl->GetLayout(srcBaseLayer),
+                       m_Allocation.image, (VkImageLayout)m_Layout[dstBaseLayer], 1, &blitRegion,
                        VK_FILTER_LINEAR);
 
         return VHResult::OK;
@@ -799,13 +812,13 @@ namespace VulkanHelper
     [[nodiscard]] uint32_t Image::GetLayerCount() const { return m_Impl->GetLayerCount(); }
     [[nodiscard]] uint32_t Image::GetMipCount() const { return m_Impl->GetMipCount(); }
 
-    VHResult Image::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd)
+    VHResult Image::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd, uint32_t baseLayer)
     {
         SharedPtr<CommandBuffer::Impl> commandBufferImpl = nullptr;
         if (cmd)
             commandBufferImpl = CommandBuffer::Impl::GetImplementation(*cmd);
 
-        return m_Impl->UploadData(data, size, offset, commandBufferImpl);
+        return m_Impl->UploadData(data, size, offset, commandBufferImpl, baseLayer);
     }
 
     VHResult Image::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd) const

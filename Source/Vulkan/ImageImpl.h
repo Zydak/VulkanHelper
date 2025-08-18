@@ -44,7 +44,7 @@ namespace VulkanHelper
         [[nodiscard]] inline SharedPtr<Device::Impl> GetDevice() const { return m_Device; }
 
         [[nodiscard]] inline Format GetFormat() const { return m_Format; }
-        [[nodiscard]] inline Layout GetLayout() const { return m_Layout; }
+        [[nodiscard]] inline Layout GetLayout(uint32_t layer = 0) const { return m_Layout[layer]; }
         [[nodiscard]] inline Aspect GetAspect() const { return m_Aspect; }
         
         [[nodiscard]] inline uint32_t GetWidth() const { return m_Width; }
@@ -62,7 +62,7 @@ namespace VulkanHelper
 
         [[nodiscard]] Expected<void*, VHResult> Map();
         void Unmap();
-        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr);
+        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr, uint32_t baseLayer = 0);
 
         [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
 
@@ -70,7 +70,7 @@ namespace VulkanHelper
         SharedPtr<Device::Impl> m_Device;
 
         Format m_Format;
-        Layout m_Layout;
+        Vector<Layout> m_Layout; // Each layer has it's own layout
         Aspect m_Aspect;
 
         uint32_t m_Width;
@@ -86,7 +86,7 @@ namespace VulkanHelper
         explicit Impl(
             const SharedPtr<Device::Impl>& device,
             Format format,
-            Layout layout,
+            const Vector<Layout>& layout,
             Aspect aspect,
             uint32_t width,
             uint32_t height,
@@ -98,7 +98,7 @@ namespace VulkanHelper
         )
             : m_Device(device)
             , m_Format(format)
-            , m_Layout(layout)
+            , m_Layout(layout.Clone())
             , m_Aspect(aspect)
             , m_Width(width)
             , m_Height(height)
@@ -113,7 +113,7 @@ namespace VulkanHelper
         explicit Impl(
             const SharedPtr<Device::Impl>& device,
             Format format,
-            Layout layout,
+            const Vector<Layout>& layout,
             Aspect aspect,
             uint32_t width,
             uint32_t height,
@@ -123,7 +123,7 @@ namespace VulkanHelper
         )
             : m_Device(device)
             , m_Format(format)
-            , m_Layout(layout)
+            , m_Layout(layout.Clone())
             , m_Aspect(aspect)
             , m_Width(width)
             , m_Height(height)

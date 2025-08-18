@@ -227,11 +227,12 @@ namespace VulkanHelper
          * @param size Size of the data in bytes.
          * @param offset Offset in the image to start writing.
          * @param cmd Command buffer for GPU operations (required for non-mappable images).
+         * @param baseLayer The first array layer to upload data to.
          * @return VHResult::OK on success, or an error code on failure.
          * 
          * @note If you pass a command buffer in, you must ensure it is executed before the end of the frame.
          */
-        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr);
+        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd = nullptr, uint32_t baseLayer = 0);
 
         /**
          * @brief Download data from the image.

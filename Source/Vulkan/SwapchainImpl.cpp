@@ -187,7 +187,7 @@ namespace VulkanHelper
             SharedPtr<Image::Impl> imageImpl( new Image::Impl(
                 device,
                 (Format)chosenFormat.format,
-                Image::Layout::UNDEFINED,
+                {Image::Layout::UNDEFINED},
                 Image::Aspect::COLOR_BIT,
                 surfaceCapabilities.currentExtent.width,
                 surfaceCapabilities.currentExtent.height,
