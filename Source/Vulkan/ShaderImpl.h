@@ -10,7 +10,8 @@ namespace VulkanHelper
     class Shader::Impl
     {
     public:
-        static void InitializeSession(const char* shaderSearchPath);
+
+        static void InitializeSession(const char* shaderSearchPath, uint32_t definesCount = 0, const Define* defines = nullptr);
         [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(const SharedPtr<Device::Impl>& device, const char* filepath, ShaderStages stage);
 
         ~Impl();

@@ -80,10 +80,15 @@ namespace VulkanHelper
         VkSurfaceFormatKHR chosenFormat = formats[0]; // Default to first format
         for (size_t i = 0; i < formats.Size(); i++)
         {
-            if (formats[i].format == VK_FORMAT_R8G8B8A8_UNORM && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            // Prefer UNORM layouts over SRGB
+            if (formats[i].format == VK_FORMAT_R8G8B8A8_UNORM)
             {
                 chosenFormat = formats[i];
                 break;
+            }
+            else if (formats[i].format == VK_FORMAT_B8G8R8A8_UNORM)
+            {
+                chosenFormat = formats[i];
             }
         }
 

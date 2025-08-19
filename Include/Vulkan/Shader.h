@@ -15,6 +15,12 @@ namespace VulkanHelper
     class Shader
     {
     public:
+        struct Define
+        {
+            const char* name = "";
+            const char* value = "";
+        };
+
         /**
          * @brief Configuration for shader module creation
          */
@@ -41,9 +47,12 @@ namespace VulkanHelper
          * @brief Sets up the shader compilation environment with the given search path.
          * 
          * @param shaderSearchPath Directory to search for shader files
+         * @param definesCount Optional count of defines in the defines argument
+         * @param defines Optional array of preprocessor definitions to use during shader compilation
+         * 
          * @note Must be called before creating any shader modules
          */
-        static void InitializeSession(const char* shaderSearchPath);
+        static void InitializeSession(const char* shaderSearchPath, uint32_t definesCount = 0, const Define* defines = nullptr);
 
         /**
          * @brief Creates a new shader module from the specified shader file.

@@ -16,9 +16,16 @@ namespace VulkanHelper
     static inline Slang::ComPtr<slang::IGlobalSession> s_GlobalSession;
     static inline Slang::ComPtr<slang::ISession> s_Session;
 
-    void Shader::Impl::InitializeSession(const char* shaderSearchPath)
+    void Shader::Impl::InitializeSession(const char* shaderSearchPath, uint32_t definesCount, const Define* defines)
     {
         slang::createGlobalSession(s_GlobalSession.writeRef());
+
+        Vector<slang::PreprocessorMacroDesc> macros(definesCount);
+        for (uint32_t i = 0; i < definesCount; ++i)
+        {
+            macros[i].name = defines[i].name;
+            macros[i].value = defines[i].value;
+        }
 
         slang::TargetDesc targetDesc = {};
         targetDesc.format = SLANG_SPIRV;
@@ -44,6 +51,8 @@ namespace VulkanHelper
         sessionDesc.searchPathCount = 1;
 		sessionDesc.compilerOptionEntries = compilerOptions.data();
 		sessionDesc.compilerOptionEntryCount = (uint32_t)compilerOptions.size();
+        sessionDesc.preprocessorMacros = macros.Data();
+        sessionDesc.preprocessorMacroCount = (uint32_t)macros.Size();
 
         s_GlobalSession->createSession(sessionDesc, s_Session.writeRef());
     }
@@ -213,9 +222,9 @@ namespace VulkanHelper
     // Forward functions
     //
 
-    void Shader::InitializeSession(const char* shaderSearchPath)
+    void Shader::InitializeSession(const char* shaderSearchPath, uint32_t definesCount, const Define* defines)
     {
-        Shader::Impl::InitializeSession(shaderSearchPath);
+        Shader::Impl::InitializeSession(shaderSearchPath, definesCount, defines);
     }
     
     VulkanHelper::Expected<Shader, VHResult> Shader::New(const Config& config)
