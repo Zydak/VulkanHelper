@@ -77,6 +77,8 @@ namespace VulkanHelper
         [[nodiscard]] inline const Vector<SharedPtr<DescriptorSet::Impl>>& GetDescriptorSets() const { return m_DescriptorSets; }
         [[nodiscard]] inline SharedPtr<PushConstant::Impl> GetPushConstant() const { return m_PushConstant; }
 
+        void PushConstants(const SharedPtr<CommandBuffer::Impl>& commandBuffer);
+
     private:
         [[nodiscard]] static Expected<VkPipelineLayout, VHResult> CreatePipelineLayout(
             const SharedPtr<Device::Impl>& device,

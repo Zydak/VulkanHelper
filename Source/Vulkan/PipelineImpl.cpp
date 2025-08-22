@@ -507,6 +507,23 @@ namespace VulkanHelper
         }
     }
 
+    void Pipeline::Impl::PushConstants(const SharedPtr<CommandBuffer::Impl>& commandBuffer)
+    {
+        if (m_PushConstant != nullptr)
+        {
+            VkPushConstantRange range = m_PushConstant->GetVkPushConstantRange();
+
+            vkCmdPushConstants(
+                commandBuffer->GetCommandBuffer(),
+                m_Layout,
+                range.stageFlags,
+                range.offset,
+                range.size,
+                m_PushConstant->GetData()
+            );
+        }
+    }
+
     void Pipeline::Impl::Dispatch(const SharedPtr<CommandBuffer::Impl>& commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         VH_ASSERT(m_PipelineType == Pipeline::PipelineType::Compute, "Dispatch can only be called on compute pipelines!");
@@ -785,5 +802,10 @@ namespace VulkanHelper
     void Pipeline::RayTrace(CommandBuffer& commandBuffer, uint32_t width, uint32_t height, uint32_t depth)
     {
         m_Impl->RayTrace(CommandBuffer::Impl::GetImplementation(commandBuffer), width, height, depth);
+    }
+
+    void Pipeline::PushConstants(CommandBuffer& commandBuffer)
+    {
+        m_Impl->PushConstants(CommandBuffer::Impl::GetImplementation(commandBuffer));
     }
 }

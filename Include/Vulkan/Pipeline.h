@@ -282,6 +282,13 @@ namespace VulkanHelper
          */
         void RayTrace(CommandBuffer& commandBuffer, uint32_t width, uint32_t height, uint32_t depth = 1);
 
+        /**
+         * @brief Pushes the current push constant data to the specified command buffer.
+         * 
+         * @param commandBuffer The command buffer to push the constants to
+         */
+        void PushConstants(CommandBuffer& commandBuffer);
+
         class Impl;
     private:
         friend class Impl;

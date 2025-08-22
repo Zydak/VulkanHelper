@@ -268,6 +268,19 @@ namespace VulkanHelper
          * @return VHResult::OK on success, or an error code on failure.
          */
         [[nodiscard]] VHResult BlitFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
+
+        /**
+         * @brief Inserts a memory barrier for the image in the specified command buffer
+         * 
+         * @param commandBuffer The command buffer to record the barrier into
+         * @param baseLayer The first array layer to apply the barrier to
+         * @param layerCount The number of consecutive layers to apply the barrier to
+         * @param srcAccessMask Access flags for the operations that must complete before the barrier
+         * @param dstAccessMask Access flags for the operations that must wait until after the barrier
+         * @param srcStage Pipeline stage for the operations that must complete before the barrier
+         * @param dstStage Pipeline stage for the operations that must wait until after the barrier
+         */
+        void Barrier(CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount, AccessFlags srcAccessMask, AccessFlags dstAccessMask, PipelineStages srcStage, PipelineStages dstStage);
         
         /**
          * @brief Map image memory for CPU access

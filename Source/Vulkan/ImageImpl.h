@@ -56,6 +56,7 @@ namespace VulkanHelper
         [[nodiscard]] inline VkImage GetImage() const { return m_Allocation.image; }
 
         void TransitionImageLayout(Layout newLayout, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount);
+        void Barrier(const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount, AccessFlags srcAccessMask, AccessFlags dstAccessMask, PipelineStages srcStage, PipelineStages dstStage);
 
         [[nodiscard]] VHResult CopyFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
         [[nodiscard]] VHResult BlitFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);

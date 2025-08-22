@@ -303,6 +303,30 @@ namespace VulkanHelper
         }
     }
 
+    void Image::Impl::Barrier(const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount, AccessFlags srcAccessMask, AccessFlags dstAccessMask, PipelineStages srcStage, PipelineStages dstStage)
+    {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = (VkImageLayout)m_Layout[baseLayer];
+        barrier.newLayout = (VkImageLayout)m_Layout[baseLayer];
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL;
+        barrier.image = m_Allocation.image;
+        VkImageSubresourceRange range{};
+        range.aspectMask = (VkImageAspectFlags)m_Aspect;
+        range.baseArrayLayer = baseLayer;
+        range.layerCount = layerCount;
+        range.baseMipLevel = 0;
+        range.levelCount = m_MipCount;
+        barrier.subresourceRange = range;
+        barrier.srcAccessMask = (VkAccessFlags)srcAccessMask;
+        barrier.dstAccessMask = (VkAccessFlags)dstAccessMask;
+        VkPipelineStageFlags srcStageMask = (VkPipelineStageFlags)srcStage;
+        VkPipelineStageFlags dstStageMask = (VkPipelineStageFlags)dstStage;
+
+        vkCmdPipelineBarrier(commandBuffer->GetCommandBuffer(), srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    }
+
     Image::Impl::Impl(Impl&& other) noexcept
         : m_Device(other.m_Device)
         , m_Format(other.m_Format)
@@ -848,5 +872,10 @@ namespace VulkanHelper
     VHResult Image::BlitFromImage(const Image& srcImage, CommandBuffer& commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
     {
         return m_Impl->BlitFromImage(srcImage, CommandBuffer::Impl::GetImplementation(commandBuffer), srcBaseLayer, dstBaseLayer, layerCount);
+    }
+
+    void Image::Barrier(CommandBuffer& commandBuffer, uint32_t baseLayer, uint32_t layerCount, AccessFlags srcAccessMask, AccessFlags dstAccessMask, PipelineStages srcStage, PipelineStages dstStage)
+    {
+        m_Impl->Barrier(CommandBuffer::Impl::GetImplementation(commandBuffer), baseLayer, layerCount, srcAccessMask, dstAccessMask, srcStage, dstStage);
     }
 }
