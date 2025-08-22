@@ -24,6 +24,12 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
+        if (rgenCount != 1)
+        {
+            VH_LOG_ERROR("Ray generation shader count must be 1");
+            return Unexpected(VHResult::WRONG_ARGUMENTS);
+        }
+
         const uint32_t handleCount = rgenCount + missCount + hitGroupCount;
         const uint32_t handleSize = device->GetRayTracingProperties().shaderGroupHandleSize;
         const uint32_t handleAlignment = device->GetRayTracingProperties().shaderGroupHandleAlignment;
@@ -33,15 +39,15 @@ namespace VulkanHelper
         
 		VkStridedDeviceAddressRegionKHR rgenRegion;
         rgenRegion.size = VulkanHelper::GetAlignment(handleSizeAligned * rgenCount, bufferBaseAlignment);
-        rgenRegion.stride = VulkanHelper::GetAlignment(handleSizeAligned, bufferBaseAlignment);
+        rgenRegion.stride = rgenRegion.size;
 
         VkStridedDeviceAddressRegionKHR hitRegion;
         hitRegion.size = VulkanHelper::GetAlignment(handleSizeAligned * hitGroupCount, bufferBaseAlignment);
-        hitRegion.stride = VulkanHelper::GetAlignment(handleSizeAligned, bufferBaseAlignment);
+        hitRegion.stride = handleSizeAligned;
 
         VkStridedDeviceAddressRegionKHR missRegion;
         missRegion.size = VulkanHelper::GetAlignment(handleSizeAligned * missCount, bufferBaseAlignment);
-        missRegion.stride = VulkanHelper::GetAlignment(handleSizeAligned, bufferBaseAlignment);
+        missRegion.stride = handleSizeAligned;
 
         std::vector<uint8_t> handleData(handleCount * handleSize, 0);
         VkResult result = FunctionLoader::vkGetRayTracingShaderGroupHandlesKHR(
@@ -78,28 +84,26 @@ namespace VulkanHelper
         }
 
         uint8_t* mappedData = (uint8_t*)mappedDataRes.Value();
+        uint8_t* handleDataPtr = handleData.data();
 
-        uint32_t handleIndex = 0;
         for (uint32_t i = 0; i < rgenCount; ++i)
         {
-            std::memcpy(mappedData + i * rgenRegion.stride, handleData.data() + handleIndex * handleSize, handleSize);
-            handleIndex++;
+            std::memcpy(mappedData + i * handleSize, handleDataPtr + i * handleSize, handleSize);
         }
         mappedData += rgenRegion.size;
+        handleDataPtr += rgenCount * handleSize;
 
         for (uint32_t i = 0; i < hitGroupCount; ++i)
         {
-            std::memcpy(mappedData + i * hitRegion.stride, handleData.data() + handleIndex * handleSize, handleSize);
-            handleIndex++;
+            std::memcpy(mappedData + i * handleSize, handleDataPtr + i * handleSize, handleSize);
         }
         mappedData += hitRegion.size;
+        handleDataPtr += hitGroupCount * handleSize;
 
         for (uint32_t i = 0; i < missCount; ++i)
         {
-            std::memcpy(mappedData + i * missRegion.stride, handleData.data() + handleIndex * handleSize, handleSize);
-            handleIndex++;
+            std::memcpy(mappedData + i * handleSize, handleDataPtr + i * handleSize, handleSize);
         }
-        mappedData += missRegion.size;
 
         stagingBuffer->Unmap();
 

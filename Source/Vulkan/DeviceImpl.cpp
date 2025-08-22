@@ -37,7 +37,6 @@ namespace VulkanHelper
             extensions.PushBack(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
             extensions.PushBack(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
             extensions.PushBack(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-            extensions.PushBack(VK_KHR_RAY_QUERY_EXTENSION_NAME);
         }
 
         VkPhysicalDeviceFeatures2 features{};
@@ -68,7 +67,6 @@ namespace VulkanHelper
 
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures{};
         VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
-        VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures = {};
         if (requestRTSupport)
         {
             rtFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
@@ -78,10 +76,6 @@ namespace VulkanHelper
             asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
             asFeatures.accelerationStructure = VK_TRUE;
             rtFeatures.pNext = &asFeatures;
-
-            rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
-            rayQueryFeatures.rayQuery = true;
-            asFeatures.pNext = &rayQueryFeatures;
 
             features12.hostQueryReset = VK_TRUE;
         }

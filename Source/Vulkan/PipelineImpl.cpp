@@ -351,7 +351,7 @@ namespace VulkanHelper
         rayTracingPipelineInfo.pStages = shaderStages.Data();
         rayTracingPipelineInfo.groupCount = (uint32_t)shaderGroups.Size();
         rayTracingPipelineInfo.pGroups = shaderGroups.Data();
-        rayTracingPipelineInfo.maxPipelineRayRecursionDepth = 1; // Don't support recursion, it's way slower than loop based ray tracing
+        rayTracingPipelineInfo.maxPipelineRayRecursionDepth = 2;
         rayTracingPipelineInfo.layout = pipelineLayout;
         rayTracingPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
         rayTracingPipelineInfo.basePipelineIndex = -1;
