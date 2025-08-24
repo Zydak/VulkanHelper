@@ -159,7 +159,7 @@ namespace VulkanHelper
         VH_ASSERT(commandBuffer->SubmitAndWait() == VHResult::OK, "Failed to submit command buffer for TLAS build");
         VH_ASSERT(commandBuffer->BeginRecording(CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VHResult::OK, "Failed to begin command buffer recording for TLAS build");
 
-        return SharedPtr( new Impl(
+        return SharedPtr<Impl>( new Impl(
             device,
             accelerationStructure,
             VulkanHelper::Move(asBuffer),

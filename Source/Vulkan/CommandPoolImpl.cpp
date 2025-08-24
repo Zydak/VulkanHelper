@@ -106,7 +106,7 @@ namespace VulkanHelper
 
     VHResult CommandPool::Impl::FreeCommandBuffer(CommandBuffer::Impl* commandBuffer) const
     {
-        if (commandBuffer->m_CommandPool != this)
+        if (commandBuffer->m_CommandPool.get() != this)
         {
             VH_LOG_ERROR("Command buffer does not belong to this command pool");
             return VHResult::WRONG_ARGUMENTS;

@@ -3,9 +3,24 @@
 #include "Core/Move.h"
 
 #include <cstddef>
+#include <atomic>
+
+#define USE_STD_SHARED_PTR 1
+
+#if USE_STD_SHARED_PTR
+#include <memory>
+#endif
 
 namespace VulkanHelper
 {
+#if USE_STD_SHARED_PTR
+
+    // I have absolutely no fucking clue how is my implementation unsafe, but when using it in release mode it causes some random
+    // undebuggable crashes in malloc. So I'm just going to use std::shared_ptr for now
+    template<typename T>
+    using SharedPtr = std::shared_ptr<T>;
+
+#else
     /**
      * @brief A RAII wrapper for a shared pointer.
      *
@@ -23,21 +38,17 @@ namespace VulkanHelper
     {
     private:
         T* m_Ptr;
-        size_t* m_RefCount;
+        std::atomic<size_t>* m_RefCount;
 
         void Release()
         {
-            if (m_RefCount)
+            if (m_RefCount && m_RefCount->fetch_sub(1) == 1)
             {
-                --(*m_RefCount);
-                if (*m_RefCount == 0)
-                {
-                    delete m_Ptr;
-                    delete m_RefCount;
-                }
-                m_Ptr = nullptr;
-                m_RefCount = nullptr;
+                delete m_Ptr;
+                delete m_RefCount;
             }
+            m_Ptr = nullptr;
+            m_RefCount = nullptr;
         }
 
     public:
@@ -47,7 +58,7 @@ namespace VulkanHelper
          * @param ptr Pointer to the object to manage. Can be nullptr.
          */
         explicit SharedPtr(T* ptr = nullptr)
-            : m_Ptr(ptr), m_RefCount(ptr ? new size_t(1) : nullptr)
+            : m_Ptr(ptr), m_RefCount(ptr ? new std::atomic<size_t>(1) : nullptr)
         {}
 
         /**
@@ -60,7 +71,7 @@ namespace VulkanHelper
         {
             if (m_RefCount)
             {
-                ++(*m_RefCount);
+                m_RefCount->fetch_add(1);
             }
         }
 
@@ -93,7 +104,7 @@ namespace VulkanHelper
                 
                 if (m_RefCount)
                 {
-                    ++(*m_RefCount);
+                    m_RefCount->fetch_add(1);
                 }
             }
             return *this;
@@ -131,7 +142,7 @@ namespace VulkanHelper
             Release(); // Release current resource
             
             m_Ptr = ptr;
-            m_RefCount = ptr ? new size_t(1) : nullptr;
+            m_RefCount = ptr ? new std::atomic<size_t>(1) : nullptr;
             
             return *this;
         }
@@ -216,7 +227,7 @@ namespace VulkanHelper
          */
         [[nodiscard]] size_t UseCount() const
         {
-            return m_RefCount ? *m_RefCount : 0;
+            return m_RefCount ? m_RefCount->load() : 0;
         }
 
         /**
@@ -370,4 +381,6 @@ namespace VulkanHelper
     {
         return rhs.Get() != nullptr;
     }
+
+    #endif
 }

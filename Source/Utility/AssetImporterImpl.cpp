@@ -678,6 +678,11 @@ namespace VulkanHelper
 
     }
 
+    AssetImporter::AssetImporter()
+        : m_Impl(nullptr)
+    {
+    }
+
     AssetImporter::AssetImporter(const AssetImporter& other)
         : m_Impl(other.m_Impl)
     {

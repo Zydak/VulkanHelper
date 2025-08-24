@@ -218,7 +218,7 @@ namespace VulkanHelper
         VH_ASSERT(commandBuffer.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");
         VH_ASSERT(commandBuffer.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit command buffer");
 
-        return SharedPtr( new Swapchain::Impl(
+        return SharedPtr<Impl>( new Swapchain::Impl(
             device,
             swapchain,
             0, // Start at frame 0

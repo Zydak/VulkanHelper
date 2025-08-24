@@ -23,7 +23,7 @@ namespace VulkanHelper
         Impl(Impl&& other) noexcept;
         Impl& operator=(Impl&& other) noexcept;
 
-        [[nodiscard]] inline static Impl* GetImplementation(const AssetImporter& publicInterface) { return publicInterface.m_Impl.Get(); }
+        [[nodiscard]] inline static VulkanHelper::SharedPtr<Impl> GetImplementation(const AssetImporter& publicInterface) { return publicInterface.m_Impl; }
         [[nodiscard]] inline static AssetImporter CreatePublicInterface(const VulkanHelper::SharedPtr<Impl>& impl) { return AssetImporter(impl); }
 
         [[nodiscard]] std::future<Expected<SceneAsset, VHResult>> ImportScene(const std::string& filePath);

@@ -95,10 +95,10 @@ namespace VulkanHelper
         Vector<T> Clone() const
         {
             Vector<T> copy;
-            copy.Resize(m_Size);
+            copy.Reserve(m_Size);
             for (size_t i = 0; i < m_Size; i++)
             {
-                copy[i] = (*this)[i];
+                copy.PushBack((*this)[i]);
             }
             return copy;
         }
