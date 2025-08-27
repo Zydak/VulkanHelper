@@ -457,9 +457,15 @@ namespace VulkanHelper
 
         float anisotropyRotation;
         if (material->Get(AI_MATKEY_ANISOTROPY_ROTATION, anisotropyRotation) == AI_SUCCESS)
-            materialAsset.AnisotropyRotation = anisotropyRotation;
+            materialAsset.AnisotropyRotation = anisotropyRotation * (180.0f / (float)M_PI); // Convert to degrees
         else
             materialAsset.AnisotropyRotation = 0.0f; // Default value
+
+        aiColor3D specularColor;
+        if (material->Get(AI_MATKEY_COLOR_SPECULAR, specularColor) == AI_SUCCESS)
+            materialAsset.SpecularColor = glm::vec3(specularColor.r, specularColor.g, specularColor.b);
+        else
+            materialAsset.SpecularColor = glm::vec3(1.0f); // Default value
 
         materialAsset.Name = material->GetName().C_Str();
 

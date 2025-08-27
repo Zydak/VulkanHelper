@@ -97,6 +97,7 @@ namespace VulkanHelper
     {
         glm::vec3 BaseColor = glm::vec3(1.0f);
         glm::vec3 EmissiveColor = glm::vec3(0.0f);
+        glm::vec3 SpecularColor = glm::vec3(1.0f);
         float Metallic = 0.0f;
         float Roughness = 1.0f;
         float IOR = 1.5f;
