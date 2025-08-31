@@ -15,6 +15,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <numbers>
+
 namespace VulkanHelper
 {
     Expected<SharedPtr<AssetImporter::Impl>, VHResult> AssetImporter::Impl::New(const Config& config)
@@ -457,7 +459,7 @@ namespace VulkanHelper
 
         float anisotropyRotation;
         if (material->Get(AI_MATKEY_ANISOTROPY_ROTATION, anisotropyRotation) == AI_SUCCESS)
-            materialAsset.AnisotropyRotation = anisotropyRotation * (180.0f / (float)M_PI); // Convert to degrees
+            materialAsset.AnisotropyRotation = anisotropyRotation * (180.0f / (float)std::numbers::pi); // Convert to degrees
         else
             materialAsset.AnisotropyRotation = 0.0f; // Default value
 
