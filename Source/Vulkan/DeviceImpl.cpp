@@ -86,6 +86,58 @@ namespace VulkanHelper
             features12.hostQueryReset = VK_TRUE;
         }
 
+        vkGetPhysicalDeviceFeatures2(physicalDevice->GetDevice(), &features);
+
+        // Check for required features
+        {
+            if (!features12.runtimeDescriptorArray || !features12.bufferDeviceAddress || !features12.scalarBlockLayout)
+            {
+                VH_LOG_ERROR("Required Vulkan 1.2 features are not supported!");
+                return Unexpected(VHResult::INITIALIZATION_FAILED);
+            }
+            if (!dynamicRenderingFeatures.dynamicRendering)
+            {
+                VH_LOG_ERROR("Dynamic Rendering is not supported!");
+                return Unexpected(VHResult::INITIALIZATION_FAILED);
+            }
+            if (!sync2Features.synchronization2)
+            {
+                VH_LOG_ERROR("Synchronization2 is not supported!");
+                return Unexpected(VHResult::INITIALIZATION_FAILED);
+            }
+            if (!device11Features.shaderDrawParameters)
+            {
+                VH_LOG_ERROR("Shader Draw Parameters is not supported!");
+                return Unexpected(VHResult::INITIALIZATION_FAILED);
+            }
+
+            if (requestRTSupport)
+            {
+                if (!rtFeatures.rayTracingPipeline || !asFeatures.accelerationStructure || !rqFeatures.rayQuery)
+                {
+                    VH_LOG_ERROR("Required Ray Tracing features are not supported!");
+                    return Unexpected(VHResult::INITIALIZATION_FAILED);
+                }
+                if (!features12.hostQueryReset)
+                {
+                    VH_LOG_ERROR("Host Query Reset is not supported!");
+                    return Unexpected(VHResult::INITIALIZATION_FAILED);
+                }
+            }
+        }
+
+        // Check optional features
+        bool areRayQueriesSupported = false;
+        {
+            if (requestRTSupport)
+            {
+                if (features12.hostQueryReset)
+                {
+                    areRayQueriesSupported = true;
+                }
+            }
+        }
+
         if (!windows.Empty())
         {
             extensions.EmplaceBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -184,7 +236,8 @@ namespace VulkanHelper
             Move(allocator),
             Move(physicalDeviceProperties),
             Move(rayTracingProperties),
-            Move(accelerationStructureProperties)
+            Move(accelerationStructureProperties),
+            areRayQueriesSupported
         ));
     }
 
@@ -219,6 +272,7 @@ namespace VulkanHelper
         , m_PhysicalDeviceProperties(Move(other.m_PhysicalDeviceProperties))
         , m_RayTracingProperties(Move(other.m_RayTracingProperties))
         , m_AccelerationStructureProperties(Move(other.m_AccelerationStructureProperties))
+        , m_AreRayQueriesSupported(other.m_AreRayQueriesSupported)
     {
         other.m_Device = nullptr;
     }
@@ -241,6 +295,7 @@ namespace VulkanHelper
         m_PhysicalDeviceProperties = Move(other.m_PhysicalDeviceProperties);
         m_RayTracingProperties = Move(other.m_RayTracingProperties);
         m_AccelerationStructureProperties = Move(other.m_AccelerationStructureProperties);
+        m_AreRayQueriesSupported = other.m_AreRayQueriesSupported;
 
         return *this;
     }
@@ -425,5 +480,10 @@ namespace VulkanHelper
             (sampleCounts & VK_SAMPLE_COUNT_2_BIT) ? SampleCount::COUNT_2_BIT :
             SampleCount::COUNT_1_BIT
         );
+    }
+
+    [[nodiscard]] bool Device::AreRayQueriesSupported() const 
+    {
+        return m_Impl->AreRayQueriesSupported();
     }
 } // namespace VulkanHelper

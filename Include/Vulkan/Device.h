@@ -95,6 +95,11 @@ namespace VulkanHelper
          */
         [[nodiscard]] SampleCount GetMaxSampleCount() const;
 
+        /**
+         * @brief Check if ray queries are supported by the device
+         */
+        [[nodiscard]] bool AreRayQueriesSupported() const;
+
         class Impl;
     private:
         friend class Impl;

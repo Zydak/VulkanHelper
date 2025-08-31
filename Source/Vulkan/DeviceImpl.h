@@ -52,6 +52,7 @@ namespace VulkanHelper
         [[nodiscard]] inline const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRayTracingProperties() const { return m_RayTracingProperties; }
         [[nodiscard]] inline const VkPhysicalDeviceAccelerationStructurePropertiesKHR& GetAccelerationStructureProperties() const { return m_AccelerationStructureProperties; }
 
+        [[nodiscard]] inline bool AreRayQueriesSupported() const { return m_AreRayQueriesSupported; }
         void InitializeDeleteQueue(uint32_t framesDelay);
     private:
 
@@ -66,6 +67,8 @@ namespace VulkanHelper
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_RayTracingProperties = {};
         VkPhysicalDeviceAccelerationStructurePropertiesKHR m_AccelerationStructureProperties = {};
 
+        bool m_AreRayQueriesSupported = false;
+
         explicit Impl(
             const SharedPtr<Instance::Impl>& instance,
             VkDevice device,
@@ -74,7 +77,8 @@ namespace VulkanHelper
             VulkanHelper::VulkanMemoryAllocator&& allocator,
             VkPhysicalDeviceProperties2&& physicalDeviceProperties,
             VkPhysicalDeviceRayTracingPipelinePropertiesKHR&& rayTracingProperties,
-            VkPhysicalDeviceAccelerationStructurePropertiesKHR&& accelerationStructureProperties = {}
+            VkPhysicalDeviceAccelerationStructurePropertiesKHR&& accelerationStructureProperties,
+            bool areRayQueriesSupported
         )
             : m_Instance(instance)
             , m_Device(device)
@@ -85,6 +89,7 @@ namespace VulkanHelper
             , m_PhysicalDeviceProperties(Move(physicalDeviceProperties))
             , m_RayTracingProperties(Move(rayTracingProperties))
             , m_AccelerationStructureProperties(Move(accelerationStructureProperties))
+            , m_AreRayQueriesSupported(areRayQueriesSupported)
         {}
 
         [[nodiscard]] static QueueFamilyIndices FindQueueFamilies(const SharedPtr<PhysicalDevice::Impl>& physicalDevice, const VulkanHelper::Vector<SharedPtr<Window::Impl>>& windows);
