@@ -47,12 +47,6 @@ namespace VulkanHelper
         VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
         Vector<DescriptorSet::BindingDescription> m_BindingDescriptions;
 
-        // Add references counting so that the objects won't be deleted before the descriptor set is done with them
-        VulkanHelper::Vector<SharedPtr<Buffer::Impl>> m_Buffers;
-        VulkanHelper::Vector<SharedPtr<ImageView::Impl>> m_ImageViews;
-        VulkanHelper::Vector<SharedPtr<Sampler::Impl>> m_Samplers;
-        VulkanHelper::Vector<SharedPtr<TLAS::Impl>> m_AccelerationStructures;
-
         explicit Impl(
             const SharedPtr<Device::Impl>& device,
             VkDescriptorSet descriptorSet,
@@ -64,10 +58,6 @@ namespace VulkanHelper
             , m_DescriptorSetLayout(descriptorSetLayout)
             , m_BindingDescriptions(Move(bindingDescriptions))
         {
-            m_Buffers.Resize(m_BindingDescriptions.Size());
-            m_ImageViews.Resize(m_BindingDescriptions.Size());
-            m_Samplers.Resize(m_BindingDescriptions.Size());
-            m_AccelerationStructures.Resize(m_BindingDescriptions.Size());
         }
     };
 }

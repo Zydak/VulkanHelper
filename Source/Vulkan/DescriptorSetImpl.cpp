@@ -72,10 +72,6 @@ namespace VulkanHelper
         , m_DescriptorSet(other.m_DescriptorSet)
         , m_DescriptorSetLayout(other.m_DescriptorSetLayout)
         , m_BindingDescriptions(Move(other.m_BindingDescriptions))
-        , m_Buffers(Move(other.m_Buffers))
-        , m_ImageViews(Move(other.m_ImageViews))
-        , m_Samplers(Move(other.m_Samplers))
-        , m_AccelerationStructures(Move(other.m_AccelerationStructures))
     {
         other.m_Device = nullptr;
         other.m_DescriptorSet = VK_NULL_HANDLE;
@@ -97,14 +93,6 @@ namespace VulkanHelper
         other.m_DescriptorSetLayout = VK_NULL_HANDLE;
         m_BindingDescriptions = Move(other.m_BindingDescriptions);
         other.m_BindingDescriptions.Clear();
-        m_Buffers = Move(other.m_Buffers);
-        other.m_Buffers.Clear();
-        m_ImageViews = Move(other.m_ImageViews);
-        other.m_ImageViews.Clear();
-        m_Samplers = Move(other.m_Samplers);
-        other.m_Samplers.Clear();
-        m_AccelerationStructures = Move(other.m_AccelerationStructures);
-        other.m_AccelerationStructures.Clear();
 
         return *this;
     }
@@ -149,8 +137,6 @@ namespace VulkanHelper
             VH_LOG_ERROR("Array index {} is out of bounds for binding {} (max: {})", arrayIndex, binding, descriptorCount - 1);
             return VHResult::WRONG_ARGUMENTS;
         }
-
-        m_Buffers[arrayIndex] = buffer;
 
         // Create buffer info
         VkDescriptorBufferInfo bufferInfo{};
@@ -219,8 +205,6 @@ namespace VulkanHelper
             return VHResult::WRONG_ARGUMENTS;
         }
 
-        m_ImageViews[arrayIndex] = imageView;
-
         // Create image info
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = static_cast<VkImageLayout>(layout);
@@ -281,8 +265,6 @@ namespace VulkanHelper
             return VHResult::WRONG_ARGUMENTS;
         }
 
-        m_Samplers[arrayIndex] = sampler;
-
         // Create image info for sampler
         VkDescriptorImageInfo imageInfo{};
         imageInfo.sampler = sampler->GetSampler();
@@ -341,8 +323,6 @@ namespace VulkanHelper
             VH_LOG_ERROR("Array index {} is out of bounds for binding {} (max: {})", arrayIndex, binding, descriptorCount - 1);
             return VHResult::WRONG_ARGUMENTS;
         }
-
-        m_AccelerationStructures[arrayIndex] = accelerationStructure;
 
         // Create acceleration structure info
         VkWriteDescriptorSetAccelerationStructureKHR accelStructInfo{};
