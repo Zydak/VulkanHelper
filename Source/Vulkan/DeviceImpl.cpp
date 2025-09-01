@@ -228,7 +228,7 @@ namespace VulkanHelper
         vkGetPhysicalDeviceProperties2(physicalDevice->GetDevice(), &physicalDeviceProperties);
 
         // Create the Device::Impl first, then initialize the DeleteQueue with proper allocator pointer
-        return SharedPtr<Impl>(new Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             instance,
             device,
             physicalDevice,
@@ -238,7 +238,7 @@ namespace VulkanHelper
             Move(rayTracingProperties),
             Move(accelerationStructureProperties),
             areRayQueriesSupported
-        ));
+        )));
     }
 
     Device::Impl::~Impl()
@@ -282,7 +282,18 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        if (m_Device != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Destroying device implementation");
+
+            // Flush all pending deletions before destroying the device
+            m_DeleteQueue.Flush();
+
+            m_Allocator.~VulkanMemoryAllocator(); // Allocator has to be destroyed before the device
+
+            vkDestroyDevice(m_Device, nullptr);
+            m_Device = nullptr;
+        }
 
         m_Instance = other.m_Instance;
         other.m_Instance = nullptr;
@@ -437,8 +448,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Device(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

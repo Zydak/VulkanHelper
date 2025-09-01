@@ -31,7 +31,11 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl();
+        if (m_CommandBuffer != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Destroying CommandBuffer Implementation");
+            VH_ASSERT(m_CommandPool->FreeCommandBuffer(this) == VHResult::OK, "Failed to deallocate command buffer!");
+        }
 
         m_CommandPool = other.m_CommandPool;
         other.m_CommandPool = nullptr;
@@ -152,8 +156,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~CommandBuffer(); // Clean up current state
-
         m_Impl = other.m_Impl;
 
         return *this;
@@ -169,8 +171,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~CommandBuffer(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

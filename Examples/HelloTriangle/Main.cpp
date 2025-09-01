@@ -32,7 +32,7 @@ int main()
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({device, window}).Value();
 
     // Compile shaders
-    VulkanHelper::Shader::InitializeSession("../../../HelloTriangle/Shaders/");
+    VulkanHelper::Shader::InitializeSession("../HelloTriangle/Shaders/");
     VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({device, "TriangleVertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
     VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({device, "TriangleFragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();
 

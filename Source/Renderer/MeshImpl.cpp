@@ -130,7 +130,7 @@ namespace VulkanHelper
 
         VH_LOG_INFO("Created Mesh with {} vertices and {} indices", vertexCount, indexCount);
 
-        return SharedPtr<Impl>(new Impl(device, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec)));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec))));
     }
 
     Mesh::Impl::Impl(Impl&& other) noexcept
@@ -148,7 +148,7 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        VH_LOG_DEBUG("Destroying Mesh Implementation");
 
         m_Device = other.m_Device;
         m_VertexBuffer = Move(other.m_VertexBuffer);
@@ -303,8 +303,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Mesh(); // Clean up current state
-
         m_Impl = Move(other.m_Impl);
 
         return *this;
@@ -314,8 +312,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Mesh(); // Clean up current state
 
         m_Impl = other.m_Impl;
 

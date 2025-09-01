@@ -43,7 +43,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return SharedPtr<Impl>(new Impl(image, imageView, viewType));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(image, imageView, viewType)));
     }
 
     ImageView::Impl::Impl(Impl&& other) noexcept
@@ -58,7 +58,13 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // cleanup current state
+        if (m_ImageView != VK_NULL_HANDLE)
+        {
+            VH_ASSERT(m_Image != nullptr, "Image can't be nullptr when destroying ImageView Implementation");
+            VH_LOG_INFO("Queuing ImageView Implementation for deletion");
+            VH_ASSERT(m_Image->GetImage() != VK_NULL_HANDLE, "Image has been destroyed before ImageView Implementation. You must ensure that all image views are destroyed before the image itself.");
+            m_Image->GetDevice()->GetDeleteQueue().QueueForDeletion(m_ImageView);
+        }
 
         m_Image = other.m_Image;
         other.m_Image = nullptr;
@@ -131,8 +137,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~ImageView(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

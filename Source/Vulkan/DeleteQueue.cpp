@@ -36,7 +36,11 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~DeleteQueue(); // Clean up current state
+        if (!m_DeletionQueue.Empty())
+        {
+            VH_LOG_WARN("DeleteQueue destroyed with {} pending deletions, flushing remaining objects", m_DeletionQueue.Size());
+            Flush();
+        }
 
         m_Device = other.m_Device;
         m_FramesDelay = other.m_FramesDelay;

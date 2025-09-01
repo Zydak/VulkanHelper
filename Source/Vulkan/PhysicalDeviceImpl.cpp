@@ -48,7 +48,7 @@ namespace VulkanHelper
 
         bool discrete = (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
-        return SharedPtr<Impl>(new Impl(physicalDevice, vendor, properties.deviceName, discrete));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(physicalDevice, vendor, properties.deviceName, discrete)));
     }
 
     PhysicalDevice::Impl::Impl(Impl&& other) noexcept
@@ -118,8 +118,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~PhysicalDevice(); // Clean up current state
-
         m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
@@ -134,9 +132,7 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~PhysicalDevice(); // Clean up current state
-
+            
         m_Impl = other.m_Impl;
 
         return *this;

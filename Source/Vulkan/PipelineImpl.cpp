@@ -208,7 +208,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected((VHResult)res);
 
-        return SharedPtr<Impl>(new Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             pipeline,
             pipelineLayout,
@@ -217,7 +217,7 @@ namespace VulkanHelper
             pushConstant,
             UniquePtr<SBT>(nullptr),
             shaders
-        ));
+        )));
     }
 
     Expected<SharedPtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(
@@ -259,7 +259,7 @@ namespace VulkanHelper
             return Unexpected((VHResult)res);
         }
 
-        return SharedPtr<Impl>(new Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             pipeline,
             pipelineLayout,
@@ -268,7 +268,7 @@ namespace VulkanHelper
             pushConstant,
             UniquePtr<SBT>(nullptr),
             {computeShader}
-        ));
+        )));
     }
 
     Expected<SharedPtr<Pipeline::Impl>, VHResult> Pipeline::Impl::New(
@@ -383,7 +383,7 @@ namespace VulkanHelper
         for (auto& shader : MissShaders)
             shaders.PushBack(shader);
 
-        return SharedPtr<Impl>(new Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             pipeline,
             pipelineLayout,
@@ -392,7 +392,7 @@ namespace VulkanHelper
             pushConstant,
             Move(sbt),
             Move(shaders)
-        ));
+        )));
     }
 
     Pipeline::Impl::~Impl()
@@ -428,7 +428,15 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Cleanup current state
+        if (m_Pipeline != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Queuing Pipeline Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Pipeline);
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Layout);
+            m_Device = nullptr;
+            m_Pipeline = VK_NULL_HANDLE;
+            m_Layout = VK_NULL_HANDLE;
+        }
 
         m_Device = other.m_Device;
         other.m_Device = nullptr;
@@ -781,8 +789,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Pipeline(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

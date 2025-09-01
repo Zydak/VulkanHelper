@@ -106,7 +106,6 @@ namespace VulkanHelper
          */
         Expected& operator=(const Expected& other) {
             if (this != &other) {
-                this->~Expected();
                 m_HasValue = other.m_HasValue;
                 if (m_HasValue) {
                     new(&m_Value) T(other.m_Value);
@@ -124,7 +123,6 @@ namespace VulkanHelper
          */
         Expected& operator=(Expected&& other) {
             if (this != &other) {
-                this->~Expected();
                 m_HasValue = other.m_HasValue;
                 if (m_HasValue) {
                     new(&m_Value) T(VulkanHelper::Move(other.m_Value));

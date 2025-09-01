@@ -21,7 +21,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return SharedPtr<Impl>(new Impl(device, semaphore));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, semaphore)));
     }
 
     Semaphore::Impl::Impl(Semaphore::Impl&& other) noexcept
@@ -102,8 +102,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Semaphore(); // Clean up current state
-
         m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
@@ -113,8 +111,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Semaphore(); // Clean up current state
 
         m_Impl = other.m_Impl;
 

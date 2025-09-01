@@ -111,7 +111,7 @@ Application Application::New()
     //
 
     // Shader
-    VulkanHelper::Shader::InitializeSession("../../../NBodySim/Shaders/");
+    VulkanHelper::Shader::InitializeSession("../NBodySim/Shaders/");
     VulkanHelper::Shader computeShader = VulkanHelper::Shader::New({device, "Compute.slang", VulkanHelper::ShaderStages::COMPUTE_BIT}).Value();
 
     // Pipeline

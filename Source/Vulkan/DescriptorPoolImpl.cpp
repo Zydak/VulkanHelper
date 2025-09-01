@@ -72,7 +72,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return SharedPtr<Impl>(new Impl(device, descriptorPool));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, descriptorPool)));
     }
 
     DescriptorPool::Impl::~Impl()
@@ -99,7 +99,13 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        if (m_DescriptorPool != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Queuing Vulkan DescriptorPool Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_DescriptorPool);
+            m_DescriptorPool = VK_NULL_HANDLE;
+            m_Device = nullptr;
+        }
 
         m_Device = other.m_Device;
         other.m_Device = nullptr;
@@ -238,8 +244,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~DescriptorPool(); // Clean up current state
-
         m_Impl = other.m_Impl;
 
         return *this;
@@ -253,8 +257,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~DescriptorPool(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

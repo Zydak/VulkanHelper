@@ -46,7 +46,7 @@ namespace VulkanHelper
 
         glfwSetWindowSizeCallback(window, WindowSizeCallback);
 
-        return SharedPtr<Impl>(new Impl(instance, window, surface, VulkanHelper::Move(nameStr), width, height));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(instance, window, surface, VulkanHelper::Move(nameStr), width, height)));
     }
 
     Window::Impl::Impl(Impl&& other) noexcept
@@ -195,8 +195,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Window(); // Clean up current state
-
         m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
@@ -216,8 +214,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Window(); // Clean up current state
 
         m_Impl = other.m_Impl;
 

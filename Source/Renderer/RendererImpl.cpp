@@ -203,7 +203,7 @@ namespace VulkanHelper
         //
         //
 
-        return SharedPtr<Impl>( new Impl(
+        auto impl = Impl(
             device,
             window,
             Move(swapchain),
@@ -212,12 +212,15 @@ namespace VulkanHelper
             imguiPool,
             false,
             false
-        ));
+        );
+
+        return SharedPtr<Impl>(std::make_shared<Impl>(Move(impl)));
     }
 
     Renderer::Impl::~Impl()
     {
-        ImGui_ImplVulkan_DestroyDeviceObjects();
+        if (m_Device != nullptr)
+            ImGui_ImplVulkan_DestroyDeviceObjects();
     }
 
     Renderer::Impl::Impl(Impl&& other) noexcept
@@ -239,7 +242,8 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Cleanup current state
+        if (m_Device != nullptr)
+            ImGui_ImplVulkan_DestroyDeviceObjects();
 
         m_Device = other.m_Device;
         other.m_Device = nullptr;
@@ -569,8 +573,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Renderer(); // Clean up current state
-
         m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
@@ -580,8 +582,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Renderer(); // Clean up current state
 
         m_Impl = other.m_Impl;
 

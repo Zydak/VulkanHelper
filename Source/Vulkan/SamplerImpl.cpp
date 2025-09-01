@@ -41,7 +41,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return SharedPtr<Impl>(new Impl(device, sampler));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, sampler)));
     }
 
     Sampler::Impl::Impl(Impl&& other) noexcept
@@ -56,7 +56,13 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Cleanup current state
+        if (m_Sampler != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Queuing Vulkan Sampler Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Sampler);
+            m_Sampler = VK_NULL_HANDLE;
+            m_Device = nullptr;
+        }
 
         m_Device = other.m_Device;
         other.m_Device = nullptr;
@@ -115,8 +121,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Sampler(); // Cleanup current state
-
         m_Impl = other.m_Impl;
 
         return *this;
@@ -131,8 +135,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Sampler(); // cleanup current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

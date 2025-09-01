@@ -149,7 +149,7 @@ namespace VulkanHelper
         Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
 
-        return SharedPtr<Impl>(new Impl(messenger, instance));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(messenger, instance)));
     }
 
     Instance::Impl::Impl(Impl&& other) noexcept
@@ -164,7 +164,18 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        if (m_Instance != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Destroying Vulkan Instance Implementation");
+            if (m_DebugMessenger != VK_NULL_HANDLE)
+            {
+                Impl::DestroyDebugUtilsMessengerEXT(m_Instance, &m_DebugMessenger);
+                m_DebugMessenger = VK_NULL_HANDLE;
+            }
+
+            vkDestroyInstance(m_Instance, nullptr);
+            m_Instance = VK_NULL_HANDLE;
+        }
 
         m_DebugMessenger = other.m_DebugMessenger;
         other.m_DebugMessenger = VK_NULL_HANDLE;

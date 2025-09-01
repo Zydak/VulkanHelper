@@ -148,9 +148,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        // Clean up current resources
-        this->~SBT();
-
         // Move from other
         m_SBTBuffer = VulkanHelper::Move(other.m_SBTBuffer);
         m_RgenRegion = other.m_RgenRegion;

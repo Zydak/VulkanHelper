@@ -28,7 +28,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return SharedPtr<Impl>(new Impl(device, fence));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, fence)));
     }
 
     Fence::Impl::Impl(Impl&& other) noexcept
@@ -43,7 +43,13 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Cleanup current state
+        if (m_Fence != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Queuing Vulkan Fence Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Fence);
+            m_Fence = VK_NULL_HANDLE;
+            m_Device = nullptr;
+        }
 
         m_Device = other.m_Device;
         other.m_Device = nullptr;
@@ -121,8 +127,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Fence(); // cleanup current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

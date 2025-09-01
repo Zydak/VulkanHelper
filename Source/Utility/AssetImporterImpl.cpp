@@ -29,7 +29,7 @@ namespace VulkanHelper
             return Unexpected(VHResult::WRONG_ARGUMENTS);
         }
 
-        return SharedPtr<Impl>(new Impl(config.ThreadPool));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(config.ThreadPool)));
     }
 
     AssetImporter::Impl::Impl(VulkanHelper::ThreadPool* threadPool)
@@ -58,7 +58,11 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        if (m_ThreadPool != nullptr)
+        {
+            VH_LOG_DEBUG("Destroying AssetImporter Implementation");
+            m_ThreadPool = nullptr;
+        }
 
         m_ThreadPool = other.m_ThreadPool;
         other.m_ThreadPool = nullptr;
@@ -706,8 +710,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~AssetImporter(); // Clean up current state
-
         m_Impl = other.m_Impl;
 
         return *this;
@@ -717,8 +719,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~AssetImporter(); // Clean up current state
         
         m_Impl = Move(other.m_Impl);
 

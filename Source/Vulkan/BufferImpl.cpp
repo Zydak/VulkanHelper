@@ -97,14 +97,14 @@ namespace VulkanHelper
             scratchBuffer = scratchAllocationResult.Value();
         };
 
-        return SharedPtr<Impl>(new Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             bufferAllocation,
             size,
             usage,
             cpuMapable,
             scratchBuffer
-        ));
+        )));
     }
 
     Buffer::Impl::Impl(Impl&& other) noexcept
@@ -129,7 +129,20 @@ namespace VulkanHelper
             return *this;
 
         // Clean up current resources
-        this->~Impl();
+        if (m_Device)
+        {
+            // Deallocate scratch buffer first if it exists
+            if (m_ScratchBuffer.Buffer != VK_NULL_HANDLE)
+            {
+                m_Device->GetDeleteQueue().QueueForDeletion(m_ScratchBuffer);
+            }
+
+            // Deallocate main buffer
+            if (m_BufferAllocation.Buffer != VK_NULL_HANDLE)
+            {
+                m_Device->GetDeleteQueue().QueueForDeletion(m_BufferAllocation);
+            }
+        }
 
         // Move from other
         m_Device = other.m_Device;
@@ -596,8 +609,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Buffer(); // Clean up current state
-
         m_Impl = other.m_Impl;
         return *this;
     }
@@ -607,7 +618,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Buffer(); // Clean up current state
         m_Impl = Move(other.m_Impl);
         return *this;
     }

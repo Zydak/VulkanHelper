@@ -16,9 +16,11 @@ namespace VulkanHelper
 #if USE_STD_SHARED_PTR
 
     // I have absolutely no fucking clue how is my implementation unsafe, but when using it in release mode it causes some random
-    // undebuggable crashes in malloc. So I'm just going to use std::shared_ptr for now
+    // undebuggable crashes in malloc only when compiling with GCC. So I'm just going to use std::shared_ptr for now
     template<typename T>
     using SharedPtr = std::shared_ptr<T>;
+
+    #define MakeShared std::make_shared
 
 #else
     /**

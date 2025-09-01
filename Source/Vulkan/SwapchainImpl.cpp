@@ -189,7 +189,7 @@ namespace VulkanHelper
         VulkanHelper::Vector<ImageView> imageViews;
         for (size_t i = 0; i < swapchainImages.Size(); i++)
         {
-            SharedPtr<Image::Impl> imageImpl( new Image::Impl(
+            SharedPtr<Image::Impl> imageImpl(std::make_shared<Image::Impl>(Image::Impl(
                 device,
                 (Format)chosenFormat.format,
                 {Image::Layout::UNDEFINED},
@@ -199,7 +199,7 @@ namespace VulkanHelper
                 1,
                 1,
                 swapchainImages[i]
-            ));
+            )));
 
             Image image(VulkanHelper::Move(imageImpl));
             image.TransitionImageLayout(Image::Layout::PRESENT_SRC_KHR, commandBuffer);
@@ -218,7 +218,7 @@ namespace VulkanHelper
         VH_ASSERT(commandBuffer.EndRecording() == VulkanHelper::VHResult::OK, "Failed to end command buffer recording");
         VH_ASSERT(commandBuffer.SubmitAndWait() == VulkanHelper::VHResult::OK, "Failed to submit command buffer");
 
-        return SharedPtr<Impl>( new Swapchain::Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Swapchain::Impl(
             device,
             swapchain,
             0, // Start at frame 0
@@ -229,7 +229,7 @@ namespace VulkanHelper
             VulkanHelper::Move(frameFence),
             VulkanHelper::Move(acquireSemaphores),
             VulkanHelper::Move(submitSemaphores)
-        ));
+        )));
     }
 
     Swapchain::Impl::~Impl()
@@ -263,7 +263,12 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        if (m_Swapchain != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Queuing Vulkan Swapchain Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Swapchain);
+            m_Swapchain = VK_NULL_HANDLE;
+        }
 
         m_Device = other.m_Device;
         m_Swapchain = other.m_Swapchain;
@@ -398,8 +403,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Swapchain(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

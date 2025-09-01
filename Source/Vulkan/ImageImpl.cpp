@@ -160,7 +160,7 @@ namespace VulkanHelper
             staginBuffer = stagingBufferResult.Value();
         }
 
-        return SharedPtr<Impl>(new Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             format,
             Vector<Layout>(layerCount, initialLayout), // Initialize all layers with the same layout
@@ -172,7 +172,7 @@ namespace VulkanHelper
             allowMapping,
             Move(image.Value()),
             Move(staginBuffer)
-        ));
+        )));
     }
 
     void Image::Impl::TransitionImageLayout(Layout newLayout, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t baseLayer, uint32_t layerCount)
@@ -349,7 +349,17 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Cleanup currentState
+        if (m_Allocation.Allocation != nullptr)
+        {
+            VH_LOG_INFO("Destroying Image Implementation");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_Allocation);
+            m_Allocation.Allocation = nullptr;
+            m_Allocation.image = VK_NULL_HANDLE;
+        }
+        if (m_StagingBufferAllocation.Allocation != nullptr)
+        {
+            m_Device->GetDeleteQueue().QueueForDeletion(m_StagingBufferAllocation);
+        }
 
         m_Device = other.m_Device;
         m_Format = other.m_Format;
@@ -788,8 +798,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Image(); // Clean up current state
-
         m_Impl = other.m_Impl;
 
         return *this;
@@ -803,8 +811,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Image(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

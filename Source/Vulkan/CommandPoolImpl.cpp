@@ -44,7 +44,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult::INITIALIZATION_FAILED);
         }
 
-        return SharedPtr<Impl>(new Impl(device, commandPool, queue, flags, queueFamilyIndex));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, commandPool, queue, flags, queueFamilyIndex)));
     }
 
     CommandPool::Impl::~Impl()
@@ -70,7 +70,13 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        if (m_CommandPool != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Queuing Vulkan Command Pool Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_CommandPool);
+            m_CommandPool = VK_NULL_HANDLE;
+            m_Device = nullptr;
+        }
 
         m_Device = other.m_Device;
         m_CommandPool = other.m_CommandPool;
@@ -101,7 +107,7 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
-        return CommandBuffer{ SharedPtr<CommandBuffer::Impl>( new CommandBuffer::Impl(impl, commandBuffer)) };
+        return CommandBuffer{ SharedPtr<CommandBuffer::Impl>(std::make_shared<CommandBuffer::Impl>(CommandBuffer::Impl(impl, commandBuffer))) };
     }
 
     VHResult CommandPool::Impl::FreeCommandBuffer(CommandBuffer::Impl* commandBuffer) const
@@ -172,8 +178,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~CommandPool(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

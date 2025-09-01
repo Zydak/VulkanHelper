@@ -54,7 +54,7 @@ Application Application::New()
 
     VulkanHelper::AssetImporter importer = VulkanHelper::AssetImporter::New({&threadPool}).Value();
 
-    auto scene = importer.ImportScene("../../../ModelViewer/Assets/VikingRoom.gltf").get();
+    auto scene = importer.ImportScene("../ModelViewer/Assets/VikingRoom.gltf").get();
     VH_ASSERT(scene.HasValue(), "Failed to import scene");
 
     VH_LOG_INFO("Current working directory: {}", std::filesystem::current_path().string());
@@ -79,7 +79,7 @@ Application Application::New()
     VulkanHelper::Device device = VulkanHelper::Device::New({selectedDevice, {window}, instance}).Value();
     VulkanHelper::Renderer renderer = VulkanHelper::Renderer::New({device, window}).Value();
 
-    VulkanHelper::Shader::InitializeSession("../../../RayTracing/Shaders/");
+    VulkanHelper::Shader::InitializeSession("../RayTracing/Shaders/");
 
     VulkanHelper::Shader rgenShader = VulkanHelper::Shader::New({device, "RayGen.slang", VulkanHelper::ShaderStages::RAYGEN_BIT}).Value();
     VulkanHelper::Shader hitShader = VulkanHelper::Shader::New({device, "ClosestHit.slang", VulkanHelper::ShaderStages::CLOSEST_HIT_BIT}).Value();

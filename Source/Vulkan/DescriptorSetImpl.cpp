@@ -52,7 +52,7 @@ namespace VulkanHelper
             bindingDescriptions.PushBack(config.Bindings[i]);
         }
 
-        return SharedPtr<Impl>(new Impl(device, descriptorSet, descriptorSetLayout, Move(bindingDescriptions)));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, descriptorSet, descriptorSetLayout, Move(bindingDescriptions))));
     }
 
     DescriptorSet::Impl::~Impl()
@@ -83,7 +83,14 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Impl(); // Clean up current state
+        if (m_DescriptorSetLayout != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Queuing Vulkan DescriptorSet Implementation for deletion");
+            m_Device->GetDeleteQueue().QueueForDeletion(m_DescriptorSetLayout);
+            m_DescriptorSetLayout = VK_NULL_HANDLE;
+            m_DescriptorSet = VK_NULL_HANDLE;
+            m_Device = nullptr;
+        }
 
         m_Device = other.m_Device;
         other.m_Device = nullptr;
@@ -367,8 +374,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~DescriptorSet(); // Clean up current state
-
         m_Impl = other.m_Impl;
 
         return *this;
@@ -382,8 +387,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~DescriptorSet(); // Clean up current state
 
         m_Impl = VulkanHelper::Move(other.m_Impl);
 

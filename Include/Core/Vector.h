@@ -125,7 +125,11 @@ namespace VulkanHelper
             if (this == &other)
                 return *this;
 
-            this->~Vector(); // Clean up current state
+            Clear();
+            free(m_Data);
+            m_Data = nullptr;
+            m_Size = 0;
+            m_Capacity = 0;
 
             m_Data = other.m_Data;
             m_Size = other.m_Size;

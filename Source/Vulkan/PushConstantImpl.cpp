@@ -29,7 +29,7 @@ namespace VulkanHelper
             VH_LOG_WARN("PushConstant size {} bytes exceeds common Vulkan limit of 128 bytes. Check device limits. Also note that this may not run on platforms with stricter limits. If you really need more than 128 bytes of space, consider using a Uniform buffer.", size);
         }
 
-        return SharedPtr<Impl>(new Impl(stage, data, size));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(stage, data, size)));
     }
 
     PushConstant::Impl::Impl(ShaderStages stage, const void* data, uint32_t size)

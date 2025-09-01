@@ -56,7 +56,7 @@ Application Application::New()
 
     VulkanHelper::AssetImporter importer = VulkanHelper::AssetImporter::New({&threadPool}).Value();
 
-    auto scene = importer.ImportScene("../../../ModelViewer/Assets/VikingRoom.gltf").get();
+    auto scene = importer.ImportScene("../ModelViewer/Assets/VikingRoom.gltf").get();
     VH_ASSERT(scene.HasValue(), "Failed to import scene");
 
     VH_LOG_INFO("Current working directory: {}", std::filesystem::current_path().string());
@@ -87,7 +87,7 @@ Application Application::New()
         s_SampleCount = VulkanHelper::SampleCount::COUNT_4_BIT;
     }
 
-    VulkanHelper::Shader::InitializeSession("../../../ModelViewer/Shaders/");
+    VulkanHelper::Shader::InitializeSession("../ModelViewer/Shaders/");
 
     VulkanHelper::Shader vertexShader = VulkanHelper::Shader::New({device, "Vertex.slang", VulkanHelper::ShaderStages::VERTEX_BIT}).Value();
     VulkanHelper::Shader fragShader = VulkanHelper::Shader::New({device, "Fragment.slang", VulkanHelper::ShaderStages::FRAGMENT_BIT}).Value();

@@ -159,12 +159,12 @@ namespace VulkanHelper
         VH_ASSERT(commandBuffer->SubmitAndWait() == VHResult::OK, "Failed to submit command buffer for TLAS build");
         VH_ASSERT(commandBuffer->BeginRecording(CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VHResult::OK, "Failed to begin command buffer recording for TLAS build");
 
-        return SharedPtr<Impl>( new Impl(
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             accelerationStructure,
             VulkanHelper::Move(asBuffer),
             blasList
-        ));
+        )));
     }
 
     VkTransformMatrixKHR TLAS::Impl::ConvertToVulkanMatrix(const glm::mat4& mat)
@@ -268,8 +268,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~TLAS(); // Clean up current state
-
         m_Impl = other.m_Impl;
         return *this;
     }
@@ -284,8 +282,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~TLAS(); // Clean up current state
 
         m_Impl = Move(other.m_Impl);
         return *this;

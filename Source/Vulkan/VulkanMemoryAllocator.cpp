@@ -75,7 +75,12 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~VulkanMemoryAllocator(); // Clean up current state
+        if (m_Allocator != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Destroying Vulkan Memory Allocator");
+            vmaDestroyAllocator(m_Allocator);
+            m_Allocator = VK_NULL_HANDLE;
+        }
 
         m_Allocator = other.m_Allocator;
         other.m_Allocator = VK_NULL_HANDLE;

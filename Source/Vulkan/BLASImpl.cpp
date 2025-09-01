@@ -160,12 +160,12 @@ namespace VulkanHelper
 
         VkAccelerationStructureKHR finalAccelerationStructure = accelerationStructure;
 
-        auto impl = SharedPtr<Impl>(new Impl(
+        auto impl = SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             finalAccelerationStructure,
             Move(asBuffer),
             buildSizesInfo.buildScratchSize
-        ));
+        )));
 
         VH_ASSERT(impl->Build(commandBuffer, buildRangeInfos.Data(), buildGeometryInfo) == VHResult::OK, "Failed to build acceleration structure");
 
@@ -193,7 +193,12 @@ namespace VulkanHelper
             return *this;
 
         // Clean up current resources
-        this->~Impl();
+        if (m_Device && m_Handle != VK_NULL_HANDLE)
+        {
+            VH_LOG_INFO("Destroying BLAS Implementation");
+
+            FunctionLoader::vkDestroyAccelerationStructureKHR(m_Device->GetDevice(), m_Handle, nullptr);
+        }
 
         // Move from other
         m_Device = other.m_Device;
@@ -469,8 +474,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~BLAS(); // Clean up current state
-
         m_Impl = other.m_Impl;
         return *this;
     }
@@ -483,8 +486,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~BLAS(); // Clean up current state
 
         m_Impl = Move(other.m_Impl);
         return *this;

@@ -167,7 +167,7 @@ namespace VulkanHelper
         if (res != VK_SUCCESS)
             return Unexpected(VHResult(res));
 
-        return SharedPtr<Impl>(new Impl(device, module, (VkShaderStageFlagBits)stage));
+        return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, module, (VkShaderStageFlagBits)stage)));
     }
 
     Shader::Impl::~Impl()
@@ -192,8 +192,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Impl(); // Cleanup current state
 
         m_Device = other.m_Device;
         other.m_Device = nullptr;
@@ -270,8 +268,6 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        this->~Shader(); // Clean up current state
-
         m_Impl = VulkanHelper::Move(other.m_Impl);
 
         return *this;
@@ -281,8 +277,6 @@ namespace VulkanHelper
     {
         if (this == &other)
             return *this;
-
-        this->~Shader(); // Clean up current state
 
         m_Impl = other.m_Impl;
 
