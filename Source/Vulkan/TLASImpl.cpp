@@ -191,9 +191,10 @@ namespace VulkanHelper
     }
 
     TLAS::Impl::Impl(Impl&& other) noexcept
-        : m_Device(other.m_Device),
-          m_Handle(other.m_Handle),
-          m_Buffer(VulkanHelper::Move(other.m_Buffer))
+        : m_Device(other.m_Device)
+        , m_Handle(other.m_Handle)
+        , m_Buffer(VulkanHelper::Move(other.m_Buffer))
+        , m_BlasList(Move(other.m_BlasList))
     {
         other.m_Handle = VK_NULL_HANDLE;
     }
@@ -205,6 +206,7 @@ namespace VulkanHelper
             m_Device = other.m_Device;
             m_Handle = other.m_Handle;
             m_Buffer = VulkanHelper::Move(other.m_Buffer);
+            m_BlasList = Move(other.m_BlasList);
             other.m_Handle = VK_NULL_HANDLE;
         }
         return *this;
