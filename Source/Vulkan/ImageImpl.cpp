@@ -338,9 +338,11 @@ namespace VulkanHelper
         , m_MipCount(other.m_MipCount)
         , m_Mapable(other.m_Mapable)
         , m_Allocation(Move(other.m_Allocation))
+        , m_StagingBufferAllocation(Move(other.m_StagingBufferAllocation))
     {
         other.m_Device = nullptr;
         other.m_Allocation.Allocation = nullptr;
+        other.m_StagingBufferAllocation.Allocation = nullptr;
         other.m_Allocation.image = VK_NULL_HANDLE;
     }
 
@@ -371,9 +373,11 @@ namespace VulkanHelper
         m_MipCount = other.m_MipCount;
         m_Mapable = other.m_Mapable;
         m_Allocation = Move(other.m_Allocation);
+        m_StagingBufferAllocation = Move(other.m_StagingBufferAllocation);
 
         other.m_Device = nullptr;
         other.m_Allocation.Allocation = nullptr;
+        other.m_StagingBufferAllocation.Allocation = nullptr;
         other.m_Allocation.image = VK_NULL_HANDLE;
 
         return *this;
