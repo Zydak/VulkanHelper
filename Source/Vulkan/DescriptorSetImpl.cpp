@@ -147,9 +147,9 @@ namespace VulkanHelper
 
         // Create buffer info
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = buffer->GetBuffer();
+        bufferInfo.buffer = buffer == nullptr ? VK_NULL_HANDLE : buffer->GetBuffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = buffer->GetSize();
+        bufferInfo.range = buffer == nullptr ? 0 : buffer->GetSize();
 
         // Update descriptor set
         VkWriteDescriptorSet descriptorWrite{};
@@ -215,7 +215,7 @@ namespace VulkanHelper
         // Create image info
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = static_cast<VkImageLayout>(layout);
-        imageInfo.imageView = imageView->GetImageView();
+        imageInfo.imageView = imageView == nullptr ? VK_NULL_HANDLE : imageView->GetImageView();
         imageInfo.sampler = VK_NULL_HANDLE; // Will be set separately if needed
 
         // Update descriptor set
@@ -274,7 +274,7 @@ namespace VulkanHelper
 
         // Create image info for sampler
         VkDescriptorImageInfo imageInfo{};
-        imageInfo.sampler = sampler->GetSampler();
+        imageInfo.sampler = sampler == nullptr ? VK_NULL_HANDLE : sampler->GetSampler();
         imageInfo.imageView = VK_NULL_HANDLE;
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -335,7 +335,7 @@ namespace VulkanHelper
         VkWriteDescriptorSetAccelerationStructureKHR accelStructInfo{};
         accelStructInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
         accelStructInfo.accelerationStructureCount = 1;
-        VkAccelerationStructureKHR handle = accelerationStructure->GetHandle();
+        VkAccelerationStructureKHR handle = accelerationStructure == nullptr ? VK_NULL_HANDLE : accelerationStructure->GetHandle();
         accelStructInfo.pAccelerationStructures = &handle;
 
         // Update descriptor set
@@ -404,23 +404,27 @@ namespace VulkanHelper
         
     }
 
-    VHResult DescriptorSet::AddBuffer(uint32_t binding, uint32_t arrayIndex, const Buffer& buffer)
+    VHResult DescriptorSet::AddBuffer(uint32_t binding, uint32_t arrayIndex, Buffer* buffer)
     {
-        return m_Impl->AddBuffer(binding, arrayIndex, Buffer::Impl::GetImplementation(buffer));
+        SharedPtr<Buffer::Impl> impl = buffer == nullptr ? nullptr : Buffer::Impl::GetImplementation(*buffer);
+        return m_Impl->AddBuffer(binding, arrayIndex, impl);
     }
 
-    VHResult DescriptorSet::AddImage(uint32_t binding, uint32_t arrayIndex, const ImageView& imageView, Image::Layout layout)
+    VHResult DescriptorSet::AddImage(uint32_t binding, uint32_t arrayIndex, ImageView* imageView, Image::Layout layout)
     {
-        return m_Impl->AddImage(binding, arrayIndex, ImageView::Impl::GetImplementation(imageView), layout);
+        SharedPtr<ImageView::Impl> impl = imageView == nullptr ? nullptr : ImageView::Impl::GetImplementation(*imageView);
+        return m_Impl->AddImage(binding, arrayIndex, impl, layout);
     }
 
-    VHResult DescriptorSet::AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler& sampler)
+    VHResult DescriptorSet::AddSampler(uint32_t binding, uint32_t arrayIndex, Sampler* sampler)
     {
-        return m_Impl->AddSampler(binding, arrayIndex, Sampler::Impl::GetImplementation(sampler));
+        SharedPtr<Sampler::Impl> impl = sampler == nullptr ? nullptr : Sampler::Impl::GetImplementation(*sampler);
+        return m_Impl->AddSampler(binding, arrayIndex, impl);
     }
 
-    VHResult DescriptorSet::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS& accelerationStructure)
+    VHResult DescriptorSet::AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, TLAS* accelerationStructure)
     {
-        return m_Impl->AddAccelerationStructure(binding, arrayIndex, TLAS::Impl::GetImplementation(accelerationStructure));
+        SharedPtr<TLAS::Impl> impl = accelerationStructure == nullptr ? nullptr : TLAS::Impl::GetImplementation(*accelerationStructure);
+        return m_Impl->AddAccelerationStructure(binding, arrayIndex, impl);
     }
 } // namespace VulkanHelper

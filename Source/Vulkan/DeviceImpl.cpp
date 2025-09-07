@@ -61,10 +61,15 @@ namespace VulkanHelper
         features12.bufferDeviceAddress = VK_TRUE;
         features12.scalarBlockLayout = VK_TRUE;
 
+        VkPhysicalDeviceRobustness2FeaturesEXT robustness2Features{};
+        robustness2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+        robustness2Features.nullDescriptor = VK_TRUE;
+
         features.pNext = &dynamicRenderingFeatures;
         dynamicRenderingFeatures.pNext = &device11Features;
         device11Features.pNext = &sync2Features;
         sync2Features.pNext = &features12;
+        features12.pNext = &robustness2Features;
 
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures{};
         VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
@@ -73,7 +78,7 @@ namespace VulkanHelper
         {
             rtFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
             rtFeatures.rayTracingPipeline = VK_TRUE;
-            features12.pNext = &rtFeatures;
+            robustness2Features.pNext = &rtFeatures;
 
             asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
             asFeatures.accelerationStructure = VK_TRUE;

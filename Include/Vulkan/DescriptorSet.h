@@ -93,7 +93,7 @@ namespace VulkanHelper
          * @return VHResult::OK on success, or an error code on failure
          * @note The binding must be configured for buffer descriptors
          */
-        [[nodiscard]] VHResult AddBuffer(uint32_t binding, uint32_t arrayIndex, const Buffer& buffer);
+        [[nodiscard]] VHResult AddBuffer(uint32_t binding, uint32_t arrayIndex, Buffer* buffer);
 
         /**
          * @brief Adds an image to the descriptor set at the specified binding
@@ -105,7 +105,7 @@ namespace VulkanHelper
          * @return VHResult::OK on success, or an error code on failure
          * @note The binding must be configured for image descriptors
          */
-        [[nodiscard]] VHResult AddImage(uint32_t binding, uint32_t arrayIndex, const ImageView& imageView, Image::Layout layout);
+        [[nodiscard]] VHResult AddImage(uint32_t binding, uint32_t arrayIndex, ImageView* imageView, Image::Layout layout);
 
         /**
          * @brief Adds a sampler to the descriptor set at the specified binding
@@ -116,7 +116,7 @@ namespace VulkanHelper
          * @return VHResult::OK on success, or an error code on failure
          * @note The binding must be configured for sampler descriptors
          */
-        [[nodiscard]] VHResult AddSampler(uint32_t binding, uint32_t arrayIndex, const Sampler& sampler);
+        [[nodiscard]] VHResult AddSampler(uint32_t binding, uint32_t arrayIndex, Sampler* sampler);
         
         /**
          * @brief Adds an acceleration structure to the descriptor set at the specified binding
@@ -127,7 +127,7 @@ namespace VulkanHelper
          * @return VHResult::OK on success, or an error code on failure
          * @note The binding must be configured for acceleration structure descriptors
          */
-        [[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, const TLAS& accelerationStructure);
+        [[nodiscard]] VHResult AddAccelerationStructure(uint32_t binding, uint32_t arrayIndex, TLAS* accelerationStructure);
 
         class Impl;
     private:
