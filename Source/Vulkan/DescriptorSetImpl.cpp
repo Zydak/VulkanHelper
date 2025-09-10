@@ -149,7 +149,7 @@ namespace VulkanHelper
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = buffer == nullptr ? VK_NULL_HANDLE : buffer->GetBuffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = buffer == nullptr ? 0 : buffer->GetSize();
+        bufferInfo.range = buffer == nullptr ? VK_WHOLE_SIZE : buffer->GetSize();
 
         // Update descriptor set
         VkWriteDescriptorSet descriptorWrite{};
