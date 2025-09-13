@@ -73,25 +73,6 @@ FetchContent_Declare(
     GIT_TAG c12ea8c9a727f5320a2b4570aee863bbede2a204
 )
 
-# OpenVDB and its dependencies - always build from source
-FetchContent_Declare(
-    tbb
-    GIT_REPOSITORY https://github.com/oneapi-src/oneTBB.git
-    GIT_TAG v2021.12.0
-)
-
-FetchContent_Declare(
-    Imath
-    GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/Imath.git
-    GIT_TAG v3.1.12
-)
-
-FetchContent_Declare(
-    openvdb
-    GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
-    GIT_TAG v11.0.0
-)
-
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 
@@ -113,29 +94,6 @@ FetchContent_MakeAvailable(VulkanMemoryAllocator)
 FetchContent_MakeAvailable(Vulkan-Headers)
 FetchContent_MakeAvailable(Vulkan-Loader)
 FetchContent_MakeAvailable(pfd)
-
-set(TBB_TEST OFF CACHE BOOL "Build TBB tests" FORCE)
-
-# Configure OpenVDB build options before fetching
-set(OPENVDB_BUILD_BINARIES OFF CACHE BOOL "Build OpenVDB binaries" FORCE)
-set(OPENVDB_BUILD_PYTHON_MODULE OFF CACHE BOOL "Build OpenVDB Python module" FORCE)
-set(OPENVDB_BUILD_UNITTESTS OFF CACHE BOOL "Build OpenVDB unit tests" FORCE)
-set(OPENVDB_BUILD_DOCS OFF CACHE BOOL "Build OpenVDB documentation" FORCE)
-set(OPENVDB_INSTALL OFF CACHE BOOL "Install OpenVDB" FORCE)
-set(OPENVDB_CORE_SHARED OFF CACHE BOOL "Build OpenVDB as shared library" FORCE)
-set(USE_EXPLICIT_INSTANTIATION OFF CACHE BOOL "Use explicit instantiation" FORCE)
-set(OPENVDB_ENABLE_UNINSTALL OFF CACHE BOOL "Enable uninstall target" FORCE)
-
-# Why would anyone not include dependencies in their lib source...
-FetchContent_MakeAvailable(tbb)
-FetchContent_MakeAvailable(Imath)
-
-# Who even made this...
-FetchContent_Populate(openvdb)
-add_subdirectory(${openvdb_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/openvdb-build)
-
-suppress_warnings(tbb)
-suppress_warnings(Imath)
 
 target_include_directories(portable_file_dialogs SYSTEM INTERFACE "${PROJECT_SOURCE_DIR}/Libraries/pfd-src/")
 

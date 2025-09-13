@@ -8,6 +8,9 @@ else()
     target_compile_options(VulkanHelper PRIVATE /MP)
 endif()
 
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+find_package(OpenVDB REQUIRED)
+
 # Libraries
 target_link_libraries(
     VulkanHelper
@@ -28,9 +31,7 @@ target_link_libraries(
     imgui
     portable_file_dialogs
     stb
-    tbb
-    Imath
-    openvdb
+    OpenVDB::openvdb
 )
 
 # Include OpenVDB headers as system headers to suppress warnings
