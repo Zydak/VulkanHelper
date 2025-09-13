@@ -28,7 +28,18 @@ target_link_libraries(
     imgui
     portable_file_dialogs
     stb
+    tbb
+    Imath
+    openvdb
 )
+
+# Include OpenVDB headers as system headers to suppress warnings
+if(TARGET openvdb)
+    get_target_property(OPENVDB_INCLUDE_DIRS openvdb INTERFACE_INCLUDE_DIRECTORIES)
+    if(OPENVDB_INCLUDE_DIRS)
+        target_include_directories(VulkanHelper SYSTEM PUBLIC ${OPENVDB_INCLUDE_DIRS})
+    endif()
+endif()
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings
 target_include_directories(VulkanHelper SYSTEM PUBLIC ${glm_SOURCE_DIR})
