@@ -41,7 +41,7 @@ target_link_libraries(
     portable_file_dialogs
     stb
     OpenVDB::openvdb
-    blosc_static
+    blosc_shared
 )
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings
