@@ -167,6 +167,23 @@ namespace VulkanHelper
         layoutInfo.bindingCount = config.BindingCount;
         layoutInfo.pBindings = layoutBindings.Data();
 
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{};
+        VulkanHelper::Vector<VkDescriptorBindingFlags> bindingFlags;
+        bindingFlags.Reserve(config.BindingCount);
+        for (uint32_t i = 0; i < config.BindingCount; ++i)
+        {
+            VkDescriptorBindingFlags flags = 0;
+            flags |= VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
+            flags |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+
+            bindingFlags.PushBack(flags);
+        }
+
+        bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        bindingFlagsInfo.bindingCount = config.BindingCount;
+        bindingFlagsInfo.pBindingFlags = bindingFlags.Data();
+        layoutInfo.pNext = &bindingFlagsInfo;
+
         VkDescriptorSetLayout descriptorSetLayout;
         VkResult res = vkCreateDescriptorSetLayout(m_Device->GetDevice(), &layoutInfo, nullptr, &descriptorSetLayout);
         if (res != VK_SUCCESS)

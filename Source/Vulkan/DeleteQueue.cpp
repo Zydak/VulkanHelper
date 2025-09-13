@@ -59,26 +59,27 @@ namespace VulkanHelper
         if (m_DeletionQueue.Empty())
             return;
 
-        // Process items from back to front to avoid invalidating indices during removal
-        for (size_t i = m_DeletionQueue.Size(); i > 0; i--)
+        for (size_t i = 0; i < m_DeletionQueue.Size(); )
         {
-            size_t index = i - 1;
-            DeletionItem& item = m_DeletionQueue[index];
+            DeletionItem& item = m_DeletionQueue[i];
             
             if (item.FramesToWait == 0)
             {
                 DestroyObject(item);
                 
-                // Remove the processed item by moving the last item to this position
-                if (index != m_DeletionQueue.Size() - 1)
+                // Remove the item by shifting all remaining items forward
+                for (size_t j = i; j < m_DeletionQueue.Size() - 1; j++)
                 {
-                    m_DeletionQueue[index] = VulkanHelper::Move(m_DeletionQueue[m_DeletionQueue.Size() - 1]);
+                    m_DeletionQueue[j] = VulkanHelper::Move(m_DeletionQueue[j + 1]);
                 }
                 m_DeletionQueue.PopBack();
+                
+                // Don't increment i since the item was removed from this index
             }
             else
             {
                 --item.FramesToWait;
+                i++; // Only increment when the item is kept
             }
         }
     }

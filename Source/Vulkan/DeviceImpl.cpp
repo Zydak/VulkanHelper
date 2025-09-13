@@ -32,6 +32,7 @@ namespace VulkanHelper
         extensions.PushBack(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
         extensions.PushBack(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
         extensions.PushBack(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+        extensions.PushBack(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
         if (requestRTSupport)
         {
             extensions.PushBack(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
@@ -60,6 +61,14 @@ namespace VulkanHelper
         features12.runtimeDescriptorArray = VK_TRUE;
         features12.bufferDeviceAddress = VK_TRUE;
         features12.scalarBlockLayout = VK_TRUE;
+        features12.descriptorBindingPartiallyBound = VK_TRUE;
+        features12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+        features12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+        features12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+        features12.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+        features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+        features12.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+        features12.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE;
 
         VkPhysicalDeviceRobustness2FeaturesEXT robustness2Features{};
         robustness2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
@@ -422,7 +431,7 @@ namespace VulkanHelper
 
         Device publicInterface = Impl::CreatePublicInterface(implResult.Value());
 
-        publicInterface.m_Impl->InitializeDeleteQueue(3); // Initialize delete queue with 3 frames delay
+        publicInterface.m_Impl->InitializeDeleteQueue(1); // Initialize delete queue with 1 frame delay
 
         return publicInterface;
     }

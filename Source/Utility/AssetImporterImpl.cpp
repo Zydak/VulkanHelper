@@ -8,6 +8,7 @@
 #include <string>
 #include <functional>
 
+#define GLM_FORCE_RIGHT_HANDED
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -125,6 +126,15 @@ namespace VulkanHelper
 
         VH_LOG_DEBUG("Processing mesh with {} vertices and {} faces", mesh->mNumVertices, mesh->mNumFaces);
 
+        glm::mat4 coordinateConversion = glm::mat4(
+            1.0f,  0.0f,  0.0f, 0.0f,  // X stays the same
+            0.0f,  -1.0f,  0.0f, 0.0f,  // Y is flipped
+            0.0f,  0.0f,  1.0f, 0.0f,  // Z stays the same
+            0.0f,  0.0f,  0.0f, 1.0f   // W unchanged
+        );
+
+        glm::mat4 vulkanTransform = coordinateConversion * bakedTransform;
+
         MeshAsset meshAsset;
         meshAsset.Name = mesh->mName.C_Str();
         meshAsset.Vertices.Reserve(mesh->mNumVertices);
@@ -144,7 +154,7 @@ namespace VulkanHelper
                 );
                 
                 // Apply transform to position
-                glm::vec4 transformedPos = bakedTransform * glm::vec4(position, 1.0f);
+                glm::vec4 transformedPos = vulkanTransform * glm::vec4(position, 1.0f);
                 vertex.Position = glm::vec3(transformedPos);
             }
 
@@ -158,14 +168,14 @@ namespace VulkanHelper
                 );
                 
                 // Apply transform to normal (use inverse transpose for correct normal transformation)
-                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(bakedTransform)));
+                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(vulkanTransform)));
                 vertex.Normal = glm::normalize(normalMatrix * normal);
             }
             else
             {
                 // Apply transform to default normal as well
                 glm::vec3 defaultNormal = glm::vec3(0.0f, 1.0f, 0.0f);
-                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(bakedTransform)));
+                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(vulkanTransform)));
                 vertex.Normal = glm::normalize(normalMatrix * defaultNormal);
             }
 
@@ -336,23 +346,15 @@ namespace VulkanHelper
 
     glm::mat4 AssetImporter::Impl::ConvertAssimpMatrix(const aiMatrix4x4& assimpMatrix)
     {
-        // Assimp matrices are row-major, GLM matrices are column-major
-        // We need to transpose when converting
-        
-        // Rotate on y axis
-        glm::mat4 vulkanTransform = glm::mat4(
-            1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, -1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 1.0f
-        );
-
-        return vulkanTransform * glm::mat4(
+        // Convert Assimp matrix from row-major to column-major (GLM)
+        glm::mat4 glmMatrix = glm::mat4(
             assimpMatrix.a1, assimpMatrix.b1, assimpMatrix.c1, assimpMatrix.d1,
             assimpMatrix.a2, assimpMatrix.b2, assimpMatrix.c2, assimpMatrix.d2,
             assimpMatrix.a3, assimpMatrix.b3, assimpMatrix.c3, assimpMatrix.d3,
             assimpMatrix.a4, assimpMatrix.b4, assimpMatrix.c4, assimpMatrix.d4
         );
+
+        return glmMatrix;
     }
 
     Expected<SceneAsset, VHResult> AssetImporter::Impl::ProcessScene(const aiScene* scene, const std::string& filePath)
@@ -599,8 +601,9 @@ namespace VulkanHelper
                     [&](const aiNode* currentNode, const std::string& name, glm::mat4 transform) -> bool {
                     
                     if (!currentNode) return false;
-                    
+
                     glm::mat4 nodeTransform = ConvertAssimpMatrix(currentNode->mTransformation);
+
                     glm::mat4 newTransform = transform * nodeTransform;
                     
                     if (std::string(currentNode->mName.C_Str()) == name)
@@ -625,26 +628,27 @@ namespace VulkanHelper
             findCameraNode(scene->mRootNode, cameraName, glm::mat4(1.0f));
 
             glm::vec3 localPosition = glm::vec3(camera->mPosition.x, camera->mPosition.y, camera->mPosition.z);
-            glm::vec3 localUp = glm::normalize(glm::vec3(-camera->mUp.x, -camera->mUp.y, -camera->mUp.z));
+            glm::vec3 localUp = glm::normalize(glm::vec3(camera->mUp.x, camera->mUp.y, camera->mUp.z));
             glm::vec3 localLookAt = glm::normalize(glm::vec3(camera->mLookAt.x, camera->mLookAt.y, camera->mLookAt.z));
 
             glm::vec3 right = glm::normalize(glm::cross(localLookAt, localUp));
-            glm::vec3 up = glm::cross(right, localLookAt);
+            glm::vec3 up = -glm::cross(right, localLookAt);
             
             glm::mat4 localCameraMatrix = glm::mat4(1.0f);
-            localCameraMatrix[0] = glm::vec4(-right, 0.0f);
+            localCameraMatrix[0] = glm::vec4(right, 0.0f);
             localCameraMatrix[1] = glm::vec4(up, 0.0f);
             localCameraMatrix[2] = glm::vec4(-localLookAt, 0.0f);
             localCameraMatrix[3] = glm::vec4(localPosition, 1.0f);
 
-            glm::mat4 vulkanTransform = glm::mat4(
-                1.0f, 0.0f, 0.0f, 0.0f,
-                0.0f, -1.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0f, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f
+            // Apply coordinate system conversion (same as for meshes)
+            glm::mat4 coordinateConversion = glm::mat4(
+                1.0f,  0.0f,  0.0f, 0.0f,  // X stays the same
+                0.0f,  -1.0f,  0.0f, 0.0f,  // Y is flipped
+                0.0f,  0.0f,  1.0f, 0.0f,  // Z stays the same
+                0.0f,  0.0f,  0.0f, 1.0f   // W unchanged
             );
 
-            cameraTransform = vulkanTransform * cameraTransform;
+            cameraTransform = coordinateConversion * cameraTransform;
 
             // Apply world transformation
             glm::mat4 finalCameraMatrix = (cameraTransform * localCameraMatrix);
