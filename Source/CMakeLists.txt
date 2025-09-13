@@ -9,7 +9,16 @@ else()
 endif()
 
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+
+# Find OpenVDB package
 find_package(OpenVDB REQUIRED)
+find_package(blosc REQUIRED)
+
+if(OpenVDB_FOUND)
+    message(STATUS "Found OpenVDB: ${OpenVDB_VERSION}")
+else()
+    message(FATAL_ERROR "OpenVDB not found. Please ensure VCPKG is properly set up with OpenVDB installed.")
+endif()
 
 # Libraries
 target_link_libraries(
@@ -32,15 +41,8 @@ target_link_libraries(
     portable_file_dialogs
     stb
     OpenVDB::openvdb
+    blosc_static
 )
-
-# Include OpenVDB headers as system headers to suppress warnings
-if(TARGET openvdb)
-    get_target_property(OPENVDB_INCLUDE_DIRS openvdb INTERFACE_INCLUDE_DIRECTORIES)
-    if(OPENVDB_INCLUDE_DIRS)
-        target_include_directories(VulkanHelper SYSTEM PUBLIC ${OPENVDB_INCLUDE_DIRS})
-    endif()
-endif()
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings
 target_include_directories(VulkanHelper SYSTEM PUBLIC ${glm_SOURCE_DIR})
