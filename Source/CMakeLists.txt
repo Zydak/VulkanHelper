@@ -41,8 +41,22 @@ target_link_libraries(
     portable_file_dialogs
     stb
     OpenVDB::openvdb
-    blosc_shared
 )
+
+# It's a shared library on Windows, static on Linux...
+if(WIN32)
+    target_link_libraries(
+        VulkanHelper
+        PUBLIC
+        blosc_shared
+    )
+else()
+    target_link_libraries(
+        VulkanHelper
+        PUBLIC
+        blosc_static
+    )
+endif()
 
 # Mark library headers as SYSTEM so I don't get their stupid ass warnings
 target_include_directories(VulkanHelper SYSTEM PUBLIC ${glm_SOURCE_DIR})
