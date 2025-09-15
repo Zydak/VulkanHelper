@@ -84,123 +84,123 @@ namespace VulkanHelper
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkBuffer buffer)
+    void DeleteQueue::QueueForDeletion(VkBuffer buffer, uint32_t framesToWait)
     {
         if (buffer != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER, (uint64_t)buffer, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER, (uint64_t)buffer, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkImage image)
+    void DeleteQueue::QueueForDeletion(VkImage image, uint32_t framesToWait)
     {
         if (image != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE, (uint64_t)image, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE, (uint64_t)image, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkImageView imageView)
+    void DeleteQueue::QueueForDeletion(VkImageView imageView, uint32_t framesToWait)
     {
         if (imageView != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_VIEW, (uint64_t)imageView, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_VIEW, (uint64_t)imageView, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkSampler sampler)
+    void DeleteQueue::QueueForDeletion(VkSampler sampler, uint32_t framesToWait)
     {
         if (sampler != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SAMPLER, (uint64_t)sampler, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::SAMPLER, (uint64_t)sampler, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkPipeline pipeline)
+    void DeleteQueue::QueueForDeletion(VkPipeline pipeline, uint32_t framesToWait)
     {
         if (pipeline != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE, (uint64_t)pipeline, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE, (uint64_t)pipeline, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkPipelineLayout pipelineLayout)
+    void DeleteQueue::QueueForDeletion(VkPipelineLayout pipelineLayout, uint32_t framesToWait)
     {
         if (pipelineLayout != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE_LAYOUT, (uint64_t)pipelineLayout, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE_LAYOUT, (uint64_t)pipelineLayout, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkDescriptorSetLayout descriptorSetLayout)
+    void DeleteQueue::QueueForDeletion(VkDescriptorSetLayout descriptorSetLayout, uint32_t framesToWait)
     {
         if (descriptorSetLayout != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkDescriptorPool descriptorPool)
+    void DeleteQueue::QueueForDeletion(VkDescriptorPool descriptorPool, uint32_t framesToWait)
     {
         if (descriptorPool != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_POOL, (uint64_t)descriptorPool, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_POOL, (uint64_t)descriptorPool, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkCommandPool commandPool)
+    void DeleteQueue::QueueForDeletion(VkCommandPool commandPool, uint32_t framesToWait)
     {
         if (commandPool != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::COMMAND_POOL, (uint64_t)commandPool, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::COMMAND_POOL, (uint64_t)commandPool, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkFence fence)
+    void DeleteQueue::QueueForDeletion(VkFence fence, uint32_t framesToWait)
     {
         if (fence != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::FENCE, (uint64_t)fence, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::FENCE, (uint64_t)fence, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkSemaphore semaphore)
+    void DeleteQueue::QueueForDeletion(VkSemaphore semaphore, uint32_t framesToWait)
     {
         if (semaphore != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SEMAPHORE, (uint64_t)semaphore, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::SEMAPHORE, (uint64_t)semaphore, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkSwapchainKHR swapchain)
+    void DeleteQueue::QueueForDeletion(VkSwapchainKHR swapchain, uint32_t framesToWait)
     {
         if (swapchain != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SWAPCHAIN, (uint64_t)swapchain, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::SWAPCHAIN, (uint64_t)swapchain, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VkShaderModule shaderModule)
+    void DeleteQueue::QueueForDeletion(VkShaderModule shaderModule, uint32_t framesToWait)
     {
         if (shaderModule != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SHADER_MODULE, (uint64_t)shaderModule, m_FramesDelay);
+            m_DeletionQueue.EmplaceBack(ObjectType::SHADER_MODULE, (uint64_t)shaderModule, framesToWait);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VulkanMemoryAllocator::BufferAllocation allocation)
+    void DeleteQueue::QueueForDeletion(VulkanMemoryAllocator::BufferAllocation allocation, uint32_t framesToWait)
     {
         if (allocation.Buffer != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER_ALLOCATION, (uint64_t)allocation.Buffer, m_FramesDelay, allocation.Allocation);
+            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER_ALLOCATION, (uint64_t)allocation.Buffer, framesToWait, allocation.Allocation);
         }
     }
 
-    void DeleteQueue::QueueForDeletion(VulkanMemoryAllocator::ImageAllocation allocation)
+    void DeleteQueue::QueueForDeletion(VulkanMemoryAllocator::ImageAllocation allocation, uint32_t framesToWait)
     {
         if (allocation.image != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_ALLOCATION, (uint64_t)allocation.image, m_FramesDelay, allocation.Allocation);
+            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_ALLOCATION, (uint64_t)allocation.image, framesToWait, allocation.Allocation);
         }
     }
 

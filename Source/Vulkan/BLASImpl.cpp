@@ -132,7 +132,6 @@ namespace VulkanHelper
             buildSizesInfo.accelerationStructureSize,
             Buffer::Usage::ACCELERATION_STRUCTURE_STORAGE_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
             false, // Not mappable
-            false, // No persistent staging
             device->GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment, // Min alignment
             "BLAS Buffer"
         ).Value();
@@ -260,7 +259,6 @@ namespace VulkanHelper
             m_ScratchBufferSize,
             Buffer::Usage::STORAGE_BUFFER_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
             false, // Not mappable
-            false, // No persistent staging
             m_Device->GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment,
             "BLAS Scratch Buffer"
         ).Value());
@@ -358,7 +356,6 @@ namespace VulkanHelper
             compactedSize,
             Buffer::Usage::ACCELERATION_STRUCTURE_STORAGE_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
             false, // Not CPU mappable
-            false, // No persistent staging buffer
             256,   // Minimum alignment
             "Compacted BLAS Buffer"
         ).Value();

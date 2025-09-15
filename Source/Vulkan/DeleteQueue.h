@@ -46,77 +46,77 @@ namespace VulkanHelper
         /**
          * @brief Queues a buffer for deferred deletion.
          */
-        void QueueForDeletion(VkBuffer buffer);
+        void QueueForDeletion(VkBuffer buffer, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues an image for deferred deletion.
          */
-        void QueueForDeletion(VkImage image);
+        void QueueForDeletion(VkImage image, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues an image view for deferred deletion.
          */
-        void QueueForDeletion(VkImageView imageView);
+        void QueueForDeletion(VkImageView imageView, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a sampler for deferred deletion.
          */
-        void QueueForDeletion(VkSampler sampler);
+        void QueueForDeletion(VkSampler sampler, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a pipeline for deferred deletion.
          */
-        void QueueForDeletion(VkPipeline pipeline);
+        void QueueForDeletion(VkPipeline pipeline, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a pipeline layout for deferred deletion.
          */
-        void QueueForDeletion(VkPipelineLayout pipelineLayout);
+        void QueueForDeletion(VkPipelineLayout pipelineLayout, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a descriptor set layout for deferred deletion.
          */
-        void QueueForDeletion(VkDescriptorSetLayout descriptorSetLayout);
+        void QueueForDeletion(VkDescriptorSetLayout descriptorSetLayout, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a descriptor pool for deferred deletion.
          */
-        void QueueForDeletion(VkDescriptorPool descriptorPool);
+        void QueueForDeletion(VkDescriptorPool descriptorPool, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a command pool for deferred deletion.
          */
-        void QueueForDeletion(VkCommandPool commandPool);
+        void QueueForDeletion(VkCommandPool commandPool, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a fence for deferred deletion.
          */
-        void QueueForDeletion(VkFence fence);
+        void QueueForDeletion(VkFence fence, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a semaphore for deferred deletion.
          */
-        void QueueForDeletion(VkSemaphore semaphore);
+        void QueueForDeletion(VkSemaphore semaphore, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a swapchain for deferred deletion.
          */
-        void QueueForDeletion(VkSwapchainKHR swapchain);
+        void QueueForDeletion(VkSwapchainKHR swapchain, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a shader module for deferred deletion.
          */
-        void QueueForDeletion(VkShaderModule shaderModule);
+        void QueueForDeletion(VkShaderModule shaderModule, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a VulkanMemoryAllocator::BufferAllocation for deferred deletion.
          */
-        void QueueForDeletion(VulkanMemoryAllocator::BufferAllocation allocation);
+        void QueueForDeletion(VulkanMemoryAllocator::BufferAllocation allocation, uint32_t framesToWait = 1);
 
         /**
          * @brief Queues a VulkanMemoryAllocator::ImageAllocation for deferred deletion.
          */
-        void QueueForDeletion(VulkanMemoryAllocator::ImageAllocation allocation);
+        void QueueForDeletion(VulkanMemoryAllocator::ImageAllocation allocation, uint32_t framesToWait = 1);
 
         /**
          * @brief Flushes all pending deletions immediately.

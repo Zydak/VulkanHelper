@@ -19,9 +19,10 @@ namespace VulkanHelper
         uint64_t size,
         Buffer::Usage usage,
         bool cpuMapable,
-        bool usePersistentStagingBuffer,
         uint32_t minAlignment,
-        const char* debugName)
+        const char* debugName,
+        uint32_t deleteDelayFrames
+    )
     {
         VH_LOG_INFO("Creating Vulkan Buffer Implementation");
 
@@ -74,36 +75,13 @@ namespace VulkanHelper
             }
         }
 
-        // Create optional persistent scratch buffer
-        VulkanMemoryAllocator::BufferAllocation scratchBuffer = {};
-        if (!cpuMapable && usePersistentStagingBuffer)
-        {
-            VH_LOG_INFO("Creating persistent scratch buffer for buffer with size {} bytes", size);
-            
-            VkBufferCreateInfo scratchBufferInfo{};
-            scratchBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            scratchBufferInfo.size = size;
-            scratchBufferInfo.usage = static_cast<VkBufferUsageFlags>(Usage::TRANSFER_SRC_BIT | Usage::TRANSFER_DST_BIT);
-            scratchBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            auto scratchAllocationResult = device->AllocateBuffer(scratchBufferInfo, true, minAlignment); // Always CPU mappable
-            if (!scratchAllocationResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to allocate scratch buffer using VulkanMemoryAllocator");
-                device->DeallocateBuffer(bufferAllocation); // Clean up main buffer
-                return Unexpected(scratchAllocationResult.Error());
-            }
-
-            scratchBuffer = scratchAllocationResult.Value();
-        };
-
         return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             bufferAllocation,
             size,
             usage,
-            cpuMapable,
-            scratchBuffer
+            deleteDelayFrames,
+            cpuMapable
         )));
     }
 
@@ -112,15 +90,15 @@ namespace VulkanHelper
         , m_BufferAllocation(other.m_BufferAllocation)
         , m_Size(other.m_Size)
         , m_Usage(other.m_Usage)
-        , m_Mapable(other.m_Mapable)
+        , m_DeleteDelayFrames(other.m_DeleteDelayFrames)
         , m_MappedData(other.m_MappedData)
-        , m_ScratchBuffer(other.m_ScratchBuffer)
+        , m_Mapable(other.m_Mapable)
     {
         other.m_Device = nullptr;
         other.m_BufferAllocation = {};
         other.m_Size = 0;
         other.m_MappedData = nullptr;
-        other.m_ScratchBuffer = {};
+        other.m_DeleteDelayFrames = 0;
     }
 
     Buffer::Impl& Buffer::Impl::operator=(Impl&& other) noexcept
@@ -128,19 +106,12 @@ namespace VulkanHelper
         if (this == &other)
             return *this;
 
-        // Clean up current resources
         if (m_Device)
         {
-            // Deallocate scratch buffer first if it exists
-            if (m_ScratchBuffer.Buffer != VK_NULL_HANDLE)
-            {
-                m_Device->GetDeleteQueue().QueueForDeletion(m_ScratchBuffer);
-            }
-
-            // Deallocate main buffer
+            // Deallocate buffer
             if (m_BufferAllocation.Buffer != VK_NULL_HANDLE)
             {
-                m_Device->GetDeleteQueue().QueueForDeletion(m_BufferAllocation);
+                m_Device->GetDeleteQueue().QueueForDeletion(m_BufferAllocation, m_DeleteDelayFrames);
             }
         }
 
@@ -149,16 +120,17 @@ namespace VulkanHelper
         m_BufferAllocation = other.m_BufferAllocation;
         m_Size = other.m_Size;
         m_Usage = other.m_Usage;
+        m_DeleteDelayFrames = other.m_DeleteDelayFrames;
         m_Mapable = other.m_Mapable;
         m_MappedData = other.m_MappedData;
-        m_ScratchBuffer = other.m_ScratchBuffer;
 
         // Reset other
         other.m_Device = nullptr;
         other.m_BufferAllocation = {};
         other.m_Size = 0;
+        other.m_Usage = {};
+        other.m_DeleteDelayFrames = 0;
         other.m_MappedData = nullptr;
-        other.m_ScratchBuffer = {};
 
         return *this;
     }
@@ -173,21 +145,14 @@ namespace VulkanHelper
                 m_MappedData = nullptr;
             }
 
-            // Deallocate scratch buffer first if it exists
-            if (m_ScratchBuffer.Buffer != VK_NULL_HANDLE)
-            {
-                m_Device->GetDeleteQueue().QueueForDeletion(m_ScratchBuffer);
-            }
-
-            // Deallocate main buffer
             if (m_BufferAllocation.Buffer != VK_NULL_HANDLE)
             {
-                m_Device->GetDeleteQueue().QueueForDeletion(m_BufferAllocation);
+                m_Device->GetDeleteQueue().QueueForDeletion(m_BufferAllocation, m_DeleteDelayFrames);
             }
         }
     }
 
-    VHResult Buffer::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd)
+    VHResult Buffer::Impl::UploadData(const void* data, uint64_t size, uint64_t offset)
     {
         if (!data)
         {
@@ -201,85 +166,27 @@ namespace VulkanHelper
             return VHResult::WRONG_ARGUMENTS;
         }
 
-        // For CPU-accessible memory, map and copy directly
-        if (m_Mapable)
+        if (!m_Mapable)
         {
-            auto mapResult = m_Device->MapMemory(m_BufferAllocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map buffer memory for upload using VMA");
-                return mapResult.Error();
-            }
-
-            void* mappedData = mapResult.Value();
-            memcpy(static_cast<char*>(mappedData) + offset, data, size);
-            m_Device->UnmapMemory(m_BufferAllocation.Allocation);
+            VH_LOG_ERROR("Cannot upload data to non-mappable buffer! Use a staging buffer and copy instead.");
+            return VHResult::WRONG_ARGUMENTS;
         }
-        else
+
+        auto mapResult = m_Device->MapMemory(m_BufferAllocation.Allocation);
+        if (!mapResult.HasValue())
         {
-            if (!cmd)
-            {
-                VH_LOG_ERROR("CommandBuffer is required for uploading to non-mappable buffers");
-                return VHResult::WRONG_ARGUMENTS;
-            }
-
-            // For non-mappable buffers, use scratch buffer
-            VulkanMemoryAllocator::BufferAllocation scratchAllocation;
-            bool useTemporaryStaging = false;
-
-            const bool hasScratchBuffer = m_ScratchBuffer.Buffer != VK_NULL_HANDLE;
-            if (hasScratchBuffer)
-            {
-                // Use persistent scratch buffer
-                scratchAllocation = m_ScratchBuffer;
-            }
-            else
-            {
-                // Create temporary staging buffer
-                auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_SRC_BIT);
-                if (!tempScratchResult.HasValue())
-                {
-                    VH_LOG_ERROR("Failed to create temporary staging buffer for upload");
-                    return tempScratchResult.Error();
-                }
-                scratchAllocation = tempScratchResult.Value();
-                useTemporaryStaging = true;
-                VH_LOG_DEBUG("Created temporary staging buffer for upload");
-            }
-
-            // Map scratch buffer and copy data
-            auto mapResult = m_Device->MapMemory(scratchAllocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map scratch buffer for upload");
-                if (useTemporaryStaging)
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                return mapResult.Error();
-            }
-
-            void* scratchMappedData = mapResult.Value();
-            uint64_t scratchOffset = hasScratchBuffer ? offset : 0;
-            memcpy(static_cast<char*>(scratchMappedData) + scratchOffset, data, size);
-            m_Device->UnmapMemory(scratchAllocation.Allocation);
-
-            // Copy from scratch buffer to main buffer using GPU
-            VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
-
-            VkBufferCopy copyRegion{};
-            copyRegion.srcOffset = scratchOffset;
-            copyRegion.dstOffset = offset;
-            copyRegion.size = size;
-
-            vkCmdCopyBuffer(commandBuffer, scratchAllocation.Buffer, m_BufferAllocation.Buffer, 1, &copyRegion);
-            
-            if (useTemporaryStaging)
-                m_Device->GetDeleteQueue().QueueForDeletion(scratchAllocation);
+            VH_LOG_ERROR("Failed to map buffer memory for upload using VMA");
+            return mapResult.Error();
         }
+
+        void* mappedData = mapResult.Value();
+        memcpy(static_cast<char*>(mappedData) + offset, data, size);
+        m_Device->UnmapMemory(m_BufferAllocation.Allocation);
 
         return VHResult::OK;
     }
 
-    VHResult Buffer::Impl::DownloadData(void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd) const
+    VHResult Buffer::Impl::DownloadData(void* data, uint64_t size, uint64_t offset) const
     {
         if (!data)
         {
@@ -293,110 +200,24 @@ namespace VulkanHelper
             return VHResult::WRONG_ARGUMENTS;
         }
 
-        // For CPU-accessible memory, map and copy directly
-        if (m_Mapable)
+        if (!m_Mapable)
         {
-            auto mapResult = m_Device->MapMemory(m_BufferAllocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map buffer memory for download using VMA");
-                return mapResult.Error();
-            }
-
-            void* mappedData = mapResult.Value();
-            memcpy(data, static_cast<const char*>(mappedData) + offset, size);
-            m_Device->UnmapMemory(m_BufferAllocation.Allocation);
-
-            return VHResult::OK;
+            VH_LOG_ERROR("Cannot download data from non-mappable buffer! Use a staging buffer and copy instead.");
+            return VHResult::WRONG_ARGUMENTS;
         }
-        else
+
+        auto mapResult = m_Device->MapMemory(m_BufferAllocation.Allocation);
+        if (!mapResult.HasValue())
         {
-            if (!cmd)
-            {
-                VH_LOG_ERROR("CommandBuffer is required for downloading from non-mappable buffers");
-                return VHResult::WRONG_ARGUMENTS;
-            }
-
-            // For non-mappable buffers, use scratch buffer
-            VulkanMemoryAllocator::BufferAllocation scratchAllocation;
-            bool useTemporaryStaging = false;
-
-            const bool hasScratchBuffer = m_ScratchBuffer.Buffer != VK_NULL_HANDLE;
-            if (hasScratchBuffer)
-            {
-                // Use persistent scratch buffer
-                scratchAllocation = m_ScratchBuffer;
-            }
-            else
-            {
-                // Create temporary staging buffer
-                auto tempScratchResult = CreateTemporaryStagingBuffer(size, Usage::TRANSFER_DST_BIT);
-                if (!tempScratchResult.HasValue())
-                {
-                    VH_LOG_ERROR("Failed to create temporary staging buffer for download");
-                    return tempScratchResult.Error();
-                }
-                scratchAllocation = tempScratchResult.Value();
-                useTemporaryStaging = true;
-                VH_LOG_DEBUG("Created temporary staging buffer for download");
-            }
-
-            // Copy from main buffer to scratch buffer using GPU
-            uint64_t scratchOffset = hasScratchBuffer ? offset : 0;
-            VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
-
-            VkBufferCopy copyRegion{};
-            copyRegion.srcOffset = offset;
-            copyRegion.dstOffset = scratchOffset;
-            copyRegion.size = size;
-
-            vkCmdCopyBuffer(commandBuffer, m_BufferAllocation.Buffer, scratchAllocation.Buffer, 1, &copyRegion);
-
-            // We have to wait for the copy to finish so use EndRecording() and SubmitAndWait();
-            VHResult res = cmd->EndRecording();
-            if (res != VHResult::OK)
-            {
-                VH_LOG_ERROR("Couldn't end recording of the command buffer! Make sure it is in recording state!");
-                m_Device->DeallocateBuffer(scratchAllocation);
-                return res;
-            }
-            res = cmd->SubmitAndWait();
-            if (res != VHResult::OK)
-            {
-                VH_LOG_ERROR("Couldn't end Submit the command buffer!");
-                m_Device->DeallocateBuffer(scratchAllocation);
-                return res;
-            }
-            
-            auto mapResult = m_Device->MapMemory(scratchAllocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map scratch buffer for download");
-                if (useTemporaryStaging)
-                    m_Device->DeallocateBuffer(scratchAllocation);
-                return mapResult.Error();
-            }
-
-            // Then we can copy the data wherever the user wanted
-            void* scratchMappedData = mapResult.Value();
-            memcpy(data, static_cast<const char*>(scratchMappedData) + scratchOffset, size);
-            m_Device->UnmapMemory(scratchAllocation.Allocation);
-            if (useTemporaryStaging)
-            {
-                m_Device->DeallocateBuffer(scratchAllocation);
-            }
-            
-            // Start recording again
-            res = cmd->BeginRecording(VulkanHelper::CommandBuffer::Usage::NONE);
-            if (res != VHResult::OK)
-            {
-                VH_LOG_ERROR("Couldn't begin CommandBuffer recording!");
-                m_Device->DeallocateBuffer(scratchAllocation);
-                return res;
-            }
-
-            return VHResult::OK;
+            VH_LOG_ERROR("Failed to map buffer memory for download using VMA");
+            return mapResult.Error();
         }
+
+        void* mappedData = mapResult.Value();
+        memcpy(data, static_cast<const char*>(mappedData) + offset, size);
+        m_Device->UnmapMemory(m_BufferAllocation.Allocation);
+
+        return VHResult::OK;
     }
 
     Expected<void*, VHResult> Buffer::Impl::Map()
@@ -436,20 +257,20 @@ namespace VulkanHelper
         m_MappedData = nullptr;
     }
 
-    VHResult Buffer::Impl::CopyFrom(SharedPtr<CommandBuffer::Impl> cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
+    VHResult Buffer::Impl::CopyFromBuffer(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Buffer::Impl>& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
     {
         VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
 
-        VkBuffer srcBuffer = source.GetBuffer();
+        VkBuffer srcBuffer = source->GetBuffer();
 
         // If size is UINT64_MAX (equivalent to VK_WHOLE_SIZE), use the minimum of the two buffer sizes
         if (size == UINT64_MAX)
         {
-            size = (source.GetSize() < m_Size) ? source.GetSize() : m_Size;
+            size = (source->GetSize() < m_Size) ? source->GetSize() : m_Size;
             size -= (srcOffset > dstOffset) ? srcOffset : dstOffset;
         }
 
-        if (srcOffset + size > source.GetSize())
+        if (srcOffset + size > source->GetSize())
         {
             VH_LOG_ERROR("Source copy range exceeds source buffer size");
             return VHResult::WRONG_ARGUMENTS;
@@ -469,6 +290,11 @@ namespace VulkanHelper
         vkCmdCopyBuffer(commandBuffer, srcBuffer, m_BufferAllocation.Buffer, 1, &copyRegion);
 
         return VHResult::OK;
+    }
+
+    VHResult Buffer::Impl::CopyToBuffer(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Buffer::Impl>& destination, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
+    {
+        return destination->CopyFromBuffer(cmd, SharedPtr<Buffer::Impl>(this), dstOffset, srcOffset, size);
     }
 
     VHResult Buffer::Impl::CopyToImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
@@ -497,18 +323,6 @@ namespace VulkanHelper
         vkCmdCopyBufferToImage(commandBuffer, m_BufferAllocation.Buffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
         return VHResult::OK;
-    }
-
-    VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> 
-    Buffer::Impl::CreateTemporaryStagingBuffer(uint64_t size, Usage usage) const
-    {
-        VkBufferCreateInfo stagingBufferInfo{};
-        stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        stagingBufferInfo.size = size;
-        stagingBufferInfo.usage = static_cast<VkBufferUsageFlags>(usage);
-        stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        return m_Device->AllocateBuffer(stagingBufferInfo, true); // Always CPU mappable
     }
 
     void Buffer::Impl::Barrier(SharedPtr<CommandBuffer::Impl> cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
@@ -578,9 +392,9 @@ namespace VulkanHelper
             config.Size,
             config.Usage,
             config.CpuMapable,
-            config.UsePersistentStagingBuffer,
             config.MinAlignment,
-            config.DebugName
+            config.DebugName,
+            1 // TODO
         );
 
         if (!implResult.HasValue())
@@ -631,14 +445,14 @@ namespace VulkanHelper
         : m_Impl(impl)
     {}
 
-    VHResult Buffer::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd)
+    VHResult Buffer::UploadData(const void* data, uint64_t size, uint64_t offset)
     {
-        return m_Impl->UploadData(data, size, offset, cmd != nullptr ? CommandBuffer::Impl::GetImplementation(*cmd) : SharedPtr<CommandBuffer::Impl>(nullptr));
+        return m_Impl->UploadData(data, size, offset);
     }
 
-    VHResult Buffer::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd) const
+    VHResult Buffer::DownloadData(void* data, uint64_t size, uint64_t offset) const
     {
-        return m_Impl->DownloadData(data, size, offset, cmd != nullptr ? CommandBuffer::Impl::GetImplementation(*cmd) : SharedPtr<CommandBuffer::Impl>(nullptr));
+        return m_Impl->DownloadData(data, size, offset);
     }
 
     Expected<void*, VHResult> Buffer::Map()
@@ -651,9 +465,14 @@ namespace VulkanHelper
         m_Impl->Unmap();
     }
 
-    VHResult Buffer::CopyFrom(CommandBuffer& cmd, const Buffer& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
+    VHResult Buffer::CopyFromBuffer(CommandBuffer& cmd, const Buffer& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
     {
-        return m_Impl->CopyFrom(CommandBuffer::Impl::GetImplementation(cmd), *Buffer::Impl::GetImplementation(source), srcOffset, dstOffset, size);
+        return m_Impl->CopyFromBuffer(CommandBuffer::Impl::GetImplementation(cmd), Buffer::Impl::GetImplementation(source), srcOffset, dstOffset, size);
+    }
+
+    VHResult Buffer::CopyToBuffer(CommandBuffer& cmd, const Buffer& destination, uint64_t srcOffset, uint64_t dstOffset, uint64_t size)
+    {
+        return m_Impl->CopyToBuffer(CommandBuffer::Impl::GetImplementation(cmd), Buffer::Impl::GetImplementation(destination), srcOffset, dstOffset, size);
     }
 
     VHResult Buffer::CopyToImage(CommandBuffer& cmd, const Image& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)

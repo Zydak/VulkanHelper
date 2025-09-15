@@ -40,8 +40,7 @@ namespace VulkanHelper
             device,
             instances.Size() * sizeof(VkAccelerationStructureInstanceKHR),
             VulkanHelper::Buffer::Usage::TRANSFER_DST_BIT | VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT | VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT,
-            false,
-            false,
+            false, // Not mappable
             device->GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment,
             "TLAS Instances Buffer"
         );
@@ -52,11 +51,36 @@ namespace VulkanHelper
             return Unexpected(instancesBufferRes.Error());
         }
 
+        // Make a staging buffer for the instances data
+        auto stagingBufferRes = VulkanHelper::Buffer::Impl::New(
+            device,
+            instances.Size() * sizeof(VkAccelerationStructureInstanceKHR),
+            VulkanHelper::Buffer::Usage::TRANSFER_SRC_BIT,
+            true, // Mappable
+            1, // No special alignment needed
+            "TLAS Instances Staging Buffer"
+        );
+        if (!stagingBufferRes.HasValue())
+        {
+            VH_LOG_ERROR("Failed to create staging buffer for TLAS instances");
+            return Unexpected(stagingBufferRes.Error());
+        }
+
         SharedPtr<Buffer::Impl> instancesBuffer = Move(instancesBufferRes.Value());
-        auto res = instancesBuffer->UploadData(instances.Data(), instances.Size() * sizeof(VkAccelerationStructureInstanceKHR), 0, commandBuffer);
+        SharedPtr<Buffer::Impl> stagingBuffer = Move(stagingBufferRes.Value());
+
+        auto res = stagingBuffer->UploadData(instances.Data(), instances.Size() * sizeof(VkAccelerationStructureInstanceKHR), 0);
         if (res != VHResult::OK)
         {
             VH_LOG_ERROR("Failed to upload instances buffer");
+            return Unexpected(res);
+        }
+
+        // Copy staging buffer to device local buffer
+        res = instancesBuffer->CopyFromBuffer(commandBuffer, stagingBuffer, 0, 0, instances.Size() * sizeof(VkAccelerationStructureInstanceKHR));
+        if (res != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to copy instances buffer to device local memory");
             return Unexpected(res);
         }
 
@@ -106,7 +130,6 @@ namespace VulkanHelper
             sizeInfo.accelerationStructureSize,
             VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_STORAGE_BIT | VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
             false, // Not mappable
-            false, // No persistent staging
             device->GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment, // Min alignment
             "TLAS Buffer"
         ).Value();
@@ -117,7 +140,6 @@ namespace VulkanHelper
             sizeInfo.buildScratchSize,
             VulkanHelper::Buffer::Usage::STORAGE_BUFFER_BIT | VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
             false, // Not mappable
-            false, // No persistent staging
             device->GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment, // Min alignment
             "TLAS Scratch Buffer"
         ).Value();

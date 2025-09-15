@@ -77,17 +77,19 @@ namespace VulkanHelper
             bool CpuMapable = false;
 
             /**
-             * @brief Whether to use persistent staging
-             * @note Improves performance for frequent CPU writes to GPU-only buffers, but doubles the memory size cost
+             * @brief Minimum alignment for the buffer memory
              */
-            bool UsePersistentStagingBuffer = false;
-
-            uint32_t MinAlignment = 1; ///< Minimum alignment for buffer allocation
+            uint32_t MinAlignment = 1;
 
             /**
              * @brief Optional debug name
              */
             const char* DebugName = "";
+
+            /**
+             * @brief Number of frames to wait before deleting the buffer
+             */
+            uint32_t DeleteDelayInFrames = 1;
         };
 
         /**
@@ -112,22 +114,22 @@ namespace VulkanHelper
          * @param data Pointer to source data
          * @param size Size in bytes to upload
          * @param offset Destination offset in bytes
-         * @param cmd Command buffer for GPU transfers (required for non-mappable buffers)
          * @return VHResult::OK on success
          * 
-         * @note If you pass a command buffer in, you must ensure it is executed before the end of the frame.
+         * @note buffer must have been created with CpuMapable=true to use this function
          */
-        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset = 0, CommandBuffer* cmd = nullptr);
+        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset = 0);
 
         /**
          * @brief Download data from the buffer
          * @param data Pointer to destination buffer
          * @param size Size in bytes to download
          * @param offset Source offset in bytes
-         * @param cmd Command buffer for GPU transfers (required for non-mappable buffers)
          * @return VHResult::OK on success
+         * 
+         * @note buffer must have been created with CpuMapable=true to use this function
          */
-        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset = 0, CommandBuffer* cmd = nullptr) const;
+        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset = 0) const;
 
         /**
          * @brief Map buffer memory for CPU access
@@ -151,7 +153,20 @@ namespace VulkanHelper
          * @param size Size to copy in bytes (UINT64_MAX for entire buffer)
          * @return VHResult::OK on success
          */
-        [[nodiscard]] VHResult CopyFrom(CommandBuffer& cmd, const Buffer& source, 
+        [[nodiscard]] VHResult CopyFromBuffer(CommandBuffer& cmd, const Buffer& source, 
+                         uint64_t srcOffset = 0, uint64_t dstOffset = 0, 
+                         uint64_t size = UINT64_MAX);
+
+        /**
+         * @brief Copy data to another buffer using GPU commands
+         * @param cmd Command buffer to record the copy into
+         * @param destination Destination buffer
+         * @param srcOffset Source offset in bytes
+         * @param dstOffset Destination offset in bytes
+         * @param size Size to copy in bytes (UINT64_MAX for entire buffer)
+         * @return VHResult::OK on success
+         */
+        [[nodiscard]] VHResult CopyToBuffer(CommandBuffer& cmd, const Buffer& destination, 
                          uint64_t srcOffset = 0, uint64_t dstOffset = 0, 
                          uint64_t size = UINT64_MAX);
 

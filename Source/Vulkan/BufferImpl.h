@@ -16,9 +16,9 @@ namespace VulkanHelper
             uint64_t size,
             Buffer::Usage usage,
             bool cpuMapable,
-            bool usePersistentStagingBuffer,
             uint32_t minAlignment,
-            const char* debugName
+            const char* debugName,
+            uint32_t deleteDelayFrames = 1
         );
 
         Impl(const Impl& other) = delete;
@@ -40,17 +40,17 @@ namespace VulkanHelper
 
         [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
 
-        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr);
-        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset, SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
+        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset);
+        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset) const;
 
         [[nodiscard]] Expected<void*, VHResult> Map();
 
         void Unmap();
 
-        [[nodiscard]] VHResult CopyFrom(SharedPtr<CommandBuffer::Impl> cmd, const Buffer::Impl& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
+        [[nodiscard]] VHResult CopyFromBuffer(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Buffer::Impl>& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
+        [[nodiscard]] VHResult CopyToBuffer(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Buffer::Impl>& destination, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
 
         [[nodiscard]] VHResult CopyToImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
-
         [[nodiscard]] VHResult CopyFromImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& src);
 
         void Barrier(SharedPtr<CommandBuffer::Impl> cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
@@ -59,35 +59,25 @@ namespace VulkanHelper
         VulkanMemoryAllocator::BufferAllocation m_BufferAllocation;
         uint64_t m_Size;
         Usage m_Usage;
-        bool m_Mapable;
+        uint32_t m_DeleteDelayFrames;
         void* m_MappedData;
-        
-        // Optional persistent scratch buffer for non-mappable buffers
-        VulkanMemoryAllocator::BufferAllocation m_ScratchBuffer;
+        bool m_Mapable;
 
         Impl(
             SharedPtr<Device::Impl> device,
             VulkanMemoryAllocator::BufferAllocation bufferAllocation,
             uint64_t size,
             Usage usage,
-            bool mapable,
-            VulkanMemoryAllocator::BufferAllocation scratchBuffer)
+            uint32_t deleteDelayFrames,
+            bool mapable
+        )
             : m_Device(device)
             , m_BufferAllocation(bufferAllocation)
             , m_Size(size)
             , m_Usage(usage)
-            , m_Mapable(mapable)
+            , m_DeleteDelayFrames(deleteDelayFrames)
             , m_MappedData(nullptr)
-            , m_ScratchBuffer(scratchBuffer)
+            , m_Mapable(mapable)
         {}
-
-        /**
-         * @brief Create a temporary staging buffer for a single operation.
-         *
-         * @param size Size of the staging buffer in bytes.
-         * @param usage Usage flags for the staging buffer.
-         * @return Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> Staging buffer allocation on success, or error on failure.
-         */
-        [[nodiscard]] VulkanHelper::Expected<VulkanMemoryAllocator::BufferAllocation, VHResult> CreateTemporaryStagingBuffer(uint64_t size, Usage usage) const;
     };
 }

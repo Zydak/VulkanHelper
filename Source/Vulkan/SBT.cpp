@@ -71,7 +71,6 @@ namespace VulkanHelper
             sbtSize,
             VulkanHelper::Buffer::Usage::TRANSFER_SRC_BIT | VulkanHelper::Buffer::Usage::SHADER_BINDING_TABLE_BIT,
             true, // CPU mappable for staging
-            false, // No persistent staging buffer
             bufferBaseAlignment, // Minimum alignment
             "SBT Staging Buffer"
         ).Value();
@@ -112,12 +111,11 @@ namespace VulkanHelper
             sbtSize,
             Buffer::Usage::SHADER_BINDING_TABLE_BIT | Buffer::Usage::TRANSFER_DST_BIT | Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT,
             false, // Not CPU mappable
-            false, // No persistent staging buffer
             bufferBaseAlignment, // Minimum alignment
             "SBT Buffer"
         ).Value();
 
-        auto res = sbtBuffer->CopyFrom(cmd, *stagingBuffer, 0, 0, sbtSize);
+        auto res = sbtBuffer->CopyFromBuffer(cmd, stagingBuffer, 0, 0, sbtSize);
         if (res != VHResult::OK)
         {
             VH_LOG_ERROR("Failed to copy SBT buffer");

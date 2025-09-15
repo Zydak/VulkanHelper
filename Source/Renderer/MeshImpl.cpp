@@ -41,7 +41,6 @@ namespace VulkanHelper
             vertexDataSize,
             Buffer::Usage::VERTEX_BUFFER_BIT | Buffer::Usage::TRANSFER_DST_BIT | AdditionalUsageFlags,
             false, // CpuMapable
-            false, // UsePersistentStagingBuffer
             1, // Minimum alignment
             "Mesh Vertex Buffer"
         );
@@ -50,16 +49,40 @@ namespace VulkanHelper
             VH_LOG_ERROR("Failed to create vertex buffer");
             return Unexpected(vertexBufferResult.Error());
         }
+        
+        // Create staging buffer and upload vertex data
+        auto stagingBufferResult = Buffer::Impl::New(
+            device,
+            vertexDataSize,
+            Buffer::Usage::TRANSFER_SRC_BIT,
+            true, // CpuMapable
+            1, // Minimum alignment
+            "Mesh Vertex Staging Buffer",
+            0 // No delete delay
+        );
+        if (!stagingBufferResult.HasValue())
+        {
+            VH_LOG_ERROR("Failed to create staging buffer for vertex data");
+            return Unexpected(stagingBufferResult.Error());
+        }
 
         Buffer vertexBuffer = Buffer::Impl::CreatePublicInterface(Move(vertexBufferResult.Value()));
+        Buffer stagingBuffer = Buffer::Impl::CreatePublicInterface(Move(stagingBufferResult.Value()));
 
         // Upload vertex data
         if (vertexData != nullptr)
         {
-            VHResult uploadResult = Buffer::Impl::GetImplementation(vertexBuffer)->UploadData(vertexData, vertexDataSize, 0, commandBuffer);
+            VHResult uploadResult = stagingBuffer.UploadData(vertexData, vertexDataSize, 0);
             if (uploadResult != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to upload vertex data to buffer");
+                return Unexpected(uploadResult);
+            }
+
+            uploadResult = Buffer::Impl::GetImplementation(vertexBuffer)->CopyFromBuffer(commandBuffer, Buffer::Impl::GetImplementation(stagingBuffer), 0, 0, vertexDataSize);
+            if (uploadResult != VHResult::OK)
+            {
+                VH_LOG_ERROR("Failed to copy vertex data from staging buffer to vertex buffer");
                 return Unexpected(uploadResult);
             }
         }
@@ -100,7 +123,6 @@ namespace VulkanHelper
                 indexDataSize,
                 Buffer::Usage::INDEX_BUFFER_BIT | Buffer::Usage::TRANSFER_DST_BIT | AdditionalUsageFlags,
                 false, // CpuMapable
-                false, // UsePersistentStagingBuffer
                 1, // Minimum alignment
                 "Mesh Index Buffer"
             );
@@ -110,13 +132,38 @@ namespace VulkanHelper
                 return Unexpected(indexBufferResult.Error());
             }
 
+            // Create staging buffer for index data
+            auto indexStagingBufferResult = Buffer::Impl::New(
+                device,
+                indexDataSize,
+                Buffer::Usage::TRANSFER_SRC_BIT,
+                true, // CpuMapable
+                1, // Minimum alignment
+                "Mesh Index Staging Buffer",
+                0 // No delete delay
+            );
+            if (!indexStagingBufferResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to create staging buffer for index data");
+                return Unexpected(indexStagingBufferResult.Error());
+            }
+
             indexBuffer = new Buffer(Buffer::Impl::CreatePublicInterface(indexBufferResult.Value()));
+            Buffer indexStagingBuffer = Buffer::Impl::CreatePublicInterface(Move(indexStagingBufferResult.Value()));
 
             // Upload index data
-            VHResult uploadResult = Buffer::Impl::GetImplementation(*indexBuffer)->UploadData(indexData, indexDataSize, 0, commandBuffer);
+            VHResult uploadResult = indexStagingBuffer.UploadData(indexData, indexDataSize, 0);
             if (uploadResult != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to upload index data to buffer");
+                return Unexpected(uploadResult);
+            }
+
+            // Copy from staging buffer to index buffer
+            uploadResult = Buffer::Impl::GetImplementation(*indexBuffer)->CopyFromBuffer(commandBuffer, Buffer::Impl::GetImplementation(indexStagingBuffer), 0, 0, indexDataSize);
+            if (uploadResult != VHResult::OK)
+            {
+                VH_LOG_ERROR("Failed to copy index data from staging buffer to index buffer");
                 return Unexpected(uploadResult);
             }
 
@@ -129,6 +176,28 @@ namespace VulkanHelper
         }
 
         VH_LOG_INFO("Created Mesh with {} vertices and {} indices", vertexCount, indexCount);
+
+        // End the command buffer, it has to be done before the staging buffers are deleted
+        VHResult endResult = commandBuffer->EndRecording();
+        if (endResult != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to end command buffer recording");
+            return Unexpected(endResult);
+        }
+        // Submit the command buffer and wait for it to finish
+        VHResult submitResult = commandBuffer->SubmitAndWait();
+        if (submitResult != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to submit command buffer");
+            return Unexpected(submitResult);
+        }
+        // Restart command buffer recording for further use
+        endResult = commandBuffer->BeginRecording(VulkanHelper::CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT);
+        if (endResult != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to restart command buffer recording");
+            return Unexpected(endResult);
+        }
 
         return SharedPtr<Impl>(std::make_shared<Impl>(Impl(device, Move(vertexBuffer), Move(indexBuffer), vertexSize, std::move(vertexAttributesVec))));
     }
