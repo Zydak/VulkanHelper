@@ -89,6 +89,16 @@ namespace VulkanHelper
 
         ~ImageView();
 
+        [[nodiscard]] bool operator==(std::nullptr_t) const
+        {
+            return m_Impl == nullptr;
+        }
+
+        [[nodiscard]] bool operator!=(std::nullptr_t) const
+        {
+            return m_Impl != nullptr;
+        }
+
         /**
          * @brief Gets the underlying image of the view
          * @return The image associated with this view
