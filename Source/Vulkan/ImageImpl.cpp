@@ -4,7 +4,7 @@
 
 #include "Vulkan/CommandBuffer.h"
 #include "CommandBufferImpl.h"
-#include "Vulkan/Buffer.h"
+#include "BufferImpl.h"
 
 namespace VulkanHelper
 {
@@ -427,277 +427,34 @@ namespace VulkanHelper
         m_Device->UnmapMemory(m_Allocation.Allocation);
     }
 
-    VHResult Image::Impl::UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd, uint32_t baseLayer)
+    VHResult Image::Impl::CopyFromBuffer(
+        const SharedPtr<CommandBuffer::Impl> commandBuffer,
+        const SharedPtr<Buffer::Impl>& src,
+        uint32_t bufferOffset,
+        uint32_t imageOffsetX,
+        uint32_t imageOffsetY,
+        uint32_t imageExtentX,
+        uint32_t imageExtentY,
+        uint32_t imageBaseLayer,
+        uint32_t layerCount
+    )
     {
-        if (!data)
-        {
-            VH_LOG_ERROR("Data pointer cannot be null!");
-            return VHResult::WRONG_ARGUMENTS;
-        }
-
-        if (size == 0)
-        {
-            VH_LOG_ERROR("Upload size cannot be zero!");
-            return VHResult::WRONG_ARGUMENTS;
-        }
-
-        uint32_t texelSize = GetTexelSizeInBytes((VkFormat)m_Format);
-        uint64_t imageSize = m_Width * m_Height * texelSize;
-        if (!m_Mapable)
-        {
-            if (size != imageSize)
-            {
-                VH_LOG_ERROR("Unless your image is mapable, you can only write the entire image! Writing to parts of an image is not implemented yet.");
-                return VHResult::NOT_IMPLEMENTED;
-            }
-        }
-
-        if (offset + size > imageSize)
-        {
-            VH_LOG_ERROR("Upload size {} + offset {} exceeds total image size {}", size, offset, imageSize);
-            return VHResult::WRONG_ARGUMENTS;
-        }
-
-        // For CPU-accessible memory, map and copy directly
-        if (m_Mapable)
-        {
-            auto mapResult = m_Device->MapMemory(m_Allocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map image memory");
-                return mapResult.Error();
-            }
-
-            void* mappedData = mapResult.Value();
-            memcpy(static_cast<char*>(mappedData) + offset, data, size);
-            m_Device->UnmapMemory(m_Allocation.Allocation);
-
-            return VHResult::OK;
-        }
-        else
-        {
-            if (!cmd)
-            {
-                VH_LOG_ERROR("CommandBuffer is required for uploading to non-mappable images");
-                return VHResult::WRONG_ARGUMENTS;
-            }
-
-            VulkanMemoryAllocator::BufferAllocation stagingBufferAllocation;
-            bool usingTemporaryStagingBuffer = m_StagingBufferAllocation.Buffer == VK_NULL_HANDLE;
-            if (!usingTemporaryStagingBuffer)
-                stagingBufferAllocation = m_StagingBufferAllocation;
-            else
-            {
-                VH_LOG_DEBUG("Creating temporary scratch buffer for image upload");
-                // Create staging buffer
-                VkBufferCreateInfo bufferInfo{};
-                bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-                bufferInfo.size = size;
-                bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-                bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-                auto stagingBufferResult = m_Device->AllocateBuffer(bufferInfo, true);
-                if (!stagingBufferResult.HasValue())
-                {
-                    VH_LOG_ERROR("Failed to create staging buffer for image upload");
-                    return stagingBufferResult.Error();
-                }
-
-                stagingBufferAllocation = stagingBufferResult.Value();
-            }
-
-            // Copy data to staging buffer
-            auto mapResult = m_Device->MapMemory(stagingBufferAllocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map staging buffer memory");
-                if (usingTemporaryStagingBuffer)
-                    m_Device->DeallocateBuffer(stagingBufferAllocation);
-                return mapResult.Error();
-            }
-
-            void* mappedData = mapResult.Value();
-            memcpy(mappedData, data, size);
-            m_Device->UnmapMemory(stagingBufferAllocation.Allocation);
-
-            VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
-
-            Layout originalLayout = m_Layout[baseLayer];
-            TransitionImageLayout(Layout::TRANSFER_DST_OPTIMAL, cmd, baseLayer, 1);
-
-            // Copy buffer to image
-            VkBufferImageCopy copyRegion{};
-            copyRegion.bufferOffset = 0;
-            copyRegion.bufferRowLength = 0;
-            copyRegion.bufferImageHeight = 0;
-            copyRegion.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(m_Aspect);
-            copyRegion.imageSubresource.mipLevel = 0;
-            copyRegion.imageSubresource.baseArrayLayer = baseLayer;
-            copyRegion.imageSubresource.layerCount = 1;
-            copyRegion.imageOffset = {0, 0, 0};
-            copyRegion.imageExtent = {m_Width, m_Height, 1};
-
-            vkCmdCopyBufferToImage(commandBuffer, stagingBufferAllocation.Buffer, m_Allocation.image,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
-
-            // Don't transition to undefined since it's pointless and requires vulkan extension
-            if (originalLayout != Layout::UNDEFINED)
-                TransitionImageLayout(originalLayout, cmd, baseLayer, 1);
-
-            if (usingTemporaryStagingBuffer)
-                m_Device->GetDeleteQueue().QueueForDeletion(stagingBufferAllocation);
-        }
-
-        return VHResult::OK;
+        return src->CopyToImage(commandBuffer, SharedPtr<Image::Impl>(this), bufferOffset, imageOffsetX, imageOffsetY, imageExtentX, imageExtentY, imageBaseLayer, layerCount);
     }
 
-    VHResult Image::Impl::DownloadData(void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd) const
+    VHResult Image::Impl::CopyToBuffer(
+        const SharedPtr<CommandBuffer::Impl> commandBuffer,
+        const SharedPtr<Buffer::Impl>& dst,
+        uint32_t bufferOffset,
+        uint32_t imageOffsetX,
+        uint32_t imageOffsetY,
+        uint32_t imageExtentX,
+        uint32_t imageExtentY,
+        uint32_t imageBaseLayer,
+        uint32_t layerCount
+    )
     {
-        if (!data)
-        {
-            VH_LOG_ERROR("Data pointer cannot be null!");
-            return VHResult::WRONG_ARGUMENTS;
-        }
-
-        if (size == 0)
-        {
-            VH_LOG_ERROR("Download size cannot be zero!");
-            return VHResult::WRONG_ARGUMENTS;
-        }
-
-        // TODO base layer
-        if (m_Layout[0] != Layout::TRANSFER_SRC_OPTIMAL)
-        {
-            VH_LOG_ERROR("DownloadData() expects image in Layout::TRANSFER_SRC_OPTIMAL layout.");
-            return VHResult::WRONG_IMAGE_LAYOUT;
-        }
-
-        uint32_t texelSize = GetTexelSizeInBytes((VkFormat)m_Format);
-        uint64_t imageSize = m_Width * m_Height * texelSize;
-        if (!m_Mapable)
-        {
-            if (size != imageSize)
-            {
-                VH_LOG_ERROR("Unless your image is mapable, you can only read the entire image! Reading from parts of an image is not implemented yet.");
-                return VHResult::NOT_IMPLEMENTED;
-            }
-        }
-
-        if (offset + size > imageSize)
-        {
-            VH_LOG_ERROR("Upload size {} + offset {} exceeds total image size {}", size, offset, imageSize);
-            return VHResult::WRONG_ARGUMENTS;
-        }
-
-        // For CPU-accessible memory, map and copy directly
-        if (m_Mapable)
-        {
-            auto mapResult = m_Device->MapMemory(m_Allocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map image memory for download using VMA");
-                return mapResult.Error();
-            }
-
-            void* mappedData = mapResult.Value();
-            memcpy(data, static_cast<const char*>(mappedData) + offset, size);
-            m_Device->UnmapMemory(m_Allocation.Allocation);
-
-            return VHResult::OK;
-        }
-        else
-        {
-            if (!cmd)
-            {
-                VH_LOG_ERROR("CommandBuffer is required for downloading from non-mappable images");
-                return VHResult::WRONG_ARGUMENTS;
-            }
-
-            VulkanMemoryAllocator::BufferAllocation stagingBufferAllocation;
-            bool usingTemporaryStagingBuffer = m_StagingBufferAllocation.Buffer == VK_NULL_HANDLE;
-            if (!usingTemporaryStagingBuffer)
-                stagingBufferAllocation = m_StagingBufferAllocation;
-            else
-            {
-                // Create staging buffer
-                VH_LOG_DEBUG("Creating temporary scratch buffer for image download");
-
-                VkBufferCreateInfo bufferInfo{};
-                bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-                bufferInfo.size = size;
-                bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-                bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-                auto stagingBufferResult = m_Device->AllocateBuffer(bufferInfo, true);
-                if (!stagingBufferResult.HasValue())
-                {
-                    VH_LOG_ERROR("Failed to create staging buffer for image upload");
-                    return stagingBufferResult.Error();
-                }
-
-                stagingBufferAllocation = stagingBufferResult.Value();
-            }
-
-            VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
-
-            // Copy image to buffer
-            VkBufferImageCopy copyRegion{};
-            copyRegion.bufferOffset = 0;
-            copyRegion.bufferRowLength = 0;  // Tightly packed
-            copyRegion.bufferImageHeight = 0;  // Tightly packed
-            copyRegion.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(m_Aspect);
-            copyRegion.imageSubresource.mipLevel = 0;
-            copyRegion.imageSubresource.baseArrayLayer = 0;
-            copyRegion.imageSubresource.layerCount = m_LayerCount;
-            copyRegion.imageOffset = {0, 0, 0};
-            copyRegion.imageExtent = {m_Width, m_Height, 1};
-
-            vkCmdCopyImageToBuffer(commandBuffer, m_Allocation.image, (VkImageLayout)m_Layout[0], stagingBufferAllocation.Buffer, 1, &copyRegion);
-            
-            // We have to wait for the copy to finish so use EndRecording() and SubmitAndWait();
-            VHResult res = cmd->EndRecording();
-            if (res != VHResult::OK)
-            {
-                VH_LOG_ERROR("Couldn't end recording of the command buffer!");
-                m_Device->DeallocateBuffer(stagingBufferAllocation);
-                return res;
-            }
-
-            res = cmd->SubmitAndWait();
-            if (res != VHResult::OK)
-            {
-                VH_LOG_ERROR("Couldn't submit the command buffer!");
-                m_Device->DeallocateBuffer(stagingBufferAllocation);
-                return res;
-            }
-
-            // Copy data from staging buffer
-            auto mapResult = m_Device->MapMemory(stagingBufferAllocation.Allocation);
-            if (!mapResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to map staging buffer memory");
-                m_Device->DeallocateBuffer(stagingBufferAllocation);
-                return mapResult.Error();
-            }
-
-            void* mappedData = mapResult.Value();
-            memcpy(data, mappedData, size);
-            m_Device->UnmapMemory(stagingBufferAllocation.Allocation);
-
-            // Start recording again
-            res = cmd->BeginRecording(CommandBuffer::Usage::NONE);
-            if (res != VHResult::OK)
-            {
-                VH_LOG_ERROR("Couldn't begin CommandBuffer recording!");
-                m_Device->DeallocateBuffer(stagingBufferAllocation);
-                return res;
-            }
-
-            if (usingTemporaryStagingBuffer)
-                m_Device->DeallocateBuffer(stagingBufferAllocation);
-        }
-
-        return VHResult::OK;
+        return dst->CopyFromImage(commandBuffer, SharedPtr<Image::Impl>(const_cast<Image::Impl*>(this)), bufferOffset, imageOffsetX, imageOffsetY, imageExtentX, imageExtentY, imageBaseLayer, layerCount);
     }
 
     VHResult Image::Impl::CopyFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer, uint32_t dstBaseLayer, uint32_t layerCount)
@@ -845,24 +602,6 @@ namespace VulkanHelper
     [[nodiscard]] uint32_t Image::GetHeight() const { return m_Impl->GetHeight(); }
     [[nodiscard]] uint32_t Image::GetLayerCount() const { return m_Impl->GetLayerCount(); }
     [[nodiscard]] uint32_t Image::GetMipCount() const { return m_Impl->GetMipCount(); }
-
-    VHResult Image::UploadData(const void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd, uint32_t baseLayer)
-    {
-        SharedPtr<CommandBuffer::Impl> commandBufferImpl = nullptr;
-        if (cmd)
-            commandBufferImpl = CommandBuffer::Impl::GetImplementation(*cmd);
-
-        return m_Impl->UploadData(data, size, offset, commandBufferImpl, baseLayer);
-    }
-
-    VHResult Image::DownloadData(void* data, uint64_t size, uint64_t offset, CommandBuffer* cmd) const
-    {
-        SharedPtr<CommandBuffer::Impl> commandBufferImpl = nullptr;
-        if (cmd)
-            commandBufferImpl = CommandBuffer::Impl::GetImplementation(*cmd);
-
-        return m_Impl->DownloadData(data, size, offset, commandBufferImpl);
-    }
 
     Expected<void*, VHResult> Image::Map()
     {

@@ -6,6 +6,7 @@
 #include "DeviceImpl.h"
 #include "CommandBufferImpl.h"
 #include "VulkanMemoryAllocator.h"
+#include "Vulkan/Buffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -61,11 +62,32 @@ namespace VulkanHelper
         [[nodiscard]] VHResult CopyFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
         [[nodiscard]] VHResult BlitFromImage(const Image& srcImage, const SharedPtr<CommandBuffer::Impl> commandBuffer, uint32_t srcBaseLayer = 0, uint32_t dstBaseLayer = 0, uint32_t layerCount = 1);
 
+        [[nodiscard]] VHResult CopyFromBuffer(
+            const SharedPtr<CommandBuffer::Impl> commandBuffer,
+            const SharedPtr<Buffer::Impl>& src,
+            uint32_t bufferOffset = 0,
+            uint32_t imageOffsetX = 0,
+            uint32_t imageOffsetY = 0,
+            uint32_t imageExtentX = UINT32_MAX,
+            uint32_t imageExtentY = UINT32_MAX,
+            uint32_t imageBaseLayer = 0,
+            uint32_t layerCount = 1
+        );
+
+        [[nodiscard]] VHResult CopyToBuffer(
+            const SharedPtr<CommandBuffer::Impl> commandBuffer,
+            const SharedPtr<Buffer::Impl>& dst,
+            uint32_t bufferOffset = 0,
+            uint32_t imageOffsetX = 0,
+            uint32_t imageOffsetY = 0,
+            uint32_t imageExtentX = UINT32_MAX,
+            uint32_t imageExtentY = UINT32_MAX,
+            uint32_t imageBaseLayer = 0,
+            uint32_t layerCount = 1
+        );
+
         [[nodiscard]] Expected<void*, VHResult> Map();
         void Unmap();
-        [[nodiscard]] VHResult UploadData(const void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr, uint32_t baseLayer = 0);
-
-        [[nodiscard]] VHResult DownloadData(void* data, uint64_t size, uint64_t offset, const SharedPtr<CommandBuffer::Impl> cmd = nullptr) const;
 
     private:
         SharedPtr<Device::Impl> m_Device;

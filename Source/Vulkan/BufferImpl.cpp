@@ -297,26 +297,41 @@ namespace VulkanHelper
         return destination->CopyFromBuffer(cmd, SharedPtr<Buffer::Impl>(this), dstOffset, srcOffset, size);
     }
 
-    VHResult Buffer::Impl::CopyToImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
+    VHResult Buffer::Impl::CopyToImage(
+        SharedPtr<CommandBuffer::Impl> cmd,
+        const SharedPtr<Image::Impl>& dst,
+        uint32_t bufferOffset,
+        uint32_t imageOffsetX,
+        uint32_t imageOffsetY,
+        uint32_t imageExtentX,
+        uint32_t imageExtentY,
+        uint32_t imageBaseLayer,
+        uint32_t layerCount
+    )
     {
         VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
 
         VkImage dstImage = dst->GetImage();
 
+        if (imageExtentX == UINT32_MAX)
+            imageExtentX = dst->GetWidth() - imageOffsetX;
+        if (imageExtentY == UINT32_MAX)
+            imageExtentY = dst->GetHeight() - imageOffsetY;
+
         VkBufferImageCopy region{};
         region.bufferOffset = bufferOffset;
-        region.bufferRowLength = bufferRowLength;
-        region.bufferImageHeight = bufferImageHeight;
+        region.bufferRowLength = 0; // Tightly packed
+        region.bufferImageHeight = 0; // Tightly packed
 
         region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(dst->GetAspect());
         region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = dst->GetLayerCount();
+        region.imageSubresource.baseArrayLayer = imageBaseLayer;
+        region.imageSubresource.layerCount = layerCount;
 
-        region.imageOffset = {0, 0, 0};
+        region.imageOffset = {(int)imageOffsetX, (int)imageOffsetY, 0};
         region.imageExtent = {
-            dst->GetWidth(),
-            dst->GetHeight(),
+            imageExtentX,
+            imageExtentY,
             1
         };
 
@@ -357,26 +372,45 @@ namespace VulkanHelper
         return vkGetBufferDeviceAddress(m_Device->GetDevice(), &bufferDeviceAddressInfo);
     }
 
-    [[nodiscard]] VHResult Buffer::Impl::CopyFromImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& src)
+    [[nodiscard]] VHResult Buffer::Impl::CopyFromImage(
+        SharedPtr<CommandBuffer::Impl> cmd,
+        const SharedPtr<Image::Impl>& source,
+        uint32_t bufferOffset,
+        uint32_t imageOffsetX,
+        uint32_t imageOffsetY,
+        uint32_t imageExtentX,
+        uint32_t imageExtentY,
+        uint32_t imageBaseLayer,
+        uint32_t layerCount
+    )
     {
         VkCommandBuffer commandBuffer = cmd->GetCommandBuffer();
-        VkImage srcImage = src->GetImage();
 
-        uint64_t imageSize = src->GetSizeInBytes();
-        VH_ASSERT(imageSize == m_Size, "Image and buffer must be exactly the same size, copying different sizes isn't implemented yet");
+        VkImage srcImage = source->GetImage();
 
-        VkBufferImageCopy copyRegion{};
-        copyRegion.bufferOffset = 0;
-        copyRegion.bufferRowLength = 0;
-        copyRegion.bufferImageHeight = 0;
-        copyRegion.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(src->GetAspect());
-        copyRegion.imageSubresource.mipLevel = 0;
-        copyRegion.imageSubresource.baseArrayLayer = 0;
-        copyRegion.imageSubresource.layerCount = 1;
-        copyRegion.imageOffset = {0, 0, 0};
-        copyRegion.imageExtent = {src->GetWidth(), src->GetHeight(), 1};
+        if (imageExtentX == UINT32_MAX)
+            imageExtentX = source->GetWidth() - imageOffsetX;
+        if (imageExtentY == UINT32_MAX)
+            imageExtentY = source->GetHeight() - imageOffsetY;
 
-        vkCmdCopyImageToBuffer(commandBuffer, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_BufferAllocation.Buffer, 1, &copyRegion);
+        VkBufferImageCopy region{};
+        region.bufferOffset = bufferOffset;
+        region.bufferRowLength = 0; // Tightly packed
+        region.bufferImageHeight = 0; // Tightly packed
+
+        region.imageSubresource.aspectMask = static_cast<VkImageAspectFlags>(source->GetAspect());
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = imageBaseLayer;
+        region.imageSubresource.layerCount = layerCount;
+
+        region.imageOffset = {(int)imageOffsetX, (int)imageOffsetY, 0};
+        region.imageExtent = {
+            imageExtentX,
+            imageExtentY,
+            1
+        };
+
+        vkCmdCopyImageToBuffer(commandBuffer, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_BufferAllocation.Buffer, 1, &region);
 
         return VHResult::OK;
     }
@@ -475,9 +509,54 @@ namespace VulkanHelper
         return m_Impl->CopyToBuffer(CommandBuffer::Impl::GetImplementation(cmd), Buffer::Impl::GetImplementation(destination), srcOffset, dstOffset, size);
     }
 
-    VHResult Buffer::CopyToImage(CommandBuffer& cmd, const Image& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight)
+    VHResult Buffer::CopyToImage(
+        CommandBuffer& cmd,
+        Image& dst,
+        uint32_t bufferOffset,
+        uint32_t imageOffsetX,
+        uint32_t imageOffsetY,
+        uint32_t imageExtentX,
+        uint32_t imageExtentY,
+        uint32_t imageBaseLayer,
+        uint32_t layerCount
+    )
     {
-        return m_Impl->CopyToImage(CommandBuffer::Impl::GetImplementation(cmd), Image::Impl::GetImplementation(dst), bufferOffset, bufferRowLength, bufferImageHeight);
+        return m_Impl->CopyToImage(
+            CommandBuffer::Impl::GetImplementation(cmd),
+            Image::Impl::GetImplementation(dst),
+            bufferOffset,
+            imageOffsetX,
+            imageOffsetY,
+            imageExtentX,
+            imageExtentY,
+            imageBaseLayer,
+            layerCount
+        );
+    }
+
+    VHResult Buffer::CopyFromImage(
+        CommandBuffer& cmd,
+        Image& src,
+        uint32_t bufferOffset,
+        uint32_t imageOffsetX,
+        uint32_t imageOffsetY,
+        uint32_t imageExtentX,
+        uint32_t imageExtentY,
+        uint32_t imageBaseLayer,
+        uint32_t layerCount
+    )
+    {
+        return m_Impl->CopyFromImage(
+            CommandBuffer::Impl::GetImplementation(cmd),
+            Image::Impl::GetImplementation(src),
+            bufferOffset,
+            imageOffsetX,
+            imageOffsetY,
+            imageExtentX,
+            imageExtentY,
+            imageBaseLayer,
+            layerCount
+        );
     }
 
     uint64_t Buffer::GetSize() const
@@ -498,10 +577,5 @@ namespace VulkanHelper
     void Buffer::Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
     {
         m_Impl->Barrier(CommandBuffer::Impl::GetImplementation(cmd), srcAccess, dstAccess, srcStage, dstStage);
-    }
-
-    VHResult Buffer::CopyFromImage(CommandBuffer& cmd, const Image& src)
-    {
-        return m_Impl->CopyFromImage(CommandBuffer::Impl::GetImplementation(cmd), Image::Impl::GetImplementation(src));
     }
 }

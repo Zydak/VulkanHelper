@@ -153,9 +153,13 @@ namespace VulkanHelper
          * @param size Size to copy in bytes (UINT64_MAX for entire buffer)
          * @return VHResult::OK on success
          */
-        [[nodiscard]] VHResult CopyFromBuffer(CommandBuffer& cmd, const Buffer& source, 
-                         uint64_t srcOffset = 0, uint64_t dstOffset = 0, 
-                         uint64_t size = UINT64_MAX);
+        [[nodiscard]] VHResult CopyFromBuffer(
+            CommandBuffer& cmd,
+            const Buffer& source, 
+            uint64_t srcOffset = 0,
+            uint64_t dstOffset = 0, 
+            uint64_t size = UINT64_MAX
+        );
 
         /**
          * @brief Copy data to another buffer using GPU commands
@@ -166,34 +170,64 @@ namespace VulkanHelper
          * @param size Size to copy in bytes (UINT64_MAX for entire buffer)
          * @return VHResult::OK on success
          */
-        [[nodiscard]] VHResult CopyToBuffer(CommandBuffer& cmd, const Buffer& destination, 
-                         uint64_t srcOffset = 0, uint64_t dstOffset = 0, 
-                         uint64_t size = UINT64_MAX);
+        [[nodiscard]] VHResult CopyToBuffer(
+            CommandBuffer& cmd,
+            const Buffer& destination, 
+            uint64_t srcOffset = 0,
+            uint64_t dstOffset = 0, 
+            uint64_t size = UINT64_MAX
+        );
 
         /**
          * @brief Copy buffer data to an image
          * @param cmd Command buffer to record the copy into
          * @param dst Destination image
-         * @param bufferOffset Source offset in bytes
-         * @param bufferRowLength Row length in pixels (0 for tightly packed)
-         * @param bufferImageHeight Image height in pixels (0 for tightly packed)
+         * @param bufferOffset Offset in the buffer to start copying from
+         * @param imageOffsetX X offset in the image to start copying to
+         * @param imageOffsetY Y offset in the image to start copying to
+         * @param imageExtentX Width of the image region to copy to (or UINT32_MAX for full width)
+         * @param imageExtentY Height of the image region to copy to (or UINT32_MAX for full height)
+         * @param imageBaseLayer First layer in the image to copy to
+         * @param layerCount Number of layers to copy to
          * @return VHResult::OK on success
          */
-        [[nodiscard]] VHResult CopyToImage(CommandBuffer& cmd, const Image& dst, 
-                            uint32_t bufferOffset = 0, uint32_t bufferRowLength = 0, 
-                            uint32_t bufferImageHeight = 0);
+        [[nodiscard]] VHResult CopyToImage(
+            CommandBuffer& cmd,
+            Image& dst,
+            uint32_t bufferOffset = 0,
+            uint32_t imageOffsetX = 0,
+            uint32_t imageOffsetY = 0,
+            uint32_t imageExtentX = UINT32_MAX,
+            uint32_t imageExtentY = UINT32_MAX,
+            uint32_t imageBaseLayer = 0,
+            uint32_t layerCount = 1
+        );
 
 
         /**
          * @brief Copy image data to the buffer
          * @param cmd Command buffer to record the copy into
-         * @param src Source image
-         * 
+         * @param source Source image
+         * @param bufferOffset Offset in the buffer to start copying to
+         * @param imageOffsetX X offset in the image to start copying from
+         * @param imageOffsetY Y offset in the image to start copying from
+         * @param imageExtentX Width of the image region to copy from (or UINT32_MAX for full width)
+         * @param imageExtentY Height of the image region to copy from (or UINT32_MAX for full height)
+         * @param imageBaseLayer First layer in the image to copy from
+         * @param layerCount Number of layers to copy from
          * @return VHResult::OK on success
-         *
-         * @note Buffer has to be exactly the same size as the image, copying with offsets is not implemented yet
          */
-        [[nodiscard]] VHResult CopyFromImage(CommandBuffer& cmd, const Image& src);
+        [[nodiscard]] VHResult CopyFromImage(
+            CommandBuffer& cmd,
+            Image& source,
+            uint32_t bufferOffset = 0,
+            uint32_t imageOffsetX = 0,
+            uint32_t imageOffsetY = 0,
+            uint32_t imageExtentX = UINT32_MAX,
+            uint32_t imageExtentY = UINT32_MAX,
+            uint32_t imageBaseLayer = 0,
+            uint32_t layerCount = 1
+        );
 
         /**
          * @brief Get the buffer size

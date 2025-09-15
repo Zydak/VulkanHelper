@@ -50,8 +50,29 @@ namespace VulkanHelper
         [[nodiscard]] VHResult CopyFromBuffer(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Buffer::Impl>& source, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
         [[nodiscard]] VHResult CopyToBuffer(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Buffer::Impl>& destination, uint64_t srcOffset, uint64_t dstOffset, uint64_t size);
 
-        [[nodiscard]] VHResult CopyToImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& dst, uint32_t bufferOffset, uint32_t bufferRowLength, uint32_t bufferImageHeight);
-        [[nodiscard]] VHResult CopyFromImage(SharedPtr<CommandBuffer::Impl> cmd, const SharedPtr<Image::Impl>& src);
+        [[nodiscard]] VHResult CopyToImage(
+            SharedPtr<CommandBuffer::Impl> cmd,
+            const SharedPtr<Image::Impl>& dst,
+            uint32_t bufferOffset = 0,
+            uint32_t imageOffsetX = 0,
+            uint32_t imageOffsetY = 0,
+            uint32_t imageExtentX = UINT32_MAX,
+            uint32_t imageExtentY = UINT32_MAX,
+            uint32_t imageBaseLayer = 0,
+            uint32_t layerCount = 1
+        );
+
+        [[nodiscard]] VHResult CopyFromImage(
+            SharedPtr<CommandBuffer::Impl> cmd,
+            const SharedPtr<Image::Impl>& dst,
+            uint32_t bufferOffset = 0,
+            uint32_t imageOffsetX = 0,
+            uint32_t imageOffsetY = 0,
+            uint32_t imageExtentX = UINT32_MAX,
+            uint32_t imageExtentY = UINT32_MAX,
+            uint32_t imageBaseLayer = 0,
+            uint32_t layerCount = 1
+        );
 
         void Barrier(SharedPtr<CommandBuffer::Impl> cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
     private:
