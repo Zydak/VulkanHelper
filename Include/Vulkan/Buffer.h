@@ -15,8 +15,6 @@ namespace VulkanHelper
     /**
      * @class Buffer
      * @brief RAII wrapper for Vulkan buffer objects
-     * 
-     * Manages memory-backed linear storage for vertex, index, uniform and other data.
      */
     class Buffer
     {

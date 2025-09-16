@@ -446,7 +446,9 @@ namespace VulkanHelper
 
     Buffer::Buffer(Buffer&& other) noexcept
         : m_Impl(Move(other.m_Impl))
-    {}
+    {
+        other.m_Impl = nullptr;
+    }
 
     Buffer::Buffer(const Buffer& other)
         : m_Impl(other.m_Impl)
@@ -467,12 +469,13 @@ namespace VulkanHelper
             return *this;
 
         m_Impl = Move(other.m_Impl);
+        other.m_Impl = nullptr;
         return *this;
     }
 
     Buffer::~Buffer()
     {
-
+        m_Impl = nullptr;
     }
 
     Buffer::Buffer(const SharedPtr<Impl>& impl)
