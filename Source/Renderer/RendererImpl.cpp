@@ -63,13 +63,13 @@ namespace VulkanHelper
         }
 
         std::array<DescriptorPool::PoolSize, 2> poolSizes = {
-            DescriptorPool::PoolSize{ DescriptorType::UNIFORM_BUFFER, 1000 },
-            DescriptorPool::PoolSize{ DescriptorType::COMBINED_IMAGE_SAMPLER, 1000 }
+            DescriptorPool::PoolSize{ DescriptorType::UNIFORM_BUFFER, 10000 },
+            DescriptorPool::PoolSize{ DescriptorType::COMBINED_IMAGE_SAMPLER, 10000 }
         };
 
         DescriptorPool::Config poolInfo;
         poolInfo.Device = Device::Impl::CreatePublicInterface(device);
-        poolInfo.MaxSets = 1000;
+        poolInfo.MaxSets = 10000;
         poolInfo.PoolSizes = poolSizes.data();
         poolInfo.PoolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.PoolFlags = DescriptorPool::Flags::FREE_DESCRIPTOR_SET_BIT;
