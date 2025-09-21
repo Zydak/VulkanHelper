@@ -119,6 +119,10 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Allocating Descriptor Set from pool");
 
+        static int descriptorSetCounter = 0;
+        VH_LOG_FATAL("Descriptor Set Count: {}", descriptorSetCounter);
+        descriptorSetCounter++;
+
         if (config.Bindings == nullptr || config.BindingCount == 0)
         {
             VH_LOG_ERROR("Invalid DescriptorSet configuration: Bindings is null or BindingCount is zero.");
