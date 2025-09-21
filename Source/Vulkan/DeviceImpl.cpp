@@ -33,6 +33,7 @@ namespace VulkanHelper
         extensions.PushBack(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
         extensions.PushBack(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
         extensions.PushBack(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+        extensions.PushBack(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME);
         if (requestRTSupport)
         {
             extensions.PushBack(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
