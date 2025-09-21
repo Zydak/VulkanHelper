@@ -128,6 +128,13 @@ namespace VulkanHelper
         // Validate bindings
         for (uint32_t i = 0; i < config.BindingCount; ++i)
         {
+            VH_LOG_DEBUG("Allocating descriptor set binding {}: Type={}, Count={}, Stages={}",
+                config.Bindings[i].Binding,
+                static_cast<uint32_t>(config.Bindings[i].Type),
+                config.Bindings[i].DescriptorsCount,
+                static_cast<uint32_t>(config.Bindings[i].StageFlags)
+            );
+
             if (config.Bindings[i].Type == DescriptorType::UNDEFINED)
             {
                 VH_LOG_ERROR("Invalid DescriptorSet configuration: Binding[{}] has UNDEFINED type.", i);
@@ -188,7 +195,7 @@ namespace VulkanHelper
         VkResult res = vkCreateDescriptorSetLayout(m_Device->GetDevice(), &layoutInfo, nullptr, &descriptorSetLayout);
         if (res != VK_SUCCESS)
         {
-            VH_LOG_ERROR("Failed to create descriptor set layout");
+            VH_LOG_ERROR("Failed to create descriptor set layout, error code: {}", (int)res);
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
@@ -203,7 +210,7 @@ namespace VulkanHelper
         res = vkAllocateDescriptorSets(m_Device->GetDevice(), &allocInfo, &descriptorSet);
         if (res != VK_SUCCESS)
         {
-            VH_LOG_ERROR("Failed to allocate descriptor set");
+            VH_LOG_ERROR("Failed to allocate descriptor set, error code: {}", (int)res);
             vkDestroyDescriptorSetLayout(m_Device->GetDevice(), descriptorSetLayout, nullptr);
             return VulkanHelper::Unexpected(VHResult(res));
         }
