@@ -9,6 +9,7 @@ namespace VulkanHelper
     Expected<SharedPtr<TLAS::Impl>, VHResult> TLAS::Impl::New(
         const SharedPtr<Device::Impl>& device,
         const Vector<SharedPtr<BLAS::Impl>>& blasList,
+        const Vector<uint32_t>& instanceCustomIndices,
         const glm::mat4* transforms,
         const SharedPtr<CommandBuffer::Impl>& commandBuffer
     )
@@ -27,7 +28,7 @@ namespace VulkanHelper
 
             VkAccelerationStructureInstanceKHR instance = {};
             instance.transform = ConvertToVulkanMatrix(transforms[i]);
-            instance.instanceCustomIndex = i;
+            instance.instanceCustomIndex = instanceCustomIndices[i];
             instance.mask = 0xFF; // Default mask
             instance.instanceShaderBindingTableRecordOffset = 0;
             instance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR | VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR;
@@ -192,12 +193,11 @@ namespace VulkanHelper
     VkTransformMatrixKHR TLAS::Impl::ConvertToVulkanMatrix(const glm::mat4& mat)
     {
         VkTransformMatrixKHR vkMat = {};
-        glm::mat4 transposeMat = glm::transpose(mat); // VkTransformMatrixKHR is row-major, but glm is column-major
         for (int i = 0; i < 3; ++i)
         {
             for (int j = 0; j < 4; ++j)
             {
-                vkMat.matrix[i][j] = transposeMat[i][j];
+                vkMat.matrix[i][j] = mat[j][i];
             }
         }
         return vkMat;
@@ -264,6 +264,7 @@ namespace VulkanHelper
         auto implRes = Impl::New(
             Device::Impl::GetImplementation(config.Device),
             blasList,
+            config.InstanceCustomIndices,
             config.Transforms,
             CommandBuffer::Impl::GetImplementation(*config.CommandBuffer)
         );

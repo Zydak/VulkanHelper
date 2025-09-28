@@ -1,6 +1,8 @@
 #include "AssetImporterImpl.h"
 #include "Log/Log.h"
 #include "Core/Move.h"
+#include "Utility/Asset.h"
+#include "assimp/material.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -116,7 +118,7 @@ namespace VulkanHelper
         });
     }
 
-    Expected<MeshAsset, VHResult> AssetImporter::Impl::ProcessMesh(const aiMesh* mesh, const glm::mat4& bakedTransform)
+    Expected<MeshAsset, VHResult> AssetImporter::Impl::ProcessMesh(const aiMesh* mesh)
     {
         if (!mesh)
         {
@@ -128,12 +130,10 @@ namespace VulkanHelper
 
         glm::mat4 coordinateConversion = glm::mat4(
             1.0f,  0.0f,  0.0f, 0.0f,  // X stays the same
-            0.0f,  -1.0f,  0.0f, 0.0f,  // Y is flipped
+            0.0f,  1.0f,  0.0f, 0.0f,  // Y is flipped
             0.0f,  0.0f,  1.0f, 0.0f,  // Z stays the same
             0.0f,  0.0f,  0.0f, 1.0f   // W unchanged
         );
-
-        glm::mat4 vulkanTransform = coordinateConversion * bakedTransform;
 
         MeshAsset meshAsset;
         meshAsset.Name = mesh->mName.C_Str();
@@ -154,7 +154,7 @@ namespace VulkanHelper
                 );
                 
                 // Apply transform to position
-                glm::vec4 transformedPos = vulkanTransform * glm::vec4(position, 1.0f);
+                glm::vec4 transformedPos = coordinateConversion * glm::vec4(position, 1.0f);
                 vertex.Position = glm::vec3(transformedPos);
             }
 
@@ -168,14 +168,14 @@ namespace VulkanHelper
                 );
                 
                 // Apply transform to normal (use inverse transpose for correct normal transformation)
-                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(vulkanTransform)));
+                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(coordinateConversion)));
                 vertex.Normal = glm::normalize(normalMatrix * normal);
             }
             else
             {
                 // Apply transform to default normal as well
                 glm::vec3 defaultNormal = glm::vec3(0.0f, 1.0f, 0.0f);
-                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(vulkanTransform)));
+                glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(coordinateConversion)));
                 vertex.Normal = glm::normalize(normalMatrix * defaultNormal);
             }
 
@@ -222,118 +222,35 @@ namespace VulkanHelper
         const aiScene* scene,
         const glm::mat4& parentTransform,
         const std::string& sceneFilePath,
-        VulkanHelper::Vector<MeshAsset>& outMeshAssets,
-        VulkanHelper::Vector<TextureAsset>& outBaseColorTextures,
-        VulkanHelper::Vector<TextureAsset>& outNormalTextures,
-        VulkanHelper::Vector<TextureAsset>& outRoughnessTextures,
-        VulkanHelper::Vector<TextureAsset>& outMetallicTextures,
-        VulkanHelper::Vector<TextureAsset>& outEmissiveTextures,
-        VulkanHelper::Vector<MaterialAsset>& outMaterials
+        VulkanHelper::Vector<MeshInstance>& outMeshAssets,
+        VulkanHelper::Vector<CameraAsset>& outCameras
     )
     {
         // Convert Assimp matrix to glm matrix and combine with parent transform
         glm::mat4 nodeTransform = ConvertAssimpMatrix(node->mTransformation);
         glm::mat4 finalTransform = parentTransform * nodeTransform;
 
-        // Process all meshes in this node
+        glm::mat4 coordinateConversion = glm::mat4(
+            1.0f,  0.0f,  0.0f, 0.0f,  // X stays the same
+            0.0f,  -1.0f,  0.0f, 0.0f,  // Y is flipped
+            0.0f,  0.0f,  1.0f, 0.0f,  // Z stays the same
+            0.0f,  0.0f,  0.0f, 1.0f   // W unchanged
+        );
+
+        // Process all instances in this node
         for (unsigned int i = 0; i < node->mNumMeshes; ++i)
         {
-            aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-
-            auto meshResult = ProcessMesh(mesh, finalTransform);
-            if (!meshResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to process mesh '{}'", mesh->mName.C_Str());
-                return meshResult.Error();
-            }
-            auto materialResult = ProcessMaterial(scene->mMaterials[mesh->mMaterialIndex]);
-            if (!materialResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to process material for mesh '{}'", mesh->mName.C_Str());
-                return materialResult.Error();
-            }
-
-            aiString texturePath;
-
-            // Base color
-            texturePath.Clear();
-            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
-            auto baseColorTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
-            if (!baseColorTextureResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to process albedo texture for mesh '{}'", mesh->mName.C_Str());
-                return baseColorTextureResult.Error();
-            }
-            VulkanHelper::TextureAsset baseColorTexture = Move(baseColorTextureResult.Value());
-            if (!texturePath.Empty())
-                baseColorTexture.Name = texturePath.C_Str();
-
-            // Normal
-            texturePath.Clear();
-            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &texturePath);
-            auto normalTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str(), true);
-            if (!normalTextureResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to process normal texture for mesh '{}'", mesh->mName.C_Str());
-                return normalTextureResult.Error();
-            }
-            VulkanHelper::TextureAsset normalTexture = Move(normalTextureResult.Value());
-            if (!texturePath.Empty())
-                normalTexture.Name = texturePath.C_Str();
-
-            // Roughness
-            texturePath.Clear();
-            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath);
-            auto roughnessTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
-            if (!roughnessTextureResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to process roughness texture for mesh '{}'", mesh->mName.C_Str());
-                return roughnessTextureResult.Error();
-            }
-            VulkanHelper::TextureAsset roughnessTexture = Move(roughnessTextureResult.Value());
-            if (!texturePath.Empty())
-                roughnessTexture.Name = texturePath.C_Str();
-
-            // Metallic
-            texturePath.Clear();
-            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_METALNESS, 0, &texturePath);
-            auto metallicTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
-            if (!metallicTextureResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to process metallic texture for mesh '{}'", mesh->mName.C_Str());
-                return metallicTextureResult.Error();
-            }
-            VulkanHelper::TextureAsset metallicTexture = Move(metallicTextureResult.Value());
-            if (!texturePath.Empty())
-                metallicTexture.Name = texturePath.C_Str();
-
-            // Emissive
-            texturePath.Clear();
-            scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_EMISSION_COLOR, 0, &texturePath);
-            auto emissiveTextureResult = ProcessTexture(texturePath.Empty() ? "" : sceneFilePath + '/' + texturePath.C_Str());
-
-            if (!emissiveTextureResult.HasValue())
-            {
-                VH_LOG_ERROR("Failed to process emissive texture for mesh '{}'", mesh->mName.C_Str());
-                return emissiveTextureResult.Error();
-            }
-            VulkanHelper::TextureAsset emissiveTexture = Move(emissiveTextureResult.Value());
-            if (!texturePath.Empty())
-                emissiveTexture.Name = texturePath.C_Str();
-
-            outMeshAssets.PushBack(Move(meshResult.Value()));
-            outBaseColorTextures.PushBack(Move(baseColorTexture));
-            outNormalTextures.PushBack(Move(normalTexture));
-            outRoughnessTextures.PushBack(Move(roughnessTexture));
-            outMetallicTextures.PushBack(Move(metallicTexture));
-            outEmissiveTextures.PushBack(Move(emissiveTexture));
-            outMaterials.PushBack(Move(materialResult.Value()));
+            MeshInstance meshInstance;
+            meshInstance.MaterialIndex = scene->mMeshes[node->mMeshes[i]]->mMaterialIndex;
+            meshInstance.MeshIndex = node->mMeshes[i];
+            meshInstance.Transform = coordinateConversion * finalTransform;
+            outMeshAssets.PushBack(meshInstance);
         }
 
         // Recursively process child nodes
         for (unsigned int i = 0; i < node->mNumChildren; ++i)
         {
-            VHResult result = ProcessNode(node->mChildren[i], scene, finalTransform, sceneFilePath, outMeshAssets, outBaseColorTextures, outNormalTextures, outRoughnessTextures, outMetallicTextures, outEmissiveTextures, outMaterials);
+            VHResult result = ProcessNode(node->mChildren[i], scene, finalTransform, sceneFilePath, outMeshAssets, outCameras);
             if (result != VHResult::OK)
             {
                 VH_LOG_ERROR("Failed to process child node '{}'", node->mChildren[i]->mName.C_Str());
@@ -371,37 +288,64 @@ namespace VulkanHelper
         std::string basePath = filePath.substr(0, filePath.find_last_of("/\\"));
         if (basePath == filePath) basePath = "."; // No directory separator found
 
-        VHResult res = ProcessNode(
-            scene->mRootNode,
-            scene,
-            glm::mat4(1.0f), // Start with identity matrix
-            basePath,
-            sceneAsset.Meshes,
-            sceneAsset.BaseColorTextures,
-            sceneAsset.NormalTextures,
-            sceneAsset.RoughnessTextures,
-            sceneAsset.MetallicTextures,
-            sceneAsset.EmissiveTextures,
-            sceneAsset.Materials
-        );
-        if (res != VHResult::OK)
+        // First process all meshes, and materials
+        for (uint32_t i = 0; i < scene->mNumMeshes; i++)
         {
-            VH_LOG_ERROR("Failed to process scene node");
-            return Unexpected(res);
+            aiMesh* mesh = scene->mMeshes[i];
+
+            auto meshResult = ProcessMesh(mesh);
+            if (!meshResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to process mesh '{}'", mesh->mName.C_Str());
+                return Unexpected(meshResult.Error());
+            }
+            sceneAsset.Meshes.PushBack(Move(meshResult.Value()));
         }
 
-        // Process cameras
+        for (uint32_t i = 0; i < scene->mNumMaterials; i++)
+        {
+            aiMaterial* material = scene->mMaterials[i];
+
+            auto materialResult = ProcessMaterial(material);
+            if (!materialResult.HasValue())
+            {
+                VH_LOG_ERROR("Failed to process material '{}'", material->GetName().C_Str());
+                return Unexpected(materialResult.Error());
+            }
+            sceneAsset.Materials.PushBack(Move(materialResult.Value()));
+
+            // Add base path to texture paths since they are relative to the model file
+            if (!sceneAsset.Materials.Back().BaseColorTextureFilepath.empty())
+                sceneAsset.Materials.Back().BaseColorTextureFilepath = basePath + "/" + sceneAsset.Materials.Back().BaseColorTextureFilepath;
+            if (!sceneAsset.Materials.Back().NormalTextureFilepath.empty())
+                sceneAsset.Materials.Back().NormalTextureFilepath = basePath + "/" + sceneAsset.Materials.Back().NormalTextureFilepath;
+            if (!sceneAsset.Materials.Back().RoughnessTextureFilepath.empty())
+                sceneAsset.Materials.Back().RoughnessTextureFilepath = basePath + "/" + sceneAsset.Materials.Back().RoughnessTextureFilepath;
+            if (!sceneAsset.Materials.Back().MetallicTextureFilepath.empty())
+                sceneAsset.Materials.Back().MetallicTextureFilepath = basePath + "/" + sceneAsset.Materials.Back().MetallicTextureFilepath;
+            if (!sceneAsset.Materials.Back().EmissiveTextureFilepath.empty())
+                sceneAsset.Materials.Back().EmissiveTextureFilepath = basePath + "/" + sceneAsset.Materials.Back().EmissiveTextureFilepath;
+        }
+
+        VulkanHelper::Vector<CameraAsset> cameras;
         auto cameraResult = ProcessCameras(scene);
         if (!cameraResult.HasValue())
         {
             VH_LOG_ERROR("Failed to process cameras");
             return Unexpected(cameraResult.Error());
         }
-
         sceneAsset.Cameras = Move(cameraResult.Value());
 
-        VH_LOG_DEBUG("Successfully processed complete scene: {} with {} meshes, {} textures, {} materials, {} cameras",
-                    filePath, sceneAsset.Meshes.Size(), sceneAsset.BaseColorTextures.Size(), sceneAsset.Materials.Size(), sceneAsset.Cameras.Size());
+        // Process scene nodes to extract mesh instances
+        auto nodeResult = ProcessNode(scene->mRootNode, scene, glm::mat4(1.0f), basePath, sceneAsset.MeshInstances, sceneAsset.Cameras);
+        if (nodeResult != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to process scene nodes");
+            return Unexpected(nodeResult);
+        }
+
+        VH_LOG_DEBUG("Successfully processed complete scene: {} with {} meshes, {} materials, {} cameras",
+                    filePath, sceneAsset.Meshes.Size(), sceneAsset.Materials.Size(), sceneAsset.Cameras.Size());
 
         return sceneAsset;
     }
@@ -474,6 +418,36 @@ namespace VulkanHelper
             materialAsset.SpecularColor = glm::vec3(specularColor.r, specularColor.g, specularColor.b);
         else
             materialAsset.SpecularColor = glm::vec3(1.0f); // Default value
+
+        aiString baseColorTexPath;
+        if (material->GetTexture(aiTextureType_DIFFUSE, 0, &baseColorTexPath) == AI_SUCCESS)
+        {
+            materialAsset.BaseColorTextureFilepath = baseColorTexPath.C_Str();
+        }
+
+        aiString normalTexPath;
+        if (material->GetTexture(aiTextureType_NORMALS, 0, &normalTexPath) == AI_SUCCESS)
+        {
+            materialAsset.NormalTextureFilepath = normalTexPath.C_Str();
+        }
+
+        aiString roughnessTexPath;
+        if (material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessTexPath) == AI_SUCCESS)
+        {
+            materialAsset.RoughnessTextureFilepath = roughnessTexPath.C_Str();
+        }
+
+        aiString metallicTexPath;
+        if (material->GetTexture(aiTextureType_METALNESS, 0, &metallicTexPath) == AI_SUCCESS)
+        {
+            materialAsset.MetallicTextureFilepath = metallicTexPath.C_Str();
+        }
+
+        aiString emissiveTexPath;
+        if (material->GetTexture(aiTextureType_EMISSION_COLOR, 0, &emissiveTexPath) == AI_SUCCESS)
+        {
+            materialAsset.EmissiveTextureFilepath = emissiveTexPath.C_Str();
+        }
 
         materialAsset.Name = material->GetName().C_Str();
 

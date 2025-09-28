@@ -32,7 +32,7 @@ namespace VulkanHelper
     private:
         explicit Impl(VulkanHelper::ThreadPool* threadPool);
         
-        [[nodiscard]] Expected<MeshAsset, VHResult> ProcessMesh(const aiMesh* mesh, const glm::mat4& bakedTransform);
+        [[nodiscard]] Expected<MeshAsset, VHResult> ProcessMesh(const aiMesh* mesh);
         [[nodiscard]] Expected<MaterialAsset, VHResult> ProcessMaterial(const aiMaterial* material);
         [[nodiscard]] Expected<TextureAsset, VHResult> ProcessTexture(const std::string& texturePath, bool normalMap = false);
         [[nodiscard]] Expected<TextureAsset, VHResult> LoadTexture(const std::string& texturePath);
@@ -47,13 +47,8 @@ namespace VulkanHelper
             const aiScene* scene,
             const glm::mat4& parentTransform,
             const std::string& sceneFilePath,
-            VulkanHelper::Vector<MeshAsset>& outMeshAssets,
-            VulkanHelper::Vector<TextureAsset>& outBaseColorTextures,
-            VulkanHelper::Vector<TextureAsset>& outNormalTextures,
-            VulkanHelper::Vector<TextureAsset>& outRoughnessTextures,
-            VulkanHelper::Vector<TextureAsset>& outMetallicTextures,
-            VulkanHelper::Vector<TextureAsset>& outEmissiveTextures,
-            VulkanHelper::Vector<MaterialAsset>& outMaterials
+            VulkanHelper::Vector<MeshInstance>& outMeshAssets,
+            VulkanHelper::Vector<CameraAsset>& outCameras
         );
 
         VulkanHelper::ThreadPool* m_ThreadPool;

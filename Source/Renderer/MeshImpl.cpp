@@ -232,7 +232,8 @@ namespace VulkanHelper
 
     Mesh::Impl::~Impl()
     {
-        VH_LOG_DEBUG("Destroying Mesh Implementation");
+        if (m_Device != nullptr)
+            VH_LOG_DEBUG("Destroying Mesh Implementation");
     }
 
     void Mesh::Impl::Bind(const SharedPtr<CommandBuffer::Impl> commandBuffer) const

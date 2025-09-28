@@ -5,6 +5,7 @@
 #include "Core/Expected.h"
 #include "Core/Enums.h"
 #include "Core/Vector.h"
+#include "Vulkan/Instance.h"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_RIGHT_HANDED
@@ -105,6 +106,12 @@ namespace VulkanHelper
         float Anisotropy = 0.0f;
         float AnisotropyRotation = 0.0f;
         std::string Name = "Default Material Name"; // TODO change string to an internal version
+
+        std::string BaseColorTextureFilepath = "";
+        std::string NormalTextureFilepath = "";
+        std::string RoughnessTextureFilepath = "";
+        std::string MetallicTextureFilepath = "";
+        std::string EmissiveTextureFilepath = "";
     };
 
     struct CameraAsset
@@ -114,15 +121,19 @@ namespace VulkanHelper
         float AspectRatio = 1.0f; // Width / Height
     };
 
+    struct MeshInstance
+    {
+        glm::mat4 Transform = glm::mat4(1.0f);
+        uint32_t MeshIndex = 0;
+        uint32_t MaterialIndex = 0;
+    };
+
     struct SceneAsset
     {
         VulkanHelper::Vector<MeshAsset> Meshes;
-        VulkanHelper::Vector<TextureAsset> BaseColorTextures;
-        VulkanHelper::Vector<TextureAsset> NormalTextures;
-        VulkanHelper::Vector<TextureAsset> RoughnessTextures;
-        VulkanHelper::Vector<TextureAsset> MetallicTextures;
-        VulkanHelper::Vector<TextureAsset> EmissiveTextures;
         VulkanHelper::Vector<MaterialAsset> Materials;
         VulkanHelper::Vector<CameraAsset> Cameras;
+
+        VulkanHelper::Vector<MeshInstance> MeshInstances;
     };
 }

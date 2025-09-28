@@ -13,6 +13,7 @@ namespace VulkanHelper
         [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
             const SharedPtr<Device::Impl>& device,
             const Vector<SharedPtr<BLAS::Impl>>& blasList,
+            const Vector<uint32_t>& instanceCustomIndices,
             const glm::mat4* transforms,
             const SharedPtr<CommandBuffer::Impl>& commandBuffer
         );

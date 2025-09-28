@@ -5,6 +5,7 @@
 #include "Core/SharedPtr.h"
 
 #include "Vulkan/BLAS.h"
+#include <cstdint>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
@@ -36,7 +37,13 @@ namespace VulkanHelper
              * @brief List of BLAS objects to instance in this TLAS
              * @note Must not be empty and all BLAS objects must be valid
              */
-            const Vector<VulkanHelper::BLAS> BlasList;
+            Vector<VulkanHelper::BLAS> BlasList;
+
+            /**
+             * @brief Custom indices for each BLAS instance
+             * @note Array size must match BlasList size.
+             */
+            Vector<uint32_t> InstanceCustomIndices;
 
             /**
              * @brief Transform matrices for each BLAS instance
