@@ -41,6 +41,7 @@ target_link_libraries(
     portable_file_dialogs
     stb
     OpenVDB::openvdb
+    nanoVDB
 )
 
 # It's a shared library on Windows, static on Linux...

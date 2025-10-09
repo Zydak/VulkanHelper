@@ -107,6 +107,16 @@ namespace VulkanHelper
 
         ~Buffer();
 
+        [[nodiscard]] bool operator==(std::nullptr_t) const
+        {
+            return m_Impl == nullptr;
+        }
+
+        [[nodiscard]] bool operator!=(std::nullptr_t) const
+        {
+            return m_Impl != nullptr;
+        }
+
         /**
          * @brief Upload data to the buffer
          * @param data Pointer to source data

@@ -73,6 +73,15 @@ FetchContent_Declare(
     GIT_TAG c12ea8c9a727f5320a2b4570aee863bbede2a204
 )
 
+# Don't make this available, openvdb is built by VCPKG, the only reason that this is here is because
+# The VCPKG version decided to not distribute nanoVDB headers
+FetchContent_Declare(
+    openvdb-src
+    GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
+    GIT_TAG v12.1.1
+)
+FetchContent_Populate(openvdb-src)
+
 FetchContent_MakeAvailable(glfw)
 suppress_warnings(glfw)
 
@@ -170,3 +179,9 @@ target_sources(imgui PRIVATE
 target_link_libraries(imgui PRIVATE glfw Vulkan-Headers vulkan)
 
 suppress_warnings(imgui)
+
+# add nanoVDB headers library
+add_library(nanoVDB INTERFACE)
+target_include_directories(nanoVDB SYSTEM INTERFACE
+    "${openvdb-src_SOURCE_DIR}/nanovdb/"
+)

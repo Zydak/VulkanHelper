@@ -119,10 +119,6 @@ namespace VulkanHelper
     {
         VH_LOG_INFO("Allocating Descriptor Set from pool");
 
-        static int descriptorSetCounter = 0;
-        VH_LOG_FATAL("Descriptor Set Count: {}", descriptorSetCounter);
-        descriptorSetCounter++;
-
         if (config.Bindings == nullptr || config.BindingCount == 0)
         {
             VH_LOG_ERROR("Invalid DescriptorSet configuration: Bindings is null or BindingCount is zero.");
@@ -132,13 +128,6 @@ namespace VulkanHelper
         // Validate bindings
         for (uint32_t i = 0; i < config.BindingCount; ++i)
         {
-            VH_LOG_DEBUG("Allocating descriptor set binding {}: Type={}, Count={}, Stages={}",
-                config.Bindings[i].Binding,
-                static_cast<uint32_t>(config.Bindings[i].Type),
-                config.Bindings[i].DescriptorsCount,
-                static_cast<uint32_t>(config.Bindings[i].StageFlags)
-            );
-
             if (config.Bindings[i].Type == DescriptorType::UNDEFINED)
             {
                 VH_LOG_ERROR("Invalid DescriptorSet configuration: Binding[{}] has UNDEFINED type.", i);
