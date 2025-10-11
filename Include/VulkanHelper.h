@@ -39,6 +39,7 @@
 #include "Vulkan/Shader.h"
 #include "Vulkan/Swapchain.h"
 #include "Vulkan/TLAS.h"
+#include "Vulkan/BLASBuilder.h"
 
 //Window
 #include "Window/Window.h"

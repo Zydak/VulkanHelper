@@ -56,20 +56,7 @@ namespace VulkanHelper
              *       The acceleration structure will be built twice: once to get compaction info, then again in the compacted form.
              */
             bool EnableCompaction = false;
-
-            /**
-             * @brief Command buffer for BLAS construction
-             * @note Must not be nullptr and must be in recording state
-             */
-            VulkanHelper::CommandBuffer* CommandBuffer = nullptr;
         };
-
-        /**
-         * @brief Creates a new BLAS
-         * @param config Configuration parameters for the BLAS
-         * @return Expected containing the created BLAS or an error code
-         */
-        [[nodiscard]] static Expected<BLAS, VHResult> New(const Config& config);
 
         BLAS();
 

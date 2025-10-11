@@ -206,7 +206,7 @@ namespace VulkanHelper
         createInfo.ppEnabledExtensionNames = extensions.Data();
         createInfo.pNext = &features;
 
-        #if !defined(NDEBUG)
+        #if defined(INCLUDE_DEBUG_INFO)
         const char* validationLayer = "VK_LAYER_KHRONOS_validation";
         createInfo.enabledLayerCount = 1;
         createInfo.ppEnabledLayerNames = &validationLayer;
@@ -348,6 +348,10 @@ namespace VulkanHelper
 
             // Check for dedicated compute queue
             if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT && !(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+                indices.ComputeFamily = i;
+
+            // If no dedicated compute queue found, use graphics queue for compute as well
+            if (indices.ComputeFamily == UINT32_MAX && (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT))
                 indices.ComputeFamily = i;
 
             if (!windows.Empty())

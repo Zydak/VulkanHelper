@@ -8,8 +8,6 @@
 #include "CommandBufferImpl.h"
 #include "Vulkan/Image.h"
 #include "ImageImpl.h"
-#include "Vulkan/PhysicalDevice.h"
-#include "PhysicalDeviceImpl.h"
 #include "Log/Log.h"
 
 namespace VulkanHelper
@@ -580,5 +578,10 @@ namespace VulkanHelper
     void Buffer::Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage)
     {
         m_Impl->Barrier(CommandBuffer::Impl::GetImplementation(cmd), srcAccess, dstAccess, srcStage, dstStage);
+    }
+
+    uint64_t Buffer::GetDeviceAddress() const
+    {
+        return (uint64_t)m_Impl->GetDeviceAddress();
     }
 }

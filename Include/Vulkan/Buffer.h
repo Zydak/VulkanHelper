@@ -9,6 +9,7 @@
 #include "Vulkan/Device.h"
 #include "Vulkan/CommandBuffer.h"
 #include "Vulkan/Image.h"
+#include <cstdint>
 
 namespace VulkanHelper
 {
@@ -254,6 +255,13 @@ namespace VulkanHelper
          * @return true if mapped
          */
         [[nodiscard]] bool IsMapped() const;
+
+        /**
+         * @brief Get the device address of the buffer
+         * @return Device address
+         * @note Buffer must be created with Usage::SHADER_DEVICE_ADDRESS_BIT
+         */
+        [[nodiscard]] uint64_t GetDeviceAddress() const;
         
         void Barrier(CommandBuffer& cmd, AccessFlags srcAccess, AccessFlags dstAccess, PipelineStages srcStage, PipelineStages dstStage);
 

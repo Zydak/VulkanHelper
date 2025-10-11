@@ -14,7 +14,7 @@
 
 #include "FunctionLoader.h"
 
-#if !defined(NDEBUG)
+#if defined(INCLUDE_DEBUG_INFO)
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
@@ -115,7 +115,7 @@ namespace VulkanHelper
         }
 
         // Layers only enabled in debug builds
-        #if !defined(NDEBUG)
+        #if defined(INCLUDE_DEBUG_INFO)
             const char* debugLayer = "VK_LAYER_KHRONOS_validation";
             instanceCreateInfo.enabledLayerCount = 1;
             instanceCreateInfo.ppEnabledLayerNames = &debugLayer;
@@ -145,7 +145,7 @@ namespace VulkanHelper
         FunctionLoader::SetInstance(instance);
         
         VkDebugUtilsMessengerEXT messenger = VK_NULL_HANDLE;
-        #if !defined(NDEBUG)
+        #if defined(INCLUDE_DEBUG_INFO)
         Impl::CreateDebugUtilsMessengerEXT(instance, &debugLayersCreateInfo, &messenger);
         #endif
 

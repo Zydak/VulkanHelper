@@ -2,7 +2,6 @@
 
 #include "Vulkan/BLAS.h"
 #include "DeviceImpl.h"
-#include "VulkanMemoryAllocator.h"
 #include "Core/Vector.h"
 #include "BufferImpl.h"
 
@@ -10,18 +9,13 @@
 
 namespace VulkanHelper
 {
+    class BLASBuilder;
+
     class BLAS::Impl
     {
     public:
-        [[nodiscard]] static Expected<SharedPtr<Impl>, VHResult> New(
-            const SharedPtr<Device::Impl>& device,
-            const Vector<SharedPtr<Buffer::Impl>>& vertexBuffers,
-            uint32_t vertexSize,
-            const Vector<SharedPtr<Buffer::Impl>>& indexBuffers,
-            bool enableCompaction,
-            const SharedPtr<CommandBuffer::Impl>& commandBuffer
-        );
-
+        // Created only by BLASBuilder
+        
         ~Impl();
 
         Impl(Impl&& other) noexcept;
@@ -37,31 +31,21 @@ namespace VulkanHelper
         [[nodiscard]] VkDeviceAddress GetDeviceAddress() const;
 
     private:
-        VHResult Build(
-            const SharedPtr<CommandBuffer::Impl>& commandBuffer,
-            VkAccelerationStructureBuildRangeInfoKHR* buildRangeInfos,
-            VkAccelerationStructureBuildGeometryInfoKHR& buildInfo
-        );
-        VHResult Compact(const SharedPtr<CommandBuffer::Impl>& commandBuffer);
-
-        static constexpr size_t BLAS_MAX_SIZE = 256 * 1024 * 1024; // 256 MB max size for BLAS
 
         SharedPtr<Device::Impl> m_Device = nullptr;
         VkAccelerationStructureKHR m_Handle = VK_NULL_HANDLE;
         SharedPtr<Buffer::Impl> m_Buffer;
-        uint64_t m_ScratchBufferSize = 0;
 
         Impl(
             const SharedPtr<Device::Impl>& device,
             VkAccelerationStructureKHR handle, 
-            const SharedPtr<Buffer::Impl>& buffer,
-            uint64_t scratchBufferSize
+            const SharedPtr<Buffer::Impl>& buffer
         )
             : m_Device(device)
             , m_Handle(handle)
             , m_Buffer(buffer)
-            , m_ScratchBufferSize(scratchBufferSize)
         {}
-        
+
+        friend class BLASBuilder;
     };
 } 
