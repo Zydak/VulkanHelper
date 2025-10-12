@@ -75,6 +75,15 @@ namespace VulkanHelper
 
         ~TLAS();
 
+        /**
+         * @brief Updates the TLAS with new instance transforms
+         * @param transforms Array of new transform matrices for each BLAS instance
+         * @param count Number of transforms in the array, must match the number of BLAS instances
+         * @param commandBuffer Command buffer to record the update commands into
+         * @return VHResult indicating success or failure of the update operation
+         */
+        [[nodiscard]] VHResult Update(const glm::mat4* transforms, uint32_t count, VulkanHelper::CommandBuffer& commandBuffer);
+
         class Impl;
     private:
         friend class Impl;

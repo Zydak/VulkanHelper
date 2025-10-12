@@ -42,7 +42,7 @@ namespace VulkanHelper
             instances.Size() * sizeof(VkAccelerationStructureInstanceKHR),
             VulkanHelper::Buffer::Usage::TRANSFER_DST_BIT | VulkanHelper::Buffer::Usage::SHADER_DEVICE_ADDRESS_BIT | VulkanHelper::Buffer::Usage::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT,
             false, // Not mappable
-            device->GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment,
+            0, // No special alignment needed
             "TLAS Instances Buffer"
         );
 
@@ -88,15 +88,11 @@ namespace VulkanHelper
         instancesBuffer->Barrier(
             commandBuffer,
             VulkanHelper::AccessFlags::TRANSFER_WRITE_BIT,
-            VulkanHelper::AccessFlags::SHADER_READ_BIT,
+            VulkanHelper::AccessFlags::ACCELERATION_STRUCTURE_READ_BIT | VulkanHelper::AccessFlags::SHADER_READ_BIT,
             VulkanHelper::PipelineStages::TRANSFER_BIT,
             VulkanHelper::PipelineStages::ACCELERATION_STRUCTURE_BUILD_BIT_KHR
         );
-
-        VH_ASSERT(commandBuffer->EndRecording() == VHResult::OK, "Failed to end command buffer recording for TLAS creation");
-        VH_ASSERT(commandBuffer->SubmitAndWait() == VHResult::OK, "Failed to submit command buffer for TLAS creation");
-        VH_ASSERT(commandBuffer->BeginRecording(CommandBuffer::Usage::ONE_TIME_SUBMIT_BIT) == VHResult::OK, "Failed to begin command buffer recording for TLAS creation");
-
+        
         VkAccelerationStructureGeometryInstancesDataKHR instancesVk{};
         instancesVk.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
 		instancesVk.data.deviceAddress = instancesBuffer->GetDeviceAddress();
@@ -108,7 +104,7 @@ namespace VulkanHelper
 
         VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
         buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-		buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+		buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
 		buildInfo.geometryCount = 1;
 		buildInfo.pGeometries = &topASGeometry;
 		buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
@@ -185,9 +181,115 @@ namespace VulkanHelper
         return SharedPtr<Impl>(std::make_shared<Impl>(Impl(
             device,
             accelerationStructure,
-            VulkanHelper::Move(asBuffer),
-            blasList
+            Move(asBuffer),
+            Move(blasList),
+            Move(instances),
+            Move(instancesBuffer),
+            Move(scratchBuffer)
         )));
+    }
+
+    VHResult TLAS::Impl::Update(const glm::mat4* transforms, uint32_t transformCount, VulkanHelper::CommandBuffer& commandBuffer)
+    {
+        for (uint32_t i = 0; i < m_Instances.Size(); i++)
+        {
+            m_Instances[i].transform = ConvertToVulkanMatrix(transforms[i]);
+        }
+
+        // Make a staging buffer for the instances data
+        auto stagingBufferRes = VulkanHelper::Buffer::Impl::New(
+            m_Device,
+            m_Instances.Size() * sizeof(VkAccelerationStructureInstanceKHR),
+            VulkanHelper::Buffer::Usage::TRANSFER_SRC_BIT,
+            true, // Mappable
+            1, // No special alignment needed
+            "TLAS Instances Staging Buffer"
+        );
+        if (!stagingBufferRes.HasValue())
+        {
+            VH_LOG_ERROR("Failed to create staging buffer for TLAS instances");
+            return stagingBufferRes.Error();
+        }
+
+        SharedPtr<Buffer::Impl> stagingBuffer = Move(stagingBufferRes.Value());
+
+        auto res = stagingBuffer->UploadData(m_Instances.Data(), m_Instances.Size() * sizeof(VkAccelerationStructureInstanceKHR), 0);
+        if (res != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to upload instances buffer");
+            return res;
+        }
+
+        // Copy staging buffer to device local buffer
+        res = m_InstancesBuffer->CopyFromBuffer(
+            CommandBuffer::Impl::GetImplementation(commandBuffer),
+            stagingBuffer,
+            0,
+            0,
+            m_Instances.Size() * sizeof(VkAccelerationStructureInstanceKHR)
+        );
+
+        if (res != VHResult::OK)
+        {
+            VH_LOG_ERROR("Failed to copy instances buffer to device local memory");
+            return res;
+        }
+
+        m_InstancesBuffer->Barrier(
+            CommandBuffer::Impl::GetImplementation(commandBuffer),
+            VulkanHelper::AccessFlags::TRANSFER_WRITE_BIT,
+            VulkanHelper::AccessFlags::ACCELERATION_STRUCTURE_READ_BIT | VulkanHelper::AccessFlags::SHADER_READ_BIT,
+            VulkanHelper::PipelineStages::TRANSFER_BIT,
+            VulkanHelper::PipelineStages::ACCELERATION_STRUCTURE_BUILD_BIT_KHR
+        );
+
+        VkAccelerationStructureGeometryInstancesDataKHR instancesVk{};
+        instancesVk.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+		instancesVk.data.deviceAddress = m_InstancesBuffer->GetDeviceAddress();
+
+        uint64_t instanceCount = m_Instances.Size();
+
+        if (transformCount != instanceCount)
+        {
+            VH_LOG_ERROR("Transform count does not match instance count in TLAS update");
+            return VHResult::WRONG_ARGUMENTS;
+        }
+
+        VkAccelerationStructureGeometryKHR topASGeometry{};
+        topASGeometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+		topASGeometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+		topASGeometry.geometry.instances = instancesVk;
+
+        VkAccelerationStructureBuildGeometryInfoKHR buildInfo{};
+        buildInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+		buildInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+		buildInfo.geometryCount = 1;
+		buildInfo.pGeometries = &topASGeometry;
+		buildInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+		buildInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+        
+		buildInfo.srcAccelerationStructure = m_Handle;
+        buildInfo.dstAccelerationStructure = m_Handle;
+
+        buildInfo.scratchData.deviceAddress = m_ScratchBuffer->GetDeviceAddress();
+
+        const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo{
+            .primitiveCount = (uint32_t)instanceCount,
+            .primitiveOffset = 0,
+            .firstVertex = 0,
+            .transformOffset = 0
+        };
+
+        const VkAccelerationStructureBuildRangeInfoKHR* buildRangeInfos[] = { &buildRangeInfo };
+
+        FunctionLoader::vkCmdBuildAccelerationStructuresKHR(
+            CommandBuffer::Impl::GetImplementation(commandBuffer)->GetCommandBuffer(),
+            1,
+            &buildInfo,
+            buildRangeInfos
+        );
+
+        return VHResult::OK;
     }
 
     VkTransformMatrixKHR TLAS::Impl::ConvertToVulkanMatrix(const glm::mat4& mat)
@@ -217,8 +319,17 @@ namespace VulkanHelper
         , m_Handle(other.m_Handle)
         , m_Buffer(VulkanHelper::Move(other.m_Buffer))
         , m_BlasList(Move(other.m_BlasList))
+        , m_Instances(Move(other.m_Instances))
+        , m_InstancesBuffer(VulkanHelper::Move(other.m_InstancesBuffer))
+        , m_ScratchBuffer(VulkanHelper::Move(other.m_ScratchBuffer))
     {
         other.m_Handle = VK_NULL_HANDLE;
+        other.m_Instances.Clear();
+        other.m_InstancesBuffer = nullptr;
+        other.m_BlasList.Clear();
+        other.m_Device = nullptr;
+        other.m_Buffer = nullptr;
+        other.m_ScratchBuffer = nullptr;
     }
 
     TLAS::Impl& TLAS::Impl::operator=(Impl&& other) noexcept
@@ -229,7 +340,17 @@ namespace VulkanHelper
             m_Handle = other.m_Handle;
             m_Buffer = VulkanHelper::Move(other.m_Buffer);
             m_BlasList = Move(other.m_BlasList);
+            m_Instances = Move(other.m_Instances);
+            m_InstancesBuffer = VulkanHelper::Move(other.m_InstancesBuffer);
+            m_ScratchBuffer = VulkanHelper::Move(other.m_ScratchBuffer);
+
             other.m_Handle = VK_NULL_HANDLE;
+            other.m_Instances.Clear();
+            other.m_InstancesBuffer = nullptr;
+            other.m_BlasList.Clear();
+            other.m_Device = nullptr;
+            other.m_Buffer = nullptr;
+            other.m_ScratchBuffer = nullptr;
         }
         return *this;
     }
@@ -321,5 +442,10 @@ namespace VulkanHelper
         : m_Impl(impl)
     {
 
+    }
+
+    VHResult TLAS::Update(const glm::mat4* transforms, uint32_t count, VulkanHelper::CommandBuffer& commandBuffer)
+    {
+        return m_Impl->Update(transforms, count, commandBuffer);
     }
 }
