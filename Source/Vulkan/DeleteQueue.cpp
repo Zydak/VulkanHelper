@@ -88,7 +88,10 @@ namespace VulkanHelper
     {
         if (buffer != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER, (uint64_t)buffer, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::BUFFER, (uint64_t)buffer, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::BUFFER, (uint64_t)buffer, framesToWait);
         }
     }
 
@@ -96,7 +99,10 @@ namespace VulkanHelper
     {
         if (image != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE, (uint64_t)image, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::IMAGE, (uint64_t)image, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::IMAGE, (uint64_t)image, framesToWait);
         }
     }
 
@@ -104,7 +110,10 @@ namespace VulkanHelper
     {
         if (imageView != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_VIEW, (uint64_t)imageView, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::IMAGE_VIEW, (uint64_t)imageView, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_VIEW, (uint64_t)imageView, framesToWait);
         }
     }
 
@@ -112,7 +121,10 @@ namespace VulkanHelper
     {
         if (sampler != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SAMPLER, (uint64_t)sampler, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::SAMPLER, (uint64_t)sampler, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::SAMPLER, (uint64_t)sampler, framesToWait);
         }
     }
 
@@ -120,7 +132,10 @@ namespace VulkanHelper
     {
         if (pipeline != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE, (uint64_t)pipeline, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::PIPELINE, (uint64_t)pipeline, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE, (uint64_t)pipeline, framesToWait);
         }
     }
 
@@ -128,7 +143,10 @@ namespace VulkanHelper
     {
         if (pipelineLayout != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE_LAYOUT, (uint64_t)pipelineLayout, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::PIPELINE_LAYOUT, (uint64_t)pipelineLayout, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::PIPELINE_LAYOUT, (uint64_t)pipelineLayout, framesToWait);
         }
     }
 
@@ -136,7 +154,10 @@ namespace VulkanHelper
     {
         if (descriptorSetLayout != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_SET_LAYOUT, (uint64_t)descriptorSetLayout, framesToWait);
         }
     }
 
@@ -144,7 +165,10 @@ namespace VulkanHelper
     {
         if (descriptorPool != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_POOL, (uint64_t)descriptorPool, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::DESCRIPTOR_POOL, (uint64_t)descriptorPool, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::DESCRIPTOR_POOL, (uint64_t)descriptorPool, framesToWait);
         }
     }
 
@@ -152,7 +176,10 @@ namespace VulkanHelper
     {
         if (commandPool != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::COMMAND_POOL, (uint64_t)commandPool, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::COMMAND_POOL, (uint64_t)commandPool, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::COMMAND_POOL, (uint64_t)commandPool, framesToWait);
         }
     }
 
@@ -160,7 +187,10 @@ namespace VulkanHelper
     {
         if (fence != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::FENCE, (uint64_t)fence, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::FENCE, (uint64_t)fence, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::FENCE, (uint64_t)fence, framesToWait);
         }
     }
 
@@ -168,7 +198,10 @@ namespace VulkanHelper
     {
         if (semaphore != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SEMAPHORE, (uint64_t)semaphore, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::SEMAPHORE, (uint64_t)semaphore, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::SEMAPHORE, (uint64_t)semaphore, framesToWait);
         }
     }
 
@@ -176,7 +209,10 @@ namespace VulkanHelper
     {
         if (swapchain != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SWAPCHAIN, (uint64_t)swapchain, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::SWAPCHAIN, (uint64_t)swapchain, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::SWAPCHAIN, (uint64_t)swapchain, framesToWait);
         }
     }
 
@@ -184,7 +220,10 @@ namespace VulkanHelper
     {
         if (shaderModule != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::SHADER_MODULE, (uint64_t)shaderModule, framesToWait);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::SHADER_MODULE, (uint64_t)shaderModule, 0 });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::SHADER_MODULE, (uint64_t)shaderModule, framesToWait);
         }
     }
 
@@ -192,7 +231,10 @@ namespace VulkanHelper
     {
         if (allocation.Buffer != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::BUFFER_ALLOCATION, (uint64_t)allocation.Buffer, framesToWait, allocation.Allocation);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::BUFFER_ALLOCATION, (uint64_t)allocation.Buffer, 0, allocation.Allocation });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::BUFFER_ALLOCATION, (uint64_t)allocation.Buffer, framesToWait, allocation.Allocation);
         }
     }
 
@@ -200,7 +242,10 @@ namespace VulkanHelper
     {
         if (allocation.image != VK_NULL_HANDLE)
         {
-            m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_ALLOCATION, (uint64_t)allocation.image, framesToWait, allocation.Allocation);
+            if (framesToWait == 0)
+                DestroyObject({ ObjectType::IMAGE_ALLOCATION, (uint64_t)allocation.image, 0, allocation.Allocation });
+            else
+                m_DeletionQueue.EmplaceBack(ObjectType::IMAGE_ALLOCATION, (uint64_t)allocation.image, framesToWait, allocation.Allocation);
         }
     }
 

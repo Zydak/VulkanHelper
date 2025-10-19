@@ -426,7 +426,7 @@ namespace VulkanHelper
             config.CpuMapable,
             config.MinAlignment,
             config.DebugName,
-            1 // TODO
+            config.DeleteDelayInFrames
         );
 
         if (!implResult.HasValue())
