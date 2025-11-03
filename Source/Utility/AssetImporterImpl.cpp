@@ -444,7 +444,7 @@ namespace VulkanHelper
         }
 
         aiString emissiveTexPath;
-        if (material->GetTexture(aiTextureType_EMISSION_COLOR, 0, &emissiveTexPath) == AI_SUCCESS)
+        if (material->GetTexture(aiTextureType_EMISSIVE, 0, &emissiveTexPath) == AI_SUCCESS)
         {
             materialAsset.EmissiveTextureFilepath = emissiveTexPath.C_Str();
         }

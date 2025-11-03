@@ -19,9 +19,9 @@ namespace VulkanHelper
             Format* vertexAttributes,
             uint32_t vertexAttributeCount,
             void* vertexData,
-            uint32_t vertexDataSize,
+            uint64_t vertexDataSize,
             void* indexData,
-            uint32_t indexDataSize,
+            uint64_t indexDataSize,
             VulkanHelper::Buffer::Usage AdditionalUsageFlags
         );
 
