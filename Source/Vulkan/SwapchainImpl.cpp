@@ -318,6 +318,8 @@ namespace VulkanHelper
 
         if (res != VHResult::OK)
         {
+            // Reset the fence if the submission failed
+            vkResetFences(m_Device->GetDevice(), 1, &fence);
             return res;
         }
 

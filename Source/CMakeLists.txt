@@ -42,6 +42,7 @@ target_link_libraries(
     stb
     OpenVDB::openvdb
     nanoVDB
+    ImReflect
 )
 
 # It's a shared library on Windows, static on Linux...

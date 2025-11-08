@@ -332,7 +332,7 @@ namespace VulkanHelper
         }
         else if (res != VHResult::OK)
         {
-            VH_LOG_DEBUG("Failed to submit command buffer");
+            VH_LOG_DEBUG("Failed to submit command buffer: {}", (int)res);
             return res;
         }
 

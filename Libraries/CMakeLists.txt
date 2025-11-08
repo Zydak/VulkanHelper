@@ -73,6 +73,12 @@ FetchContent_Declare(
     GIT_TAG c12ea8c9a727f5320a2b4570aee863bbede2a204
 )
 
+FetchContent_Declare(
+    ImReflect
+    GIT_REPOSITORY https://github.com/Sven-vh/ImReflect.git
+    GIT_TAG 47519160f1d922e957501073a81bc04a3c0e740f
+)
+
 # Don't make this available, openvdb is built by VCPKG, the only reason that this is here is because
 # The VCPKG version decided to not distribute nanoVDB headers
 FetchContent_Declare(
@@ -103,6 +109,8 @@ FetchContent_MakeAvailable(VulkanMemoryAllocator)
 FetchContent_MakeAvailable(Vulkan-Headers)
 FetchContent_MakeAvailable(Vulkan-Loader)
 FetchContent_MakeAvailable(pfd)
+
+FetchContent_MakeAvailable(ImReflect)
 
 target_include_directories(portable_file_dialogs SYSTEM INTERFACE "${PROJECT_SOURCE_DIR}/Libraries/pfd-src/")
 
@@ -166,6 +174,7 @@ add_library(imgui STATIC)
 target_include_directories(imgui PUBLIC 
     "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/"
     "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/backends/"
+    "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/misc/cpp/"
 )
 target_sources(imgui PRIVATE
     "${PROJECT_SOURCE_DIR}/Libraries/imgui-src/imgui.cpp"
@@ -184,4 +193,10 @@ suppress_warnings(imgui)
 add_library(nanoVDB INTERFACE)
 target_include_directories(nanoVDB SYSTEM INTERFACE
     "${openvdb-src_SOURCE_DIR}/nanovdb/"
+)
+
+# ImReflect library
+add_library(ImReflect INTERFACE)
+target_include_directories(ImReflect SYSTEM INTERFACE
+    "${PROJECT_SOURCE_DIR}/Libraries/imreflect-src/"
 )
