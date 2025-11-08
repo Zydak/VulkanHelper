@@ -39,6 +39,12 @@ namespace VulkanHelper
             return VulkanHelper::Unexpected(VHResult(res));
         }
 
+        if (surfaceCapabilities.currentExtent.width <= 0 || surfaceCapabilities.currentExtent.height <= 0)
+        {
+            VH_LOG_ERROR("Invalid window size for swapchain recreation");
+            return VulkanHelper::Unexpected(VHResult::INVALID_WINDOW_SIZE);
+        }
+
         // Get format info
         uint32_t formatCount;
         res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDeviceImpl->GetDevice(), window->GetSurface(), &formatCount, nullptr);

@@ -269,12 +269,18 @@ namespace VulkanHelper
         if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0)
             return Unexpected(VHResult::INVALID_WINDOW_SIZE);
 
+        // Also check surface, on windows when window is minimized the surface is 0 but window size is not
+
+        // Todo, abstract this?
+        SharedPtr<PhysicalDevice::Impl> physicalDeviceImpl = m_Device->GetPhysicalDevice();
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        VkResult resVk = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDeviceImpl->GetDevice(), m_Window->GetSurface(), &surfaceCapabilities);
+        if (resVk != VK_SUCCESS || surfaceCapabilities.currentExtent.width == 0 || surfaceCapabilities.currentExtent.height == 0)
+            return Unexpected(VHResult::INVALID_WINDOW_SIZE);
+
         VHResult res = m_Swapchain.AcquireNextImage();
         if (res == VHResult::OUT_OF_DATE_KHR)
         {
-            if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0)
-                return Unexpected(VHResult::INVALID_WINDOW_SIZE);
-
             res = RecreateSwapchain();
             if (outWasSwapchainRecreated)
                 *outWasSwapchainRecreated = true;
@@ -505,7 +511,7 @@ namespace VulkanHelper
         auto swapchainResult = Swapchain::Impl::New(m_Device, m_Window, Swapchain::Impl::GetImplementation(oldSwapchain));
         if (!swapchainResult.HasValue())
         {
-            VH_LOG_ERROR("Failed to recreate swapchain");
+            m_Swapchain = Move(oldSwapchain); // Rollback to old swapchain if creation failed
             return swapchainResult.Error();
         }
 

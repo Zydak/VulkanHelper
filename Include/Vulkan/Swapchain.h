@@ -60,6 +60,16 @@ namespace VulkanHelper
 
         ~Swapchain();
 
+        [[nodiscard]] bool operator==(std::nullptr_t) const
+        {
+            return m_Impl == nullptr;
+        }
+
+        [[nodiscard]] bool operator!=(std::nullptr_t) const
+        {
+            return m_Impl != nullptr;
+        }
+
         /**
          * @brief Gets the next available swapchain image for rendering.
          * 
