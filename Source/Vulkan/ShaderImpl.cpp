@@ -18,6 +18,16 @@ namespace VulkanHelper
 
     void Shader::Impl::InitializeSession(const char* shaderSearchPath, uint32_t definesCount, const Define* defines)
     {
+        // Release old sessions in reverse order of creation to avoid use-after-free
+        if (s_Session)
+        {
+            s_Session.setNull();
+        }
+        if (s_GlobalSession)
+        {
+            s_GlobalSession.setNull();
+        }
+
         slang::createGlobalSession(s_GlobalSession.writeRef());
 
         Vector<slang::PreprocessorMacroDesc> macros(definesCount);
